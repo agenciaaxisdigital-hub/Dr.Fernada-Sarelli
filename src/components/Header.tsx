@@ -56,7 +56,7 @@ const Header = () => {
         {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden rounded-lg p-2 text-foreground hover:bg-muted"
+          className="lg:hidden rounded-lg p-2 text-foreground hover:bg-muted"
           aria-label="Menu"
         >
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
