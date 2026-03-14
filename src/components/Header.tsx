@@ -71,7 +71,7 @@ const Header = () => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden border-t md:hidden bg-background"
+            className="overflow-hidden border-t lg:hidden bg-background"
           >
             <div className="container flex flex-col gap-1 py-4">
               {navItems.map((item) => (
