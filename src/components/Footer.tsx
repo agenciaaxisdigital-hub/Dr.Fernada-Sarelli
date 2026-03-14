@@ -1,24 +1,57 @@
 import { Link } from "react-router-dom";
-import { Heart } from "lucide-react";
+import { Instagram, Facebook, MessageCircle, Heart } from "lucide-react";
 
 const Footer = () => (
-  <footer className="border-t bg-secondary">
-    <div className="container py-10">
-      <div className="flex flex-col items-center gap-4 md:flex-row md:justify-between">
-        <Link to="/" className="text-lg font-bold text-primary">
-          Chama Doutora
-        </Link>
-        <nav className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-          <Link to="/sobre" className="hover:text-primary transition-colors">Sobre</Link>
-          <Link to="/agenda" className="hover:text-primary transition-colors">Agenda</Link>
-          <Link to="/redes-sociais" className="hover:text-primary transition-colors">Redes Sociais</Link>
-          <Link to="/contato" className="hover:text-primary transition-colors">Contato</Link>
-        </nav>
+  <footer className="bg-footer text-footer-foreground">
+    <div className="container py-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        {/* Brand */}
+        <div>
+          <h3 className="text-lg font-bold text-primary-foreground">Dra. Fernanda Sarelli</h3>
+          <p className="mt-2 text-sm">Pré-candidata a Deputada Estadual por Goiás 2026.</p>
+        </div>
+
+        {/* Navegação */}
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-foreground mb-4">Navegação</h4>
+          <nav className="flex flex-col gap-2 text-sm">
+            <Link to="/" className="hover:text-primary-foreground transition-colors">Início</Link>
+            <Link to="/sobre" className="hover:text-primary-foreground transition-colors">Sobre</Link>
+            <Link to="/agenda" className="hover:text-primary-foreground transition-colors">Agenda</Link>
+            <Link to="/contato" className="hover:text-primary-foreground transition-colors">Contato</Link>
+          </nav>
+        </div>
+
+        {/* Contato */}
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-foreground mb-4">Contato</h4>
+          <div className="space-y-1 text-sm">
+            <p>Goiânia — GO, Brasil</p>
+            <p>contato@fernandasarelli.com.br</p>
+            <p>(62) 98133-6168</p>
+          </div>
+          <div className="flex items-center gap-3 mt-4">
+            <a href="https://www.instagram.com/drafernandasarelli/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
+              <Instagram className="h-4 w-4" />
+            </a>
+            <a href="https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
+              <Facebook className="h-4 w-4" />
+            </a>
+            <a href="https://w.app/drafernandasarelli" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
       </div>
-      <div className="mt-8 flex items-center justify-center gap-1 text-xs text-muted-foreground">
-        <span>Feito com</span>
-        <Heart className="h-3 w-3 fill-primary text-primary" />
-        <span>por Fernanda Sarelli</span>
+    </div>
+
+    {/* Bottom bar */}
+    <div className="border-t border-primary-foreground/10">
+      <div className="container flex flex-col sm:flex-row items-center justify-between py-4 text-xs">
+        <p>© 2026 Dra. Fernanda Sarelli. Todos os direitos reservados.</p>
+        <p className="flex items-center gap-1 mt-2 sm:mt-0">
+          Feito com <Heart className="h-3 w-3 fill-primary text-primary" /> para Goiás
+        </p>
       </div>
     </div>
   </footer>
