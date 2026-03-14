@@ -23,7 +23,7 @@ const Header = () => {
         </Link>
 
         {/* Social icons + Nav desktop */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <div className="flex items-center gap-2">
             <a href="https://www.instagram.com/drafernandasarelli/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors">
               <Instagram className="h-4 w-4" />
