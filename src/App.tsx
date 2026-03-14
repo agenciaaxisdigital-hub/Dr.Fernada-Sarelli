@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Sobre from "./pages/Sobre";
 import Agenda from "./pages/Agenda";
 import RedesSociais from "./pages/RedesSociais";
+import Integracao from "./pages/Integracao";
 import Contato from "./pages/Contato";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/sobre" element={<Sobre />} />
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/redes-sociais" element={<RedesSociais />} />
+          <Route path="/integracao" element={<Integracao />} />
           <Route path="/contato" element={<Contato />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin" element={<Admin />} />

@@ -1,68 +1,167 @@
 import { Link } from "react-router-dom";
-import { Heart, Users, BookOpen, Shield, Stethoscope, GraduationCap, Landmark, Baby, Leaf } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import ScrollReveal from "@/components/ScrollReveal";
+import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon } from "lucide-react";
+import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
+import WaveDivider from "@/components/WaveDivider";
+import ScrollReveal from "@/components/ScrollReveal";
+
+const PHOTO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699400706d955b03c8c19827/16e72069d_WhatsAppImage2026-02-17at023641.jpeg";
 
 const bandeiras = [
-  { icon: Stethoscope, title: "Saúde Pública", desc: "Acesso universal e de qualidade para todos." },
-  { icon: GraduationCap, title: "Educação", desc: "Investimento em ensino público e inclusivo." },
-  { icon: Users, title: "Direitos das Mulheres", desc: "Igualdade, segurança e autonomia feminina." },
-  { icon: Shield, title: "Segurança", desc: "Políticas preventivas e proteção comunitária." },
-  { icon: Baby, title: "Primeira Infância", desc: "Cuidado e desenvolvimento desde os primeiros anos." },
-  { icon: Landmark, title: "Transparência", desc: "Gestão pública aberta e participativa." },
-  { icon: Leaf, title: "Meio Ambiente", desc: "Desenvolvimento sustentável e responsável." },
-  { icon: BookOpen, title: "Cultura", desc: "Valorização da identidade e diversidade cultural." },
+  {
+    icon: Heart,
+    title: "Defesa da Mulher",
+    desc: "Compromisso com os direitos, saúde e proteção integral das mulheres goianas. Combate à violência, igualdade de oportunidades e empoderamento feminino.",
+  },
+  {
+    icon: Shield,
+    title: "Defesa da Criança",
+    desc: "Proteção integral da infância e adolescência. Garantia de direitos fundamentais, combate ao abuso e acesso pleno à saúde e educação de qualidade.",
+  },
+  {
+    icon: Users,
+    title: "Famílias em Vulnerabilidade",
+    desc: "Políticas públicas efetivas de assistência social, geração de emprego e renda, moradia digna e apoio integral às famílias em situação de risco.",
+  },
+  {
+    icon: Scale,
+    title: "Igualdade e Políticas Públicas",
+    desc: "Promoção da igualdade, inclusão social e políticas públicas que garantam dignidade, cidadania e oportunidades para toda população goiana.",
+  },
+];
+
+const eventos = [
+  { dia: "14", mes: "MAR", diaSemana: "sábado", dataFull: "14 de março", titulo: "Encontro Comunitário — Saúde para Todos", hora: "14:00", local: "Goiânia — Centro de Convenções", desc: "Evento aberto à comunidade para discutir melhorias na saúde pública goiana.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Encontro+Comunit%C3%A1rio+%E2%80%94+Sa%C3%BAde+para+Todos&dates=20260314T180000Z%2F20260314T200000Z&details=Evento+aberto+%C3%A0+comunidade+para+discutir+melhorias+na+sa%C3%BAde+p%C3%BAblica+goiana.&location=Goi%C3%A2nia%2C+Centro+de+Conven%C3%A7%C3%B5es" },
+  { dia: "21", mes: "MAR", diaSemana: "sábado", dataFull: "21 de março", titulo: "Audiência Pública — Educação em Goiás", hora: "09:00", local: "Anápolis — Câmara Municipal", desc: "Debate sobre investimentos e políticas educacionais para o estado.", destaque: false, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Audi%C3%AAncia+P%C3%BAblica+%E2%80%94+Educa%C3%A7%C3%A3o+em+Goi%C3%A1s&dates=20260321T130000Z%2F20260321T150000Z&details=Debate+sobre+investimentos+e+pol%C3%ADticas+educacionais+para+o+estado.&location=An%C3%A1polis%2C+C%C3%A2mara+Municipal" },
+  { dia: "04", mes: "ABR", diaSemana: "sábado", dataFull: "04 de abril", titulo: "Caravana da Saúde — Região Metropolitana", hora: "08:00", local: "Aparecida de Goiânia — Praça Central", desc: "Atendimento gratuito e orientações de saúde para a população.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Caravana+da+Sa%C3%BAde+%E2%80%94+Regi%C3%A3o+Metropolitana&dates=20260404T120000Z%2F20260404T140000Z&details=Atendimento+gratuito+e+orienta%C3%A7%C3%B5es+de+sa%C3%BAde+para+a+popula%C3%A7%C3%A3o.&location=Aparecida+de+Goi%C3%A2nia%2C+Pra%C3%A7a+Central" },
+];
+
+const redes = [
+  { icon: MessageCircle, label: "WhatsApp", handle: "(62) 98133-6168", url: "https://w.app/drafernandasarelli" },
+  { icon: Facebook, label: "Facebook", handle: "@drafernandaSarelli", url: "https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" },
+  { icon: Instagram, label: "Instagram", handle: "@drafernandasarelli", url: "https://www.instagram.com/drafernandasarelli/" },
 ];
 
 const Index = () => {
   return (
     <Layout>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-background py-20 md:py-32">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_hsl(340_82%_90%/0.5),_transparent_60%)]" />
-        <div className="container relative">
-          <ScrollReveal>
-            <p className="ui-caps text-sm text-primary mb-4">Fernanda Sarelli</p>
-          </ScrollReveal>
-          <ScrollReveal delay={0.1}>
-            <h1 className="max-w-3xl">
-              Coragem para cuidar,{" "}
-              <span className="text-primary">voz para transformar.</span>
-            </h1>
-          </ScrollReveal>
-          <ScrollReveal delay={0.2}>
-            <p className="mt-6 max-w-xl text-lg text-muted-foreground text-pretty leading-relaxed">
-              Nossa luta é por uma cidade mais justa, humana e transparente. Conheça nossas bandeiras e faça parte dessa transformação.
-            </p>
-          </ScrollReveal>
-          <ScrollReveal delay={0.3}>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Button asChild size="lg" className="rounded-full">
-                <Link to="/contato">Entre em Contato</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full">
-                <Link to="/sobre">Conheça a Fernanda</Link>
-              </Button>
+      <section className="gradient-hero relative overflow-hidden">
+        <div className="container relative z-10 py-16 md:py-24">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <ScrollReveal>
+                <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-1.5 text-sm font-medium text-primary-foreground">
+                  <span className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" />
+                  Pré-candidata 2026
+                </span>
+              </ScrollReveal>
+
+              <ScrollReveal delay={0.1}>
+                <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary-foreground leading-tight">
+                  Dra. Fernanda{" "}
+                  <span className="text-primary-foreground">Sarelli</span>
+                </h1>
+              </ScrollReveal>
+
+              <ScrollReveal delay={0.15}>
+                <p className="mt-2 text-lg font-bold uppercase tracking-wider text-primary-foreground/80">
+                  CHAMA A DOUTORA
+                </p>
+              </ScrollReveal>
+
+              <ScrollReveal delay={0.2}>
+                <p className="mt-4 text-primary-foreground/80 leading-relaxed max-w-md">
+                  Pré-candidata a Deputada Estadual por Goiás, com compromisso real com a defesa da mulher e da criança.
+                </p>
+              </ScrollReveal>
+
+              <ScrollReveal delay={0.25}>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link
+                    to="/agenda"
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Ver Agenda
+                  </Link>
+                  <a
+                    href="https://w.app/drafernandasarelli"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border-2 border-primary-foreground/40 px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+                  >
+                    <Users className="h-4 w-4" />
+                    Faça Parte
+                  </a>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal delay={0.3}>
+                <div className="mt-8 flex items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary-foreground">GO</p>
+                    <p className="text-xs text-primary-foreground/70">Estado</p>
+                  </div>
+                  <div className="h-10 w-px bg-primary-foreground/20" />
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary-foreground">2026</p>
+                    <p className="text-xs text-primary-foreground/70">Eleições</p>
+                  </div>
+                  <Link
+                    to="/sobre"
+                    className="flex flex-col items-center gap-1 text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/30">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <p className="text-xs">Sobre Mim</p>
+                  </Link>
+                </div>
+              </ScrollReveal>
             </div>
-          </ScrollReveal>
+
+            {/* Photo */}
+            <ScrollReveal delay={0.2} direction="right">
+              <div className="flex justify-center md:justify-end">
+                <div className="relative">
+                  <div className="h-72 w-72 md:h-96 md:w-96 rounded-full border-4 border-primary overflow-hidden shadow-2xl">
+                    <img
+                      src={PHOTO_URL}
+                      alt="Dra. Fernanda Sarelli"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
         </div>
+        <WaveDivider />
       </section>
 
       {/* Bandeiras */}
-      <section className="bg-secondary py-20">
+      <section className="py-16 md:py-20">
         <div className="container">
           <ScrollReveal>
-            <p className="ui-caps text-sm text-primary mb-2">Nossas Bandeiras</p>
-            <h2>Pelo que lutamos</h2>
+            <div className="text-center">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">🏛️ Compromissos Institucionais</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Nossas Bandeiras</h2>
+              <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+                Pilares fundamentais que guiam nossa atuação por um Goiás mais justo e inclusivo
+              </p>
+            </div>
           </ScrollReveal>
-          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {bandeiras.map((b, i) => (
               <ScrollReveal key={b.title} delay={i * 0.1}>
-                <div className="rounded-2xl border border-accent bg-card p-6 transition-colors hover:border-primary/30">
-                  <b.icon className="h-8 w-8 text-primary mb-4" />
-                  <h3 className="text-base font-semibold">{b.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{b.desc}</p>
+                <div className="rounded-2xl border bg-card p-6 h-full transition-shadow hover:shadow-lg">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent mb-4">
+                    <b.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold">{b.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -70,23 +169,151 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20">
+      {/* Próximos Eventos */}
+      <section className="bg-secondary py-16 md:py-20">
+        <div className="container">
+          <ScrollReveal>
+            <div className="text-center">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Próximos Eventos</h2>
+              <p className="mt-3 text-muted-foreground">Acompanhe a agenda de atividades</p>
+            </div>
+          </ScrollReveal>
+
+          <div className="mt-10 space-y-4 max-w-3xl mx-auto">
+            {eventos.map((e, i) => (
+              <ScrollReveal key={e.titulo} delay={i * 0.1}>
+                <div className="flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-soft">
+                  {/* Date badge */}
+                  <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
+                    <span className="text-xl font-bold leading-none">{e.dia}</span>
+                    <span className="text-xs font-semibold uppercase">{e.mes}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold">{e.titulo}</h3>
+                      {e.destaque && (
+                        <span className="flex-shrink-0 rounded-full border border-primary/30 bg-accent px-3 py-0.5 text-xs font-semibold text-primary">
+                          Destaque
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{e.hora}</span>
+                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{e.local}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{e.desc}</p>
+                    <a
+                      href={e.gcal}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Adicionar ao Google
+                    </a>
+                  </div>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              to="/agenda"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+            >
+              Ver agenda completa
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Redes Sociais */}
+      <section className="py-16 md:py-20">
+        <div className="container">
+          <ScrollReveal>
+            <div className="text-center">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Redes Sociais</h2>
+              <p className="mt-3 text-muted-foreground">Acompanhe nas redes oficiais</p>
+            </div>
+          </ScrollReveal>
+
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {redes.map((r, i) => (
+              <ScrollReveal key={r.label} delay={i * 0.1}>
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-3 rounded-2xl border bg-card p-8 text-center transition-shadow hover:shadow-lg group"
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <r.icon className="h-7 w-7 text-primary group-hover:text-primary-foreground transition-colors" />
+                  </div>
+                  <h3 className="font-semibold">{r.label}</h3>
+                  <p className="text-sm text-primary">{r.handle}</p>
+                </a>
+              </ScrollReveal>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              to="/redes-sociais"
+              className="inline-flex items-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              Ver todas as redes
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Fale Conosco */}
+      <section className="bg-secondary py-16 md:py-20">
         <div className="container text-center">
           <ScrollReveal>
-            <Heart className="mx-auto h-10 w-10 text-primary mb-4" />
-            <h2>Faça parte dessa história</h2>
-            <p className="mt-4 text-muted-foreground max-w-md mx-auto text-pretty">
-              Entre em contato, acompanhe nossa agenda e conecte-se nas redes sociais.
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Fale Conosco</h2>
+            <p className="mt-3 text-muted-foreground max-w-md mx-auto">
+              Quer saber mais sobre nossas propostas ou fazer parte da nossa equipe? Entre em contato.
             </p>
-            <div className="mt-8 flex justify-center gap-4 flex-wrap">
-              <Button asChild size="lg" className="rounded-full">
-                <Link to="/contato">Enviar Mensagem</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full">
-                <Link to="/agenda">Ver Agenda</Link>
-              </Button>
+            <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+              <p className="flex items-center justify-center gap-2"><Mail className="h-4 w-4 text-primary" />contato@fernandasarelli.com.br</p>
+              <p className="flex items-center justify-center gap-2"><MapPinIcon className="h-4 w-4 text-primary" />Goiânia — GO</p>
             </div>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <a
+                href="https://w.app/drafernandasarelli"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+              >
+                Enviar Mensagem
+              </a>
+              <Link
+                to="/integracao"
+                className="inline-flex items-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                Integração
+              </Link>
+            </div>
+          </ScrollReveal>
+
+          {/* WhatsApp banner */}
+          <ScrollReveal delay={0.2}>
+            <a
+              href="https://w.app/drafernandasarelli"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-10 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-primary p-5 text-primary-foreground transition-transform hover:scale-105"
+            >
+              <MessageCircle className="h-8 w-8 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm">Receba as informações direto em seu celular</p>
+                <p className="text-lg font-bold">(62) 98133-6168</p>
+              </div>
+            </a>
           </ScrollReveal>
         </div>
       </section>
