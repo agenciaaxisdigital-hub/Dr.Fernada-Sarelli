@@ -1,40 +1,57 @@
-import { Instagram, Facebook, Youtube, Twitter } from "lucide-react";
+import { MessageCircle, Facebook, Instagram } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
+import PageHeader from "@/components/PageHeader";
 
 const redes = [
-  { icon: Instagram, label: "Instagram", url: "https://instagram.com/", color: "hover:text-pink-500", user: "@fernandasarelli" },
-  { icon: Facebook, label: "Facebook", url: "https://facebook.com/", color: "hover:text-blue-600", user: "Fernanda Sarelli" },
-  { icon: Youtube, label: "YouTube", url: "https://youtube.com/", color: "hover:text-red-600", user: "Chama Doutora" },
-  { icon: Twitter, label: "X (Twitter)", url: "https://twitter.com/", color: "hover:text-foreground", user: "@fernandasarelli" },
+  {
+    icon: MessageCircle,
+    label: "WhatsApp",
+    handle: "(62) 98133-6168",
+    desc: "Receba informações direto no seu celular",
+    url: "https://w.app/drafernandasarelli",
+  },
+  {
+    icon: Facebook,
+    label: "Facebook",
+    handle: "@drafernandaSarelli",
+    desc: "Notícias, eventos e interação com a comunidade",
+    url: "https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/",
+  },
+  {
+    icon: Instagram,
+    label: "Instagram",
+    handle: "@drafernandasarelli",
+    desc: "Acompanhe os bastidores e atualizações diárias",
+    url: "https://www.instagram.com/drafernandasarelli/",
+  },
 ];
 
 const RedesSociais = () => (
   <Layout>
-    <section className="py-20">
-      <div className="container max-w-2xl">
-        <ScrollReveal>
-          <p className="ui-caps text-sm text-primary mb-2">Redes Sociais</p>
-          <h1>Nos acompanhe</h1>
-          <p className="mt-4 text-muted-foreground text-pretty">
-            Siga Fernanda Sarelli nas redes sociais e fique por dentro de tudo.
-          </p>
-        </ScrollReveal>
+    <PageHeader
+      title="Redes"
+      titleAccent="Sociais"
+      subtitle="Conecte-se com a Dra. Fernanda Sarelli nas redes oficiais"
+    />
 
-        <div className="mt-12 space-y-4">
+    <section className="py-12 md:py-16">
+      <div className="container max-w-4xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {redes.map((r, i) => (
             <ScrollReveal key={r.label} delay={i * 0.1}>
               <a
                 href={r.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-4 rounded-2xl border bg-card p-6 transition-all hover:shadow-soft hover:border-primary/30 group ${r.color}`}
+                className="flex flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center transition-shadow hover:shadow-lg group"
               >
-                <r.icon className="h-8 w-8 text-muted-foreground transition-colors group-hover:text-inherit" />
-                <div>
-                  <p className="font-semibold">{r.label}</p>
-                  <p className="text-sm text-muted-foreground">{r.user}</p>
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent group-hover:bg-primary transition-colors">
+                  <r.icon className="h-8 w-8 text-primary group-hover:text-primary-foreground transition-colors" />
                 </div>
+                <h3 className="text-lg font-bold">{r.label}</h3>
+                <p className="text-sm font-medium text-primary">{r.handle}</p>
+                <p className="text-sm text-muted-foreground">{r.desc}</p>
               </a>
             </ScrollReveal>
           ))}

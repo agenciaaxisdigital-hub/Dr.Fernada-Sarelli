@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Send } from "lucide-react";
+import { Send, Mail, Phone, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
+import PageHeader from "@/components/PageHeader";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Nome é obrigatório").max(100),
@@ -48,44 +49,83 @@ const Contato = () => {
 
   return (
     <Layout>
-      <section className="py-20">
-        <div className="container max-w-lg">
-          <ScrollReveal>
-            <p className="ui-caps text-sm text-primary mb-2">Contato</p>
-            <h1>Fale conosco</h1>
-            <p className="mt-4 text-muted-foreground text-pretty">
-              Envie sua mensagem e entraremos em contato o mais breve possível.
-            </p>
-          </ScrollReveal>
+      <PageHeader
+        title="Entre em"
+        titleAccent="Contato"
+        subtitle="Queremos ouvir você. Envie sua mensagem ou sugestão."
+      />
 
-          <ScrollReveal delay={0.15}>
-            <form onSubmit={handleSubmit(onSubmit)} className="mt-10 space-y-5">
+      <section className="py-12 md:py-16">
+        <div className="container max-w-4xl">
+          <div className="grid md:grid-cols-[1fr_1.5fr] gap-10">
+            {/* Info */}
+            <ScrollReveal>
               <div>
-                <Label htmlFor="nome">Nome *</Label>
-                <Input id="nome" {...register("nome")} className="mt-1" />
-                {errors.nome && <p className="text-sm text-destructive mt-1">{errors.nome.message}</p>}
+                <h2 className="text-2xl font-bold">Informações</h2>
+                <div className="mt-6 space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent flex-shrink-0">
+                      <Mail className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">E-mail</p>
+                      <p className="font-medium">contato@fernandasarelli.com.br</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent flex-shrink-0">
+                      <Phone className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Telefone</p>
+                      <p className="font-medium">(62) 98133-6168</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent flex-shrink-0">
+                      <MapPin className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Localização</p>
+                      <p className="font-medium">Goiânia — GO, Brasil</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="telefone">Telefone *</Label>
-                <Input id="telefone" {...register("telefone")} className="mt-1" />
-                {errors.telefone && <p className="text-sm text-destructive mt-1">{errors.telefone.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="email">E-mail (opcional)</Label>
-                <Input id="email" type="email" {...register("email")} className="mt-1" />
-                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="mensagem">Mensagem *</Label>
-                <Textarea id="mensagem" rows={5} {...register("mensagem")} className="mt-1" />
-                {errors.mensagem && <p className="text-sm text-destructive mt-1">{errors.mensagem.message}</p>}
-              </div>
-              <Button type="submit" size="lg" className="w-full rounded-full" disabled={loading}>
-                <Send className="mr-2 h-4 w-4" />
-                {loading ? "Enviando..." : "Enviar Mensagem"}
-              </Button>
-            </form>
-          </ScrollReveal>
+            </ScrollReveal>
+
+            {/* Form */}
+            <ScrollReveal delay={0.15}>
+              <form onSubmit={handleSubmit(onSubmit)} className="rounded-2xl border bg-card p-6 md:p-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nome">Nome *</Label>
+                    <Input id="nome" placeholder="Seu nome" {...register("nome")} className="mt-1" />
+                    {errors.nome && <p className="text-sm text-destructive mt-1">{errors.nome.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="telefone">Telefone *</Label>
+                    <Input id="telefone" placeholder="(62) 99999-9999" {...register("telefone")} className="mt-1" />
+                    {errors.telefone && <p className="text-sm text-destructive mt-1">{errors.telefone.message}</p>}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" type="email" placeholder="seu@email.com" {...register("email")} className="mt-1" />
+                  {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="mensagem">Mensagem *</Label>
+                  <Textarea id="mensagem" rows={5} placeholder="Escreva sua mensagem..." {...register("mensagem")} className="mt-1" />
+                  {errors.mensagem && <p className="text-sm text-destructive mt-1">{errors.mensagem.message}</p>}
+                </div>
+                <Button type="submit" size="lg" className="w-full mt-6 rounded-full" disabled={loading}>
+                  <Send className="mr-2 h-4 w-4" />
+                  {loading ? "Enviando..." : "Enviar Mensagem"}
+                </Button>
+              </form>
+            </ScrollReveal>
+          </div>
         </div>
       </section>
     </Layout>
