@@ -23,7 +23,7 @@ const Header = () => {
         </Link>
 
         {/* Social icons + Nav desktop */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <div className="flex items-center gap-2">
             <a href="https://www.instagram.com/drafernandasarelli/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors">
               <Instagram className="h-4 w-4" />
@@ -56,7 +56,7 @@ const Header = () => {
         {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden rounded-lg p-2 text-foreground hover:bg-muted"
+          className="lg:hidden rounded-lg p-2 text-foreground hover:bg-muted"
           aria-label="Menu"
         >
           {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -71,7 +71,7 @@ const Header = () => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden border-t md:hidden bg-background"
+            className="overflow-hidden border-t lg:hidden bg-background"
           >
             <div className="container flex flex-col gap-1 py-4">
               {navItems.map((item) => (
