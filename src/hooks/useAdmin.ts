@@ -37,7 +37,7 @@ export function useAdmin(requiredCargo?: Cargo[]) {
       const cargo = roles[0].cargo as Cargo;
 
       if (requiredCargo && !requiredCargo.includes(cargo)) {
-        navigate("/admin/dashboard");
+        navigate("/admin/galeria");
         return;
       }
 
