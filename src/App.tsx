@@ -9,6 +9,7 @@ import Agenda from "./pages/Agenda";
 import RedesSociais from "./pages/RedesSociais";
 import Integracao from "./pages/Integracao";
 import Contato from "./pages/Contato";
+import GaleriaPublica from "./pages/Galeria";
 import AdminLoginPage from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import Gallery from "./pages/admin/Gallery";
