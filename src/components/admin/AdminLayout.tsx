@@ -6,9 +6,9 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { to: "/admin/galeria", icon: Image, label: "Galeria", adminOnly: false },
-  { to: "/admin/formularios", icon: FileText, label: "Formulários", adminOnly: false },
-  { to: "/admin/configuracoes", icon: Settings, label: "Configurações", adminOnly: true },
+  { to: "/admin/galeria", icon: Image, label: "Galeria" },
+  { to: "/admin/formularios", icon: FileText, label: "Formulários" },
+  { to: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
