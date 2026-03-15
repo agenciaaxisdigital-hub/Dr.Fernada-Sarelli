@@ -111,7 +111,7 @@ const Gallery = () => {
       return null;
     }
 
-    return (refreshedAlbums as Album[]) || [];
+    return (refreshedAlbums as unknown as Album[]) || [];
   };
 
   const clearTestPhotos = async (silent = false) => {
