@@ -25,6 +25,10 @@ const GaleriaPublica = () => {
   const [lightbox, setLightbox] = useState<Foto | null>(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const load = async () => {
       const { data: configData } = await supabase
         .from("configuracoes" as any)
