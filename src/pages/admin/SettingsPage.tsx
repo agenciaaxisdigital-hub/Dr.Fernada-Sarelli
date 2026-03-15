@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Key, UserPlus, Trash2, RefreshCw, Database, Copy } from "lucide-react";
+import { Key, UserPlus, Trash2, RefreshCw, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
