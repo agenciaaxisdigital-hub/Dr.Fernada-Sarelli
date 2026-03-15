@@ -18,50 +18,111 @@ export type Database = {
         Row: {
           altura_tela: number | null
           cidade: string | null
+          contador_visitas: number | null
+          cookie_visitante: string | null
           criado_em: string
           dispositivo: string | null
           endereco_ip: string | null
           estado: string | null
           id: string
           largura_tela: number | null
+          navegador: string | null
           pagina: string
           pais: string | null
+          primeira_visita: boolean | null
           referrer: string | null
+          sistema_operacional: string | null
           user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
         }
         Insert: {
           altura_tela?: number | null
           cidade?: string | null
+          contador_visitas?: number | null
+          cookie_visitante?: string | null
           criado_em?: string
           dispositivo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
           largura_tela?: number | null
+          navegador?: string | null
           pagina: string
           pais?: string | null
+          primeira_visita?: boolean | null
           referrer?: string | null
+          sistema_operacional?: string | null
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
         }
         Update: {
           altura_tela?: number | null
           cidade?: string | null
+          contador_visitas?: number | null
+          cookie_visitante?: string | null
           criado_em?: string
           dispositivo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
           largura_tela?: number | null
+          navegador?: string | null
           pagina?: string
           pais?: string | null
+          primeira_visita?: boolean | null
           referrer?: string | null
+          sistema_operacional?: string | null
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
+      albuns: {
+        Row: {
+          atualizado_em: string
+          capa_url: string | null
+          criado_em: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          capa_url?: string | null
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          capa_url?: string | null
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
         }
         Relationships: []
       }
       cliques_whatsapp: {
         Row: {
           cidade: string | null
+          cookie_visitante: string | null
           criado_em: string
           endereco_ip: string | null
           estado: string | null
@@ -71,10 +132,12 @@ export type Database = {
           pagina_origem: string | null
           pais: string | null
           telefone_destino: string | null
+          tipo_clique: string | null
           user_agent: string | null
         }
         Insert: {
           cidade?: string | null
+          cookie_visitante?: string | null
           criado_em?: string
           endereco_ip?: string | null
           estado?: string | null
@@ -84,10 +147,12 @@ export type Database = {
           pagina_origem?: string | null
           pais?: string | null
           telefone_destino?: string | null
+          tipo_clique?: string | null
           user_agent?: string | null
         }
         Update: {
           cidade?: string | null
+          cookie_visitante?: string | null
           criado_em?: string
           endereco_ip?: string | null
           estado?: string | null
@@ -97,12 +162,38 @@ export type Database = {
           pagina_origem?: string | null
           pais?: string | null
           telefone_destino?: string | null
+          tipo_clique?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      configuracoes: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          chave: string
+          id: string
+          valor: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave: string
+          id?: string
+          valor?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave?: string
+          id?: string
+          valor?: string | null
         }
         Relationships: []
       }
       galeria_fotos: {
         Row: {
+          album_id: string | null
           atualizado_em: string
           criado_em: string
           criado_por: string | null
@@ -115,6 +206,7 @@ export type Database = {
           visivel: boolean
         }
         Insert: {
+          album_id?: string | null
           atualizado_em?: string
           criado_em?: string
           criado_por?: string | null
@@ -127,6 +219,7 @@ export type Database = {
           visivel?: boolean
         }
         Update: {
+          album_id?: string | null
           atualizado_em?: string
           criado_em?: string
           criado_por?: string | null
@@ -138,7 +231,15 @@ export type Database = {
           url_foto?: string
           visivel?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_galeria_album"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albuns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mensagens_contato: {
         Row: {
