@@ -51,22 +51,11 @@ interface HomeGalleryPhoto {
 }
 
 const Index = () => {
-  const [galeriaAtiva, setGaleriaAtiva] = useState(false);
   const [galeriaFotos, setGaleriaFotos] = useState<HomeGalleryPhoto[]>([]);
 
   useEffect(() => {
     const loadGaleria = async () => {
-      const { data: configData } = await supabase
-        .from("configuracoes" as any)
-        .select("valor")
-        .eq("chave", "galeria_ativa")
-        .maybeSingle();
-
-      const ativa = String((configData as { valor?: string | null } | null)?.valor ?? "").toLowerCase() === "true";
-      setGaleriaAtiva(ativa);
-
-      if (!ativa) return;
-
+      // Busca fotos visíveis diretamente — se existir alguma, mostra a seção
       const { data: fotosData } = await supabase
         .from("galeria_fotos")
         .select("id, titulo, legenda, url_foto")
@@ -74,7 +63,7 @@ const Index = () => {
         .order("ordem")
         .limit(6);
 
-      if (fotosData) {
+      if (fotosData && fotosData.length > 0) {
         setGaleriaFotos(fotosData as HomeGalleryPhoto[]);
       }
     };
