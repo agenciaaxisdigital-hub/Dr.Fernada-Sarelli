@@ -392,6 +392,16 @@ const Gallery = () => {
               </div>
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
+                  onClick={() => toggleDestaqueHome(foto.id, !!foto.destaque_home)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-colors ${
+                    foto.destaque_home ? "bg-primary text-primary-foreground" : "bg-card hover:bg-accent"
+                  }`}
+                  aria-label={foto.destaque_home ? "Remover do feed da home" : "Fixar no feed da home"}
+                  title={foto.destaque_home ? "Fixada no feed" : "Fixar no feed da home"}
+                >
+                  <Pin className="h-4 w-4" />
+                </button>
+                <button
                   onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:bg-accent transition-colors"
                   aria-label={foto.visivel ? "Ocultar foto" : "Mostrar foto"}
