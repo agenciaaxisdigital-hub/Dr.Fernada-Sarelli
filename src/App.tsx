@@ -11,7 +11,6 @@ import Integracao from "./pages/Integracao";
 import Contato from "./pages/Contato";
 import GaleriaPublica from "./pages/Galeria";
 import AdminLoginPage from "./pages/admin/Login";
-import Dashboard from "./pages/admin/Dashboard";
 import Gallery from "./pages/admin/Gallery";
 import Forms from "./pages/admin/Forms";
 import SettingsPage from "./pages/admin/SettingsPage";
