@@ -1,1 +1,2 @@
-project_id = "yvdfdmyusdhgtzfguxbj"
+[functions.api-v1]
+verify_jwt = false
