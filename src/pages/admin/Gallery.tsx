@@ -23,6 +23,7 @@ interface Foto {
   album_id: string | null;
   visivel: boolean;
   ordem: number;
+  destaque_home: boolean;
 }
 
 const TEST_ALBUMS = ["Eventos Comunitários", "Ações Sociais", "Campanha"] as const;
