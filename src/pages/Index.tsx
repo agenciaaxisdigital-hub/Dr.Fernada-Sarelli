@@ -55,7 +55,21 @@ const Index = () => {
 
   useEffect(() => {
     const loadGaleria = async () => {
-      // Busca fotos visíveis diretamente — se existir alguma, mostra a seção
+      // Primeiro tenta fotos marcadas como destaque_home
+      const { data: destaquesData } = await (supabase
+        .from("galeria_fotos")
+        .select("id, titulo, legenda, url_foto") as any)
+        .eq("visivel", true)
+        .eq("destaque_home", true)
+        .order("ordem")
+        .limit(6);
+
+      if (destaquesData && destaquesData.length > 0) {
+        setGaleriaFotos(destaquesData as HomeGalleryPhoto[]);
+        return;
+      }
+
+      // Fallback: pega as 6 primeiras visíveis
       const { data: fotosData } = await supabase
         .from("galeria_fotos")
         .select("id, titulo, legenda, url_foto")
@@ -63,7 +77,7 @@ const Index = () => {
         .order("ordem")
         .limit(6);
 
-      if (fotosData && fotosData.length > 0) {
+      if (fotosData) {
         setGaleriaFotos(fotosData as HomeGalleryPhoto[]);
       }
     };
@@ -194,27 +208,27 @@ const Index = () => {
         </div>
       </section>
 
-      {galeriaFotos.length > 0 && (
-        <section className="bg-secondary py-16 md:py-20">
-          <div className="container">
-            <ScrollReveal>
-              <div className="text-center">
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">📸 Registro das atividades</p>
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Galeria de Fotos</h2>
-                <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-                  Acompanhe os eventos, ações sociais e encontros comunitários
-                </p>
-              </div>
-            </ScrollReveal>
+      <section className="bg-secondary py-16 md:py-20">
+        <div className="container">
+          <ScrollReveal>
+            <div className="text-center">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">📸 Registro das atividades</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Galeria de Fotos</h2>
+              <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+                Acompanhe os eventos, ações sociais e encontros comunitários
+              </p>
+            </div>
+          </ScrollReveal>
 
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {galeriaFotos.map((foto, i) => (
+          {galeriaFotos.length > 0 ? (
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+              {galeriaFotos.slice(0, 6).map((foto, i) => (
                 <ScrollReveal key={foto.id} delay={i * 0.08}>
                   <Link
                     to="/galeria"
                     className="group block overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-lg"
                   >
-                    <div className="aspect-[4/3] overflow-hidden">
+                    <div className="aspect-square overflow-hidden">
                       <img
                         src={foto.url_foto}
                         alt={foto.legenda || foto.titulo}
@@ -222,29 +236,27 @@ const Index = () => {
                         loading="lazy"
                       />
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold">{foto.titulo}</h3>
-                      {foto.legenda && (
-                        <p className="mt-1 text-sm text-muted-foreground">{foto.legenda}</p>
-                      )}
-                    </div>
                   </Link>
                 </ScrollReveal>
               ))}
             </div>
-
-            <div className="mt-8 text-center">
-              <Link
-                to="/galeria"
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
-              >
-                Ver galeria completa
-                <ExternalLink className="h-4 w-4" />
-              </Link>
+          ) : (
+            <div className="mt-10 text-center py-10">
+              <p className="text-muted-foreground">Em breve novas fotos serão publicadas aqui.</p>
             </div>
+          )}
+
+          <div className="mt-8 text-center">
+            <Link
+              to="/galeria"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+            >
+              Ver mais
+              <ExternalLink className="h-4 w-4" />
+            </Link>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       <section className="bg-secondary py-16 md:py-20">
         <div className="container">

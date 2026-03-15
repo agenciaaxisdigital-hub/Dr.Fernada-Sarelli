@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser, Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ interface Foto {
   album_id: string | null;
   visivel: boolean;
   ordem: number;
+  destaque_home: boolean;
 }
 
 const TEST_ALBUMS = ["Eventos Comunitários", "Ações Sociais", "Campanha"] as const;
@@ -70,7 +71,7 @@ const Gallery = () => {
     }
 
     setAlbuns((albumData as unknown as Album[]) || []);
-    setFotos((fotoData as Foto[]) || []);
+    setFotos((fotoData as unknown as Foto[]) || []);
     setGaleriaAtiva((configData as { valor?: string } | null)?.valor === "true");
   }, []);
 
@@ -179,6 +180,18 @@ const Gallery = () => {
       return;
     }
 
+    await loadData();
+  };
+
+  const toggleDestaqueHome = async (id: string, atual: boolean) => {
+    const { error } = await (supabase.from("galeria_fotos").update({ destaque_home: !atual } as any) as any).eq("id", id);
+
+    if (error) {
+      toast.error("Não foi possível atualizar o destaque.");
+      return;
+    }
+
+    toast.success(!atual ? "Fixada no feed da home" : "Removida do feed da home");
     await loadData();
   };
 
@@ -378,6 +391,16 @@ const Gallery = () => {
                 </div>
               </div>
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => toggleDestaqueHome(foto.id, !!foto.destaque_home)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-colors ${
+                    foto.destaque_home ? "bg-primary text-primary-foreground" : "bg-card hover:bg-accent"
+                  }`}
+                  aria-label={foto.destaque_home ? "Remover do feed da home" : "Fixar no feed da home"}
+                  title={foto.destaque_home ? "Fixada no feed" : "Fixar no feed da home"}
+                >
+                  <Pin className="h-4 w-4" />
+                </button>
                 <button
                   onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:bg-accent transition-colors"
