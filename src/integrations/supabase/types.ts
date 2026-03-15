@@ -197,6 +197,7 @@ export type Database = {
           atualizado_em: string
           criado_em: string
           criado_por: string | null
+          destaque_home: boolean
           evento: string | null
           id: string
           legenda: string | null
@@ -210,6 +211,7 @@ export type Database = {
           atualizado_em?: string
           criado_em?: string
           criado_por?: string | null
+          destaque_home?: boolean
           evento?: string | null
           id?: string
           legenda?: string | null
@@ -223,6 +225,7 @@ export type Database = {
           atualizado_em?: string
           criado_em?: string
           criado_por?: string | null
+          destaque_home?: boolean
           evento?: string | null
           id?: string
           legenda?: string | null
