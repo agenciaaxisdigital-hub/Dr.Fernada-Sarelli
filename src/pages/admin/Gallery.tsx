@@ -71,7 +71,7 @@ const Gallery = () => {
     }
 
     setAlbuns((albumData as unknown as Album[]) || []);
-    setFotos((fotoData as Foto[]) || []);
+    setFotos((fotoData as unknown as Foto[]) || []);
     setGaleriaAtiva((configData as { valor?: string } | null)?.valor === "true");
   }, []);
 
