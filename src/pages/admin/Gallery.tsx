@@ -368,16 +368,47 @@ const Gallery = () => {
           )}
         </div>
 
+        <input
+          type="file"
+          id="file-upload-input"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={async (e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+            let successCount = 0;
+            for (const file of files) {
+              if (!file.type.startsWith("image/")) continue;
+              const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
+              const path = `galeria/${Date.now()}_${sanitizedName}`;
+              const { error: uploadError } = await supabase.storage.from("galeria").upload(path, file);
+              if (uploadError) { toast.error(`Erro no upload de ${file.name}`); continue; }
+              const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
+              const { error: insertError } = await supabase.from("galeria_fotos").insert({
+                titulo: file.name.replace(/\.[^/.]+$/, ""),
+                url_foto: urlData.publicUrl,
+                album_id: selectedAlbum,
+                visivel: true,
+              } as any);
+              if (insertError) { toast.error(`Erro ao salvar ${file.name}`); continue; }
+              successCount += 1;
+            }
+            if (successCount > 0) { toast.success(`${successCount} imagem(ns) enviada(s)`); await loadData(); }
+            e.target.value = "";
+          }}
+        />
         <div
+          onClick={() => document.getElementById("file-upload-input")?.click()}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleFileDrop}
-          className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+          className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer hover:border-primary hover:bg-accent/50 ${
             dragOver ? "border-primary bg-accent" : "border-border"
           }`}
         >
           <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">Arraste e solte fotos aqui para upload</p>
+          <p className="text-sm text-muted-foreground">Toque aqui ou arraste fotos para upload</p>
         </div>
 
         <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
