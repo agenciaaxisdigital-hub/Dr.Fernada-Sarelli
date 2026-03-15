@@ -293,42 +293,49 @@ const Gallery = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Galeria</h2>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="galeria-toggle" className="text-sm">Galeria no site</Label>
-              <Switch id="galeria-toggle" checked={galeriaAtiva} onCheckedChange={toggleGaleria} className="scale-125" />
-            </div>
+          <div className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5">
+            <span className={`text-xs font-medium ${galeriaAtiva ? "text-primary" : "text-muted-foreground"}`}>
+              {galeriaAtiva ? "Ativa" : "Desativada"}
+            </span>
+            <Switch id="galeria-toggle" checked={galeriaAtiva} onCheckedChange={toggleGaleria} />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {/* Álbuns - horizontal scroll */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
           <button
             onClick={() => setSelectedAlbum(null)}
-            className={`rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
               !selectedAlbum ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
             }`}
           >
             Todas
           </button>
-          {albuns.map((album) => (
-            <button
-              key={album.id}
-              onClick={() => setSelectedAlbum(album.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
-                selectedAlbum === album.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
-              }`}
-            >
-              {album.nome}
-            </button>
-          ))}
-
+          {albuns.map((album) => {
+            const count = fotos.filter((f) => f.album_id === album.id).length;
+            return (
+              <button
+                key={album.id}
+                onClick={() => setSelectedAlbum(album.id)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+                  selectedAlbum === album.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
+                }`}
+              >
+                {album.nome}
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${
+                  selectedAlbum === album.id ? "bg-primary-foreground/20" : "bg-muted"
+                }`}>{count}</span>
+              </button>
+            );
+          })}
           <Dialog open={newAlbumOpen} onOpenChange={setNewAlbumOpen}>
             <DialogTrigger asChild>
-              <button className="rounded-full px-4 py-2 text-sm font-medium border border-dashed border-primary text-primary hover:bg-accent transition-colors flex items-center gap-1">
-                <FolderPlus className="h-4 w-4" /> Novo Álbum
+              <button className="shrink-0 rounded-full h-9 w-9 flex items-center justify-center border border-dashed border-primary text-primary hover:bg-accent transition-colors" title="Novo Álbum">
+                <FolderPlus className="h-4 w-4" />
               </button>
             </DialogTrigger>
             <DialogContent>
@@ -341,13 +348,14 @@ const Gallery = () => {
           </Dialog>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {/* Ações rápidas - grid compacto */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-full"><Plus className="mr-2 h-4 w-4" /> Adicionar Foto</Button>
+              <Button size="sm" variant="outline" className="rounded-full text-xs"><Plus className="mr-1.5 h-3.5 w-3.5" />Por URL</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Adicionar Foto</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Adicionar Foto por URL</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <Input placeholder="URL da foto" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
                 <Input placeholder="Título" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
@@ -357,13 +365,13 @@ const Gallery = () => {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" className="rounded-full" onClick={populateTestPhotos}>
-            <Sparkles className="mr-2 h-4 w-4" /> Popular com imagens de teste
+          <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={populateTestPhotos}>
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />Teste
           </Button>
 
           {hasTestPhotos && (
-            <Button variant="outline" className="rounded-full" onClick={() => clearTestPhotos()}>
-              <Eraser className="mr-2 h-4 w-4" /> Apagar imagens de teste
+            <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => clearTestPhotos()}>
+              <Eraser className="mr-1.5 h-3.5 w-3.5" />Limpar teste
             </Button>
           )}
         </div>
