@@ -37,9 +37,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 border-b">
           <h1 className="text-lg font-bold text-primary">Painel Admin</h1>
           <p className="text-sm font-medium mt-1">{user?.username}</p>
-          <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-            {user?.cargo === "super_admin" ? "Super Admin" : user?.cargo === "admin" ? "Admin" : "Operador"}
-          </span>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
