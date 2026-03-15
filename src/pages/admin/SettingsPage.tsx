@@ -191,7 +191,6 @@ const SettingsPage = () => {
               <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
                 <div>
                   <p className="text-sm font-medium">{u.username}</p>
-                  <p className="text-xs text-muted-foreground">{cargoLabel(u.cargo)}</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => removeUser(u.user_id, u.username)} className="text-destructive hover:bg-destructive/10">
                   <Trash2 className="h-4 w-4" />
