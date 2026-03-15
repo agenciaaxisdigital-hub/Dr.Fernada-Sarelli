@@ -55,7 +55,21 @@ const Index = () => {
 
   useEffect(() => {
     const loadGaleria = async () => {
-      // Busca fotos visíveis diretamente — se existir alguma, mostra a seção
+      // Primeiro tenta fotos marcadas como destaque_home
+      const { data: destaquesData } = await supabase
+        .from("galeria_fotos")
+        .select("id, titulo, legenda, url_foto")
+        .eq("visivel", true)
+        .eq("destaque_home" as any, true)
+        .order("ordem")
+        .limit(6);
+
+      if (destaquesData && destaquesData.length > 0) {
+        setGaleriaFotos(destaquesData as HomeGalleryPhoto[]);
+        return;
+      }
+
+      // Fallback: pega as 6 primeiras visíveis
       const { data: fotosData } = await supabase
         .from("galeria_fotos")
         .select("id, titulo, legenda, url_foto")
@@ -63,7 +77,7 @@ const Index = () => {
         .order("ordem")
         .limit(6);
 
-      if (fotosData && fotosData.length > 0) {
+      if (fotosData) {
         setGaleriaFotos(fotosData as HomeGalleryPhoto[]);
       }
     };
