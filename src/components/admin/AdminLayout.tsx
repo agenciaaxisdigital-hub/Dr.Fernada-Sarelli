@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAdmin } = useAdmin();
+  const { user, loading } = useAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
