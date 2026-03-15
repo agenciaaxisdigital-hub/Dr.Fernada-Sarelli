@@ -9,6 +9,7 @@ import Agenda from "./pages/Agenda";
 import RedesSociais from "./pages/RedesSociais";
 import Integracao from "./pages/Integracao";
 import Contato from "./pages/Contato";
+import GaleriaPublica from "./pages/Galeria";
 import AdminLoginPage from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import Gallery from "./pages/admin/Gallery";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/redes-sociais" element={<RedesSociais />} />
             <Route path="/integracao" element={<Integracao />} />
             <Route path="/contato" element={<Contato />} />
+            <Route path="/galeria" element={<GaleriaPublica />} />
             <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
