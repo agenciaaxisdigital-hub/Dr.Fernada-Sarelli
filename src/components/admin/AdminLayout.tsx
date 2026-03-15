@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Image, FileText, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { Image, FileText, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
