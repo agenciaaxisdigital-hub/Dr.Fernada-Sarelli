@@ -38,9 +38,6 @@ const App = () => (
             <Route path="/admin/galeria" element={<Gallery />} />
             <Route path="/admin/formularios" element={<Forms />} />
             <Route path="/admin/configuracoes" element={<SettingsPage />} />
-            {/* Legacy routes redirect */}
-            <Route path="/admin-login" element={<AdminLoginPage />} />
-            <Route path="/admin" element={<Dashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TrackingProvider>

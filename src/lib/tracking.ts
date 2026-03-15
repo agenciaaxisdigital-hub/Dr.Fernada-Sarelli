@@ -1,11 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from "uuid";
 
 function getCookie(): string {
   const key = "visitor_id";
   let id = localStorage.getItem(key);
   if (!id) {
-    id = uuidv4();
+    id = crypto.randomUUID();
     localStorage.setItem(key, id);
   }
   return id;

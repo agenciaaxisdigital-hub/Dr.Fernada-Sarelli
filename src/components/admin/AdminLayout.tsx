@@ -39,7 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden lg:flex lg:w-64 flex-col border-r bg-card">
         <div className="p-6 border-b">
           <h1 className="text-lg font-bold text-primary">Painel Admin</h1>
-          <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
+          <p className="text-sm font-medium mt-1">{user?.username}</p>
           <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">
             {user?.cargo === "super_admin" ? "Super Admin" : user?.cargo === "admin" ? "Admin" : "Operador"}
           </span>
@@ -83,7 +83,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
             <div className="w-64 h-full bg-card border-r p-4 space-y-1" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 pb-4 border-b">
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <p className="text-sm font-medium">{user?.username}</p>
+                <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {user?.cargo === "super_admin" ? "Super Admin" : user?.cargo === "admin" ? "Admin" : "Operador"}
+                </span>
               </div>
               {visibleNav.map((item) => (
                 <Link
