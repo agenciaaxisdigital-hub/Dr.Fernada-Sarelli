@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser, Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
