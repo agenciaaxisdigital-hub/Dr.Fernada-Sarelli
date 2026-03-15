@@ -100,17 +100,97 @@ export async function trackPageView(pagina: string) {
   } as any);
 }
 
-export async function trackClick(tipo_clique: "whatsapp" | "instagram", pagina_origem: string, telefone_destino?: string) {
-  const cookie_visitante = getCookie();
-  const { dispositivo } = parseUA();
-  const geo = await getGeoData();
+// ─── Platform detection ───
+type Platform = "whatsapp" | "instagram" | "facebook";
 
-  await supabase.from("cliques_whatsapp").insert({
-    tipo_clique,
-    pagina_origem,
-    telefone_destino: telefone_destino || null,
-    user_agent: navigator.userAgent,
-    cookie_visitante,
-    ...geo,
-  } as any);
+function classifyPlatform(href: string): Platform | null {
+  if (!href) return null;
+  const h = href.toLowerCase();
+  if (h.includes("wa.me") || h.includes("whatsapp.com") || h.includes("api.whatsapp") || h.includes("w.app")) return "whatsapp";
+  if (h.includes("instagram.com")) return "instagram";
+  if (h.includes("facebook.com") || h.includes("fb.com") || h.includes("fb.me")) return "facebook";
+  return null;
+}
+
+function findSection(el: HTMLElement): string {
+  let current: HTMLElement | null = el;
+  while (current) {
+    if (current.tagName === "SECTION" && current.id) return current.id;
+    if (current.dataset?.section) return current.dataset.section;
+    if (current.id && current.tagName !== "BODY" && current.tagName !== "HTML") return current.id;
+    current = current.parentElement;
+  }
+  // fallback: closest section tag
+  const sec = el.closest("section");
+  if (sec) {
+    const heading = sec.querySelector("h1, h2, h3");
+    if (heading?.textContent) return heading.textContent.trim().slice(0, 60);
+  }
+  return "geral";
+}
+
+function getButtonText(el: HTMLElement): string {
+  return (el.textContent || el.getAttribute("aria-label") || el.getAttribute("title") || "").trim().slice(0, 100);
+}
+
+function getHref(el: HTMLElement): string {
+  if (el instanceof HTMLAnchorElement) return el.href;
+  return el.getAttribute("href") || el.getAttribute("data-href") || "";
+}
+
+// ─── Fire-and-forget click tracking ───
+export function trackClick(
+  tipo_clique: Platform,
+  pagina_origem: string,
+  telefone_destino?: string,
+  extra?: { texto_botao?: string; secao_pagina?: string; url_destino?: string }
+) {
+  const cookie_visitante = getCookie();
+
+  // Fire-and-forget — no await, never blocks navigation
+  getGeoData().then((geo) => {
+    supabase.from("cliques_whatsapp").insert({
+      tipo_clique,
+      pagina_origem,
+      telefone_destino: telefone_destino || null,
+      user_agent: navigator.userAgent,
+      cookie_visitante,
+      texto_botao: extra?.texto_botao || null,
+      secao_pagina: extra?.secao_pagina || null,
+      url_destino: extra?.url_destino || null,
+      ...geo,
+    } as any);
+  });
+}
+
+// ─── Universal click tracker ───
+const TRACKED_ATTR = "data-click-tracked";
+
+function handleGlobalClick(e: MouseEvent) {
+  let target = e.target as HTMLElement | null;
+  // Walk up to 5 levels to find an anchor or button
+  for (let i = 0; i < 6 && target; i++) {
+    if (target instanceof HTMLAnchorElement || target.tagName === "BUTTON") break;
+    target = target.parentElement;
+  }
+  if (!target) return;
+
+  const href = getHref(target);
+  const platform = classifyPlatform(href);
+  if (!platform) return;
+
+  const texto_botao = getButtonText(target);
+  const secao_pagina = findSection(target);
+  const pagina_origem = window.location.pathname;
+
+  trackClick(platform, pagina_origem, undefined, {
+    texto_botao,
+    secao_pagina,
+    url_destino: href,
+  });
+}
+
+export function initUniversalClickTracker() {
+  // Event delegation on document — catches all current and future elements
+  document.addEventListener("click", handleGlobalClick, { capture: true });
 }

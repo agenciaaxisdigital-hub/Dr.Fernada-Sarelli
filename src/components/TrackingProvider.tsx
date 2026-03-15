@@ -1,9 +1,19 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { trackPageView } from "@/lib/tracking";
+import { trackPageView, initUniversalClickTracker } from "@/lib/tracking";
+
+let clickTrackerInitialized = false;
 
 export default function TrackingProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+
+  useEffect(() => {
+    // Initialize universal click tracker once
+    if (!clickTrackerInitialized) {
+      initUniversalClickTracker();
+      clickTrackerInitialized = true;
+    }
+  }, []);
 
   useEffect(() => {
     // Don't track admin pages
