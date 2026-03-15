@@ -86,7 +86,7 @@ const SettingsPage = () => {
           action: "create",
           username: newUsername.trim(),
           password: newPassword,
-          cargo: newCargo,
+          cargo: "admin",
         },
       });
 
