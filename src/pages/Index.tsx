@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import WaveDivider from "@/components/WaveDivider";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -42,10 +43,47 @@ const redes = [
   { icon: Instagram, label: "Instagram", handle: "@drafernandasarelli", url: "https://www.instagram.com/drafernandasarelli/" },
 ];
 
+interface HomeGalleryPhoto {
+  id: string;
+  titulo: string;
+  legenda: string | null;
+  url_foto: string;
+}
+
 const Index = () => {
+  const [galeriaAtiva, setGaleriaAtiva] = useState(false);
+  const [galeriaFotos, setGaleriaFotos] = useState<HomeGalleryPhoto[]>([]);
+
+  useEffect(() => {
+    const loadGaleria = async () => {
+      const { data: configData } = await supabase
+        .from("configuracoes" as any)
+        .select("valor")
+        .eq("chave", "galeria_ativa")
+        .maybeSingle();
+
+      const ativa = String((configData as { valor?: string | null } | null)?.valor ?? "").toLowerCase() === "true";
+      setGaleriaAtiva(ativa);
+
+      if (!ativa) return;
+
+      const { data: fotosData } = await supabase
+        .from("galeria_fotos")
+        .select("id, titulo, legenda, url_foto")
+        .eq("visivel", true)
+        .order("ordem")
+        .limit(6);
+
+      if (fotosData) {
+        setGaleriaFotos(fotosData as HomeGalleryPhoto[]);
+      }
+    };
+
+    loadGaleria();
+  }, []);
+
   return (
     <Layout>
-      {/* Hero */}
       <section className="gradient-hero relative overflow-hidden">
         <div className="container relative z-10 py-16 md:py-24">
           <div className="grid md:grid-cols-2 gap-10 items-center">
@@ -121,7 +159,6 @@ const Index = () => {
               </ScrollReveal>
             </div>
 
-            {/* Photo */}
             <ScrollReveal delay={0.2} direction="right">
               <div className="flex justify-center md:justify-end">
                 <div className="relative">
@@ -140,7 +177,6 @@ const Index = () => {
         <WaveDivider />
       </section>
 
-      {/* Bandeiras */}
       <section className="py-16 md:py-20">
         <div className="container">
           <ScrollReveal>
@@ -169,7 +205,67 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Próximos Eventos */}
+      {galeriaAtiva && (
+        <section className="py-16 md:py-20">
+          <div className="container">
+            <ScrollReveal>
+              <div className="text-center">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">📸 Galeria em destaque</p>
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Galeria no site principal</h2>
+                <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
+                  As fotos publicadas no painel agora também aparecem aqui na página inicial.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            {galeriaFotos.length > 0 ? (
+              <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {galeriaFotos.map((foto, i) => (
+                  <ScrollReveal key={foto.id} delay={i * 0.08}>
+                    <Link
+                      to="/galeria"
+                      className="group block overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-lg"
+                    >
+                      <div className="aspect-[4/3] overflow-hidden">
+                        <img
+                          src={foto.url_foto}
+                          alt={foto.legenda || foto.titulo}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold">{foto.titulo}</h3>
+                        {foto.legenda && (
+                          <p className="mt-1 text-sm text-muted-foreground">{foto.legenda}</p>
+                        )}
+                      </div>
+                    </Link>
+                  </ScrollReveal>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-10 rounded-2xl border bg-card p-8 text-center">
+                <p className="text-lg font-semibold">Galeria ativada</p>
+                <p className="mt-2 text-muted-foreground">
+                  As fotos serão exibidas aqui assim que forem publicadas no painel.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-8 text-center">
+              <Link
+                to="/galeria"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
+              >
+                Ver galeria completa
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="bg-secondary py-16 md:py-20">
         <div className="container">
           <ScrollReveal>
@@ -183,7 +279,6 @@ const Index = () => {
             {eventos.map((e, i) => (
               <ScrollReveal key={e.titulo} delay={i * 0.1}>
                 <div className="flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-soft">
-                  {/* Date badge */}
                   <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
                     <span className="text-xl font-bold leading-none">{e.dia}</span>
                     <span className="text-xs font-semibold uppercase">{e.mes}</span>
@@ -230,7 +325,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Redes Sociais */}
       <section className="py-16 md:py-20">
         <div className="container">
           <ScrollReveal>
@@ -270,7 +364,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Fale Conosco */}
       <section className="bg-secondary py-16 md:py-20">
         <div className="container text-center">
           <ScrollReveal>
@@ -300,7 +393,6 @@ const Index = () => {
             </div>
           </ScrollReveal>
 
-          {/* WhatsApp banner */}
           <ScrollReveal delay={0.2}>
             <a
               href="https://w.app/drafernandasarelli"

@@ -30,9 +30,9 @@ const GaleriaPublica = () => {
         .from("configuracoes" as any)
         .select("valor")
         .eq("chave", "galeria_ativa")
-        .single();
+        .maybeSingle();
 
-      const ativa = (configData as any)?.valor === "true";
+      const ativa = String((configData as { valor?: string | null } | null)?.valor ?? "").toLowerCase() === "true";
       setGaleriaAtiva(ativa);
       if (!ativa) return;
 
