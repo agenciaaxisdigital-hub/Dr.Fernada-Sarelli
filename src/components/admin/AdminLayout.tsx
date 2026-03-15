@@ -6,13 +6,13 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { to: "/admin/galeria", icon: Image, label: "Galeria", adminOnly: false },
-  { to: "/admin/formularios", icon: FileText, label: "Formulários", adminOnly: false },
-  { to: "/admin/configuracoes", icon: Settings, label: "Configurações", adminOnly: true },
+  { to: "/admin/galeria", icon: Image, label: "Galeria" },
+  { to: "/admin/formularios", icon: FileText, label: "Formulários" },
+  { to: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAdmin } = useAdmin();
+  const { user, loading } = useAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -30,8 +30,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const visibleNav = navItems.filter((item) => !item.adminOnly || isAdmin);
-
   return (
     <div className="flex min-h-screen bg-secondary">
       {/* Sidebar desktop */}
@@ -39,12 +37,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 border-b">
           <h1 className="text-lg font-bold text-primary">Painel Admin</h1>
           <p className="text-sm font-medium mt-1">{user?.username}</p>
-          <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-            {user?.cargo === "super_admin" ? "Super Admin" : user?.cargo === "admin" ? "Admin" : "Operador"}
-          </span>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          {visibleNav.map((item) => {
+          {navItems.map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link
@@ -82,12 +77,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
             <div className="w-64 h-full bg-card border-r p-4 space-y-1" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 pb-4 border-b">
-                <p className="text-sm font-medium">{user?.username}</p>
-                <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                  {user?.cargo === "super_admin" ? "Super Admin" : user?.cargo === "admin" ? "Admin" : "Operador"}
-                </span>
-              </div>
-              {visibleNav.map((item) => (
+              <p className="text-sm font-medium">{user?.username}</p>
+            </div>
+            {navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
