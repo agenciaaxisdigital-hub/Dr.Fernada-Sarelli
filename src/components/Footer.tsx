@@ -49,9 +49,14 @@ const Footer = () => (
     <div className="border-t border-primary-foreground/10">
       <div className="container flex flex-col sm:flex-row items-center justify-between py-4 text-xs">
         <p>© 2026 Dra. Fernanda Sarelli. Todos os direitos reservados.</p>
-        <p className="flex items-center gap-1 mt-2 sm:mt-0">
-          Feito com <Heart className="h-3 w-3 fill-primary text-primary" /> para Goiás
-        </p>
+        <div className="flex items-center gap-3 mt-2 sm:mt-0">
+          <p className="flex items-center gap-1">
+            Feito com <Heart className="h-3 w-3 fill-primary text-primary" /> para Goiás
+          </p>
+          <Link to="/admin/login" className="text-primary-foreground/30 hover:text-primary-foreground/60 transition-colors">
+            •
+          </Link>
+        </div>
       </div>
     </div>
   </footer>
