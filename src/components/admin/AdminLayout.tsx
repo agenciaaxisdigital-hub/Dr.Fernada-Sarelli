@@ -30,8 +30,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const visibleNav = navItems.filter((item) => !item.adminOnly || isAdmin);
-
   return (
     <div className="flex min-h-screen bg-secondary">
       {/* Sidebar desktop */}
