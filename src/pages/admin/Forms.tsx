@@ -30,7 +30,7 @@ const Forms = () => {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
