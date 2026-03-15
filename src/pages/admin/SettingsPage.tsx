@@ -124,15 +124,6 @@ const SettingsPage = () => {
     }
   };
 
-  const cargoLabel = (cargo: string) => {
-    switch (cargo) {
-      case "super_admin": return "Super Admin";
-      case "admin": return "Admin";
-      case "editor": return "Operador";
-      default: return cargo;
-    }
-  };
-
   return (
     <AdminLayout>
       <div className="space-y-8 max-w-2xl">
