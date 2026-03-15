@@ -11,6 +11,12 @@ const navItems = [
   { label: "Contato", path: "/contato" },
 ];
 
+const socialLinks = [
+  { icon: Instagram, label: "Instagram", url: "https://www.instagram.com/drafernandasarelli/" },
+  { icon: Facebook, label: "Facebook", url: "https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" },
+  { icon: MessageCircle, label: "WhatsApp", url: "https://w.app/drafernandasarelli" },
+];
+
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -25,15 +31,11 @@ const Header = () => {
         {/* Social icons + Nav desktop */}
         <div className="hidden lg:flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <a href="https://www.instagram.com/drafernandasarelli/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors">
-              <Instagram className="h-4 w-4" />
-            </a>
-            <a href="https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors">
-              <Facebook className="h-4 w-4" />
-            </a>
-            <a href="https://w.app/drafernandasarelli" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors">
-              <MessageCircle className="h-4 w-4" />
-            </a>
+            {socialLinks.map((s) => (
+              <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors">
+                <s.icon className="h-4 w-4" />
+              </a>
+            ))}
           </div>
 
           <nav className="flex items-center gap-1">
@@ -73,31 +75,50 @@ const Header = () => {
             transition={{ duration: 0.3 }}
             className="overflow-hidden border-t lg:hidden bg-background"
           >
-            <div className="container flex flex-col gap-1 py-4">
-              {navItems.map((item) => (
+            <div className="container flex flex-col gap-3 py-4">
+              {/* Social pill tabs */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {socialLinks.map((s, i) => (
+                  <a
+                    key={s.label}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                      i === 0
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-primary text-primary"
+                    }`}
+                  >
+                    <s.icon className="h-4 w-4" />
+                    {s.label}
+                  </a>
+                ))}
+              </div>
+
+              {/* Nav items as bordered list */}
+              <div className="flex flex-col gap-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setOpen(false)}
+                    className={`rounded-xl border px-4 py-3.5 text-sm font-medium transition-colors ${
+                      pathname === item.path
+                        ? "border-primary bg-accent text-primary"
+                        : "border-border text-foreground hover:border-primary/50 hover:bg-accent/50"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
                 <Link
-                  key={item.path}
-                  to={item.path}
+                  to="/admin-login"
                   onClick={() => setOpen(false)}
-                  className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    pathname === item.path
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted"
-                  }`}
+                  className="rounded-xl border border-border px-4 py-3.5 text-sm font-medium text-primary transition-colors hover:border-primary/50 hover:bg-accent/50"
                 >
-                  {item.label}
+                  Painel Admin
                 </Link>
-              ))}
-              <div className="flex items-center gap-3 px-4 pt-3 border-t mt-2">
-                <a href="https://www.instagram.com/drafernandasarelli/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground">
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a href="https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground">
-                  <Facebook className="h-4 w-4" />
-                </a>
-                <a href="https://w.app/drafernandasarelli" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground">
-                  <MessageCircle className="h-4 w-4" />
-                </a>
               </div>
             </div>
           </motion.nav>
