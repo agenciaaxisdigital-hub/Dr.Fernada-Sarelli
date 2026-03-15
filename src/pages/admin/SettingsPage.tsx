@@ -16,12 +16,11 @@ interface AdminUser {
 }
 
 const SettingsPage = () => {
-  useAdmin(["super_admin"]);
+  useAdmin();
   const [apiToken, setApiToken] = useState("");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newCargo, setNewCargo] = useState<string>("editor");
   const [creating, setCreating] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
