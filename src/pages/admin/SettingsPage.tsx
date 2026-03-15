@@ -163,7 +163,7 @@ const SettingsPage = () => {
           </div>
 
           <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 placeholder="Usuário"
                 value={newUsername}
@@ -177,14 +177,6 @@ const SettingsPage = () => {
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
               />
-              <Select value={newCargo} onValueChange={setNewCargo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="editor">Operador</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <Button onClick={createUser} disabled={creating} className="rounded-full">
               <UserPlus className="mr-2 h-4 w-4" /> {creating ? "Criando..." : "Criar Usuário"}
