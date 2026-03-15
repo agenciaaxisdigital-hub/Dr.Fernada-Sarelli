@@ -1,4 +1,5 @@
 import { MessageCircle } from "lucide-react";
+import { trackClick } from "@/lib/tracking";
 
 const WhatsAppFloat = () => (
   <a
@@ -6,6 +7,7 @@ const WhatsAppFloat = () => (
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Fale pelo WhatsApp"
+    onClick={() => trackClick("whatsapp", window.location.pathname, "(62) 98133-6168")}
     className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(142,70%,49%)] shadow-[0_10px_20px_rgba(37,211,102,0.3)] transition-transform hover:scale-110"
   >
     <MessageCircle className="h-7 w-7 text-primary-foreground" />
