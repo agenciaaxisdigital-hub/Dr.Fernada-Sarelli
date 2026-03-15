@@ -32,8 +32,8 @@ const Dashboard = () => {
       // Total WhatsApp clicks
       const { count: totalWhatsApp } = await supabase.from("cliques_whatsapp").select("*", { count: "exact", head: true });
 
-      // Total Instagram clicks (tipo_clique = instagram)
-      const { data: igData } = await supabase.from("cliques_whatsapp").select("id").eq("tipo_clique" as any, "instagram");
+      // Total Instagram clicks
+      const { data: igData } = await (supabase.from("cliques_whatsapp").select("id") as any).eq("tipo_clique", "instagram");
       const totalInstagram = igData?.length || 0;
 
       // Visitors today
