@@ -11,7 +11,6 @@ import Integracao from "./pages/Integracao";
 import Contato from "./pages/Contato";
 import GaleriaPublica from "./pages/Galeria";
 import AdminLoginPage from "./pages/admin/Login";
-import Dashboard from "./pages/admin/Dashboard";
 import Gallery from "./pages/admin/Gallery";
 import Forms from "./pages/admin/Forms";
 import SettingsPage from "./pages/admin/SettingsPage";
@@ -36,7 +35,7 @@ const App = () => (
             <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/admin/dashboard" element={<Navigate to="/admin/galeria" replace />} />
             <Route path="/admin/galeria" element={<Gallery />} />
             <Route path="/admin/formularios" element={<Forms />} />
             <Route path="/admin/configuracoes" element={<SettingsPage />} />

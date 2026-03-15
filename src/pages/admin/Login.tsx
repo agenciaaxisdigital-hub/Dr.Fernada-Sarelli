@@ -36,7 +36,7 @@ const AdminLoginPage = () => {
         return;
       }
 
-      navigate("/admin/dashboard");
+      navigate("/admin/galeria");
     } catch {
       toast.error("Usuário ou senha inválidos.");
     } finally {

@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Image, FileText, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { Image, FileText, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard", adminOnly: false },
   { to: "/admin/galeria", icon: Image, label: "Galeria", adminOnly: false },
-  { to: "/admin/formularios", icon: FileText, label: "Formulários", adminOnly: true },
+  { to: "/admin/formularios", icon: FileText, label: "Formulários", adminOnly: false },
   { to: "/admin/configuracoes", icon: Settings, label: "Configurações", adminOnly: true },
 ];
 
