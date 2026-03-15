@@ -183,6 +183,18 @@ const Gallery = () => {
     await loadData();
   };
 
+  const toggleDestaqueHome = async (id: string, atual: boolean) => {
+    const { error } = await (supabase.from("galeria_fotos").update({ destaque_home: !atual } as any) as any).eq("id", id);
+
+    if (error) {
+      toast.error("Não foi possível atualizar o destaque.");
+      return;
+    }
+
+    toast.success(!atual ? "Fixada no feed da home" : "Removida do feed da home");
+    await loadData();
+  };
+
   const addPhoto = async () => {
     if (!uploadUrl.trim() || !uploadTitle.trim()) return;
 
