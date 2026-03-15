@@ -5,7 +5,6 @@ import { useAdmin } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface AdminUser {
@@ -23,27 +22,20 @@ const SettingsPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "";
-
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    // Load API token
     const { data: tokenData } = await supabase.from("configuracoes" as any).select("valor").eq("chave", "api_token").single();
     if (tokenData) setApiToken((tokenData as any).valor || "");
 
-    // Load users via edge function
     try {
       const { data, error } = await supabase.functions.invoke("admin-users", {
         body: { action: "list" },
       });
       if (!error && data?.users) setUsers(data.users);
     } catch {
-      // Fallback: load from roles table
       const { data: roles } = await supabase.from("roles_usuarios").select("*");
       if (roles) {
         setUsers(roles.map((r: any) => ({ id: r.id, user_id: r.user_id, username: r.user_id.substring(0, 8), cargo: r.cargo })));
@@ -145,14 +137,6 @@ const SettingsPage = () => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">Use como Bearer Token no header Authorization das requisições à API.</p>
-          {projectId && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Base URL:</span>{" "}
-              <code className="bg-secondary px-1 py-0.5 rounded">
-                {supabaseUrl}/functions/v1/api-v1/
-              </code>
-            </div>
-          )}
         </div>
 
         {/* User Management */}
@@ -189,38 +173,12 @@ const SettingsPage = () => {
             )}
             {users.map((u) => (
               <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
-                <div>
-                  <p className="text-sm font-medium">{u.username}</p>
-                </div>
+                <p className="text-sm font-medium">{u.username}</p>
                 <Button variant="ghost" size="icon" onClick={() => removeUser(u.user_id, u.username)} className="text-destructive hover:bg-destructive/10">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Supabase Credentials */}
-        <div className="rounded-2xl border bg-card p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Credenciais Supabase</h3>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">URL</Label>
-              <div className="flex gap-2 mt-1">
-                <Input value={supabaseUrl} readOnly className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={() => copyToClipboard(supabaseUrl)}><Copy className="h-4 w-4" /></Button>
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Anon Key</Label>
-              <div className="flex gap-2 mt-1">
-                <Input value={supabaseKey} readOnly className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={() => copyToClipboard(supabaseKey)}><Copy className="h-4 w-4" /></Button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
