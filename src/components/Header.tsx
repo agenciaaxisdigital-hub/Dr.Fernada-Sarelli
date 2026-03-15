@@ -113,7 +113,7 @@ const Header = () => {
                   </Link>
                 ))}
                 <Link
-                  to="/admin-login"
+                  to="/admin/login"
                   onClick={() => setOpen(false)}
                   className="rounded-xl border border-border px-4 py-3.5 text-sm font-medium text-primary transition-colors hover:border-primary/50 hover:bg-accent/50"
                 >

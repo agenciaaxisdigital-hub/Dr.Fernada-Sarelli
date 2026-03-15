@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, Eye, EyeOff, Upload, FolderPlus } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdmin } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,23 +25,26 @@ interface Foto {
   ordem: number;
 }
 
-const UNSPLASH_PHOTOS = [
-  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600",
-  "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600",
-  "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=600",
-  "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=600",
-  "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600",
-  "https://images.unsplash.com/photo-1559223607-a43c990c692c?w=600",
-  "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=600",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600",
-  "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600",
-  "https://images.unsplash.com/photo-1560439513-74b037a25d84?w=600",
-  "https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?w=600",
-];
+const TEST_ALBUMS = ["Eventos Comunitários", "Ações Sociais", "Campanha"] as const;
+
+const TEST_PHOTOS = [
+  { url: "/test-gallery/comunidade.svg", legenda: "Imagem de teste para visualizar a composição da galeria." },
+  { url: "/test-gallery/agenda.svg", legenda: "Imagem de teste para validar cortes e proporções." },
+  { url: "/test-gallery/lideranca.svg", legenda: "Imagem de teste para ocupar o layout do álbum." },
+  { url: "/test-gallery/encontro.svg", legenda: "Imagem de teste com composição horizontal." },
+  { url: "/test-gallery/campanha.svg", legenda: "Imagem de teste para revisar espaçamento visual." },
+  { url: "/test-gallery/territorio.svg", legenda: "Imagem de teste para checar contraste e leitura." },
+  { url: "/test-gallery/comunidade.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
+  { url: "/test-gallery/agenda.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
+  { url: "/test-gallery/lideranca.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
+  { url: "/test-gallery/encontro.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
+  { url: "/test-gallery/campanha.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
+  { url: "/test-gallery/territorio.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
+] as const;
+
+const TEST_IMAGE_URLS = [...new Set(TEST_PHOTOS.map((photo) => photo.url))];
 
 const Gallery = () => {
-  const { isAdmin } = useAdmin();
   const [albuns, setAlbuns] = useState<Album[]>([]);
   const [fotos, setFotos] = useState<Foto[]>([]);
   const [galeriaAtiva, setGaleriaAtiva] = useState(true);
@@ -56,110 +58,225 @@ const Gallery = () => {
   const [dragOver, setDragOver] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [{ data: albumData }, { data: fotoData }, { data: configData }] = await Promise.all([
+    const [{ data: albumData, error: albumError }, { data: fotoData, error: fotoError }, { data: configData, error: configError }] = await Promise.all([
       supabase.from("albuns" as any).select("*").order("ordem"),
       supabase.from("galeria_fotos").select("*").order("ordem"),
       supabase.from("configuracoes" as any).select("*").eq("chave", "galeria_ativa").single(),
     ]);
-    if (albumData) setAlbuns(albumData as any[]);
-    if (fotoData) setFotos(fotoData as any[]);
-    if (configData) setGaleriaAtiva((configData as any).valor === "true");
+
+    if (albumError || fotoError || configError) {
+      toast.error("Não foi possível carregar a galeria.");
+      return;
+    }
+
+    setAlbuns((albumData as Album[]) || []);
+    setFotos((fotoData as Foto[]) || []);
+    setGaleriaAtiva((configData as { valor?: string } | null)?.valor === "true");
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const ensureTestAlbums = async () => {
+    const { data: existingAlbums, error: existingError } = await supabase
+      .from("albuns" as any)
+      .select("id, nome")
+      .in("nome", [...TEST_ALBUMS]);
+
+    if (existingError) {
+      toast.error("Não foi possível preparar os álbuns de teste.");
+      return null;
+    }
+
+    const existingNames = new Set(((existingAlbums as Album[] | null) || []).map((album) => album.nome));
+    const missingAlbums = TEST_ALBUMS.filter((name) => !existingNames.has(name)).map((name, index) => ({ nome: name, ordem: index }));
+
+    if (missingAlbums.length > 0) {
+      const { error: insertError } = await supabase.from("albuns" as any).insert(missingAlbums as any);
+      if (insertError) {
+        toast.error("Não foi possível criar os álbuns de teste.");
+        return null;
+      }
+    }
+
+    const { data: refreshedAlbums, error: refreshedError } = await supabase
+      .from("albuns" as any)
+      .select("id, nome")
+      .in("nome", [...TEST_ALBUMS])
+      .order("ordem");
+
+    if (refreshedError) {
+      toast.error("Não foi possível carregar os álbuns de teste.");
+      return null;
+    }
+
+    return (refreshedAlbums as Album[]) || [];
+  };
+
+  const clearTestPhotos = async (silent = false) => {
+    const { error } = await supabase.from("galeria_fotos").delete().in("url_foto", TEST_IMAGE_URLS);
+
+    if (error) {
+      if (!silent) toast.error("Não foi possível remover as imagens de teste.");
+      return false;
+    }
+
+    if (!silent) toast.success("Imagens de teste removidas.");
+    await loadData();
+    return true;
+  };
 
   const toggleGaleria = async () => {
     const newVal = !galeriaAtiva;
-    await supabase.from("configuracoes" as any).update({ valor: newVal ? "true" : "false" } as any).eq("chave", "galeria_ativa");
+    const { error } = await supabase
+      .from("configuracoes" as any)
+      .update({ valor: newVal ? "true" : "false" } as any)
+      .eq("chave", "galeria_ativa");
+
+    if (error) {
+      toast.error("Não foi possível atualizar a galeria.");
+      return;
+    }
+
     setGaleriaAtiva(newVal);
     toast.success(newVal ? "Galeria ativada" : "Galeria desativada");
   };
 
   const createAlbum = async () => {
     if (!newAlbumName.trim()) return;
-    await supabase.from("albuns" as any).insert({ nome: newAlbumName } as any);
+
+    const { error } = await supabase.from("albuns" as any).insert({ nome: newAlbumName.trim() } as any);
+
+    if (error) {
+      toast.error("Não foi possível criar o álbum.");
+      return;
+    }
+
     setNewAlbumName("");
     setNewAlbumOpen(false);
     toast.success("Álbum criado");
-    loadData();
+    await loadData();
   };
 
   const deletePhoto = async (id: string) => {
-    await supabase.from("galeria_fotos").delete().eq("id", id);
+    const { error } = await supabase.from("galeria_fotos").delete().eq("id", id);
+
+    if (error) {
+      toast.error("Não foi possível remover a foto.");
+      return;
+    }
+
     toast.success("Foto removida");
-    loadData();
+    await loadData();
   };
 
   const togglePhotoVisibility = async (id: string, visivel: boolean) => {
-    await supabase.from("galeria_fotos").update({ visivel: !visivel }).eq("id", id);
-    loadData();
+    const { error } = await supabase.from("galeria_fotos").update({ visivel: !visivel }).eq("id", id);
+
+    if (error) {
+      toast.error("Não foi possível atualizar a visibilidade.");
+      return;
+    }
+
+    await loadData();
   };
 
   const addPhoto = async () => {
     if (!uploadUrl.trim() || !uploadTitle.trim()) return;
-    await supabase.from("galeria_fotos").insert({
-      titulo: uploadTitle,
-      legenda: uploadCaption || null,
-      url_foto: uploadUrl,
+
+    const { error } = await supabase.from("galeria_fotos").insert({
+      titulo: uploadTitle.trim(),
+      legenda: uploadCaption.trim() || null,
+      url_foto: uploadUrl.trim(),
       album_id: selectedAlbum,
       visivel: true,
     } as any);
+
+    if (error) {
+      toast.error("Não foi possível adicionar a foto.");
+      return;
+    }
+
     setUploadUrl("");
     setUploadTitle("");
     setUploadCaption("");
     setUploadOpen(false);
     toast.success("Foto adicionada");
-    loadData();
+    await loadData();
   };
 
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+
     const files = Array.from(e.dataTransfer.files);
+    let successCount = 0;
+
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
-      const path = `galeria/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from("galeria").upload(path, file);
-      if (error) { toast.error("Erro no upload"); continue; }
+
+      const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
+      const path = `galeria/${Date.now()}_${sanitizedName}`;
+      const { error: uploadError } = await supabase.storage.from("galeria").upload(path, file);
+
+      if (uploadError) {
+        toast.error(`Erro no upload de ${file.name}`);
+        continue;
+      }
+
       const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
-      await supabase.from("galeria_fotos").insert({
+      const { error: insertError } = await supabase.from("galeria_fotos").insert({
         titulo: file.name.replace(/\.[^/.]+$/, ""),
         url_foto: urlData.publicUrl,
         album_id: selectedAlbum,
         visivel: true,
       } as any);
+
+      if (insertError) {
+        toast.error(`Erro ao salvar ${file.name}`);
+        continue;
+      }
+
+      successCount += 1;
     }
-    toast.success("Upload concluído");
-    loadData();
+
+    if (successCount > 0) {
+      toast.success(`${successCount} imagem(ns) enviada(s)`);
+      await loadData();
+    }
   };
 
   const populateTestPhotos = async () => {
-    const albumNames = ["Eventos Comunitários", "Ações Sociais", "Campanha"];
-    for (const name of albumNames) {
-      const { data: existing } = await supabase.from("albuns" as any).select("id").eq("nome", name).single();
-      if (!existing) {
-        await supabase.from("albuns" as any).insert({ nome: name } as any);
-      }
-    }
-    const { data: allAlbums } = await supabase.from("albuns" as any).select("*").order("criado_em");
-    if (!allAlbums || allAlbums.length < 3) return;
+    const testAlbums = await ensureTestAlbums();
+    if (!testAlbums || testAlbums.length === 0) return;
 
-    for (let i = 0; i < UNSPLASH_PHOTOS.length; i++) {
-      const albumIdx = i % 3;
-      await supabase.from("galeria_fotos").insert({
-        titulo: `Foto de teste ${i + 1}`,
-        legenda: `Legenda da foto ${i + 1}`,
-        url_foto: UNSPLASH_PHOTOS[i],
-        album_id: (allAlbums as any[])[albumIdx].id,
-        visivel: true,
-        ordem: i,
-      } as any);
+    const cleared = await clearTestPhotos(true);
+    if (!cleared) return;
+
+    const albumMap = new Map(testAlbums.map((album) => [album.nome, album.id]));
+    const payload = TEST_PHOTOS.map((photo, index) => ({
+      titulo: `Foto de teste ${index + 1}`,
+      legenda: photo.legenda,
+      url_foto: photo.url,
+      album_id: albumMap.get(TEST_ALBUMS[index % TEST_ALBUMS.length]) || null,
+      visivel: true,
+      ordem: index,
+    }));
+
+    const { error } = await supabase.from("galeria_fotos").insert(payload as any);
+
+    if (error) {
+      toast.error("Não foi possível criar as imagens de teste.");
+      return;
     }
-    toast.success("12 fotos de teste adicionadas em 3 álbuns");
-    loadData();
+
+    toast.success("Imagens de teste adicionadas.");
+    await loadData();
   };
 
-  const filteredFotos = selectedAlbum ? fotos.filter((f) => f.album_id === selectedAlbum) : fotos;
+  const filteredFotos = selectedAlbum ? fotos.filter((foto) => foto.album_id === selectedAlbum) : fotos;
+  const hasTestPhotos = fotos.some((foto) => TEST_IMAGE_URLS.includes(foto.url_foto));
 
   return (
     <AdminLayout>
@@ -174,7 +291,6 @@ const Gallery = () => {
           </div>
         </div>
 
-        {/* Albums */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedAlbum(null)}
@@ -184,15 +300,15 @@ const Gallery = () => {
           >
             Todas
           </button>
-          {albuns.map((a) => (
+          {albuns.map((album) => (
             <button
-              key={a.id}
-              onClick={() => setSelectedAlbum(a.id)}
+              key={album.id}
+              onClick={() => setSelectedAlbum(album.id)}
               className={`rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
-                selectedAlbum === a.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
+                selectedAlbum === album.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
               }`}
             >
-              {a.nome}
+              {album.nome}
             </button>
           ))}
 
@@ -212,7 +328,6 @@ const Gallery = () => {
           </Dialog>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-wrap gap-2">
           <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
             <DialogTrigger asChild>
@@ -229,14 +344,17 @@ const Gallery = () => {
             </DialogContent>
           </Dialog>
 
-          {fotos.length === 0 && (
-            <Button variant="outline" className="rounded-full" onClick={populateTestPhotos}>
-              <Upload className="mr-2 h-4 w-4" /> Carregar fotos de teste
+          <Button variant="outline" className="rounded-full" onClick={populateTestPhotos}>
+            <Sparkles className="mr-2 h-4 w-4" /> Popular com imagens de teste
+          </Button>
+
+          {hasTestPhotos && (
+            <Button variant="outline" className="rounded-full" onClick={() => clearTestPhotos()}>
+              <Eraser className="mr-2 h-4 w-4" /> Apagar imagens de teste
             </Button>
           )}
         </div>
 
-        {/* Drag & Drop zone */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -249,7 +367,6 @@ const Gallery = () => {
           <p className="text-sm text-muted-foreground">Arraste e solte fotos aqui para upload</p>
         </div>
 
-        {/* Pinterest-style grid */}
         <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
           {filteredFotos.map((foto) => (
             <div key={foto.id} className="break-inside-avoid rounded-2xl border bg-card overflow-hidden group relative">
@@ -264,12 +381,14 @@ const Gallery = () => {
                 <button
                   onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:bg-accent transition-colors"
+                  aria-label={foto.visivel ? "Ocultar foto" : "Mostrar foto"}
                 >
-                  {foto.visivel ? <Eye className="h-4 w-4 text-green-500" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                  {foto.visivel ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
                 </button>
                 <button
                   onClick={() => deletePhoto(foto.id)}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  aria-label="Apagar foto"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
