@@ -56,11 +56,11 @@ const Index = () => {
   useEffect(() => {
     const loadGaleria = async () => {
       // Primeiro tenta fotos marcadas como destaque_home
-      const { data: destaquesData } = await supabase
+      const { data: destaquesData } = await (supabase
         .from("galeria_fotos")
-        .select("id, titulo, legenda, url_foto")
+        .select("id, titulo, legenda, url_foto") as any)
         .eq("visivel", true)
-        .eq("destaque_home" as any, true)
+        .eq("destaque_home", true)
         .order("ordem")
         .limit(6);
 
