@@ -131,8 +131,11 @@ export type Database = {
           longitude: number | null
           pagina_origem: string | null
           pais: string | null
+          secao_pagina: string | null
           telefone_destino: string | null
+          texto_botao: string | null
           tipo_clique: string | null
+          url_destino: string | null
           user_agent: string | null
         }
         Insert: {
@@ -146,8 +149,11 @@ export type Database = {
           longitude?: number | null
           pagina_origem?: string | null
           pais?: string | null
+          secao_pagina?: string | null
           telefone_destino?: string | null
+          texto_botao?: string | null
           tipo_clique?: string | null
+          url_destino?: string | null
           user_agent?: string | null
         }
         Update: {
@@ -161,8 +167,11 @@ export type Database = {
           longitude?: number | null
           pagina_origem?: string | null
           pais?: string | null
+          secao_pagina?: string | null
           telefone_destino?: string | null
+          texto_botao?: string | null
           tipo_clique?: string | null
+          url_destino?: string | null
           user_agent?: string | null
         }
         Relationships: []
