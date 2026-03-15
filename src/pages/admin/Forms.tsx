@@ -124,19 +124,11 @@ const Forms = () => {
         {/* Mobile cards */}
         <div className="lg:hidden space-y-3">
           {filtered.map((m) => (
-            <div key={m.id} className="rounded-2xl border bg-card p-5 space-y-2" onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}>
+            <div key={m.id} className="rounded-2xl border bg-card p-5 space-y-2">
               <p className="font-semibold">{m.nome}</p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" />{m.telefone}</div>
               {m.email && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="h-4 w-4" />{m.email}</div>}
               <p className="text-sm text-muted-foreground">{m.mensagem}</p>
-              {expandedId === m.id && (
-                <div className="pt-2 border-t space-y-1 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1"><Globe className="h-3 w-3" />IP: {m.endereco_ip || "—"}</div>
-                  <div className="flex items-center gap-1"><MapPin className="h-3 w-3" />{[m.cidade, m.estado, m.pais].filter(Boolean).join(", ") || "—"}</div>
-                  <div className="flex items-center gap-1"><Monitor className="h-3 w-3" />{m.user_agent?.substring(0, 60) || "—"}</div>
-                  {m.latitude && <p>Coords: {m.latitude}, {m.longitude}</p>}
-                </div>
-              )}
               <p className="text-xs text-muted-foreground">{formatDate(m.criado_em)}</p>
             </div>
           ))}
