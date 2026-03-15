@@ -25,7 +25,7 @@ interface Mensagem {
 }
 
 const Forms = () => {
-  useAdmin(["super_admin", "admin"]);
+  useAdmin();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
