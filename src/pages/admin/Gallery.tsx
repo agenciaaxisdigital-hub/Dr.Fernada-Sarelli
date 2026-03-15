@@ -89,7 +89,7 @@ const Gallery = () => {
       return null;
     }
 
-    const existingNames = new Set(((existingAlbums as Album[] | null) || []).map((album) => album.nome));
+    const existingNames = new Set(((existingAlbums as unknown as Album[] | null) || []).map((album) => album.nome));
     const missingAlbums = TEST_ALBUMS.filter((name) => !existingNames.has(name)).map((name, index) => ({ nome: name, ordem: index }));
 
     if (missingAlbums.length > 0) {
