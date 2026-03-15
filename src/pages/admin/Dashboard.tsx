@@ -30,10 +30,11 @@ const Dashboard = () => {
       const { count: totalVisitors } = await supabase.from("acessos_site").select("*", { count: "exact", head: true });
 
       // Total WhatsApp clicks
-      const { count: totalWhatsApp } = await supabase.from("cliques_whatsapp").select("*", { count: "exact", head: true }).eq("tipo_clique" as any, "whatsapp");
+      const { count: totalWhatsApp } = await supabase.from("cliques_whatsapp").select("*", { count: "exact", head: true });
 
-      // Total Instagram clicks
-      const { count: totalInstagram } = await supabase.from("cliques_whatsapp").select("*", { count: "exact", head: true }).eq("tipo_clique" as any, "instagram");
+      // Total Instagram clicks (tipo_clique = instagram)
+      const { data: igData } = await supabase.from("cliques_whatsapp").select("id").eq("tipo_clique" as any, "instagram");
+      const totalInstagram = igData?.length || 0;
 
       // Visitors today
       const today = new Date().toISOString().split("T")[0];
