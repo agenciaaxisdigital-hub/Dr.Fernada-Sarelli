@@ -6,9 +6,8 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard", adminOnly: false },
   { to: "/admin/galeria", icon: Image, label: "Galeria", adminOnly: false },
-  { to: "/admin/formularios", icon: FileText, label: "Formulários", adminOnly: true },
+  { to: "/admin/formularios", icon: FileText, label: "Formulários", adminOnly: false },
   { to: "/admin/configuracoes", icon: Settings, label: "Configurações", adminOnly: true },
 ];
 
