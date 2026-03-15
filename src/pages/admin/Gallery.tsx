@@ -42,7 +42,7 @@ const TEST_PHOTOS = [
   { url: "/test-gallery/territorio.svg", legenda: "Imagem de teste duplicada de propósito para volume visual." },
 ] as const;
 
-const TEST_IMAGE_URLS = [...new Set(TEST_PHOTOS.map((photo) => photo.url))];
+const TEST_IMAGE_URLS: string[] = [...new Set(TEST_PHOTOS.map((photo) => photo.url))];
 
 const Gallery = () => {
   const [albuns, setAlbuns] = useState<Album[]>([]);
