@@ -6,7 +6,7 @@ type Cargo = "super_admin" | "admin" | "editor";
 
 interface AdminUser {
   id: string;
-  email: string;
+  username: string;
   cargo: Cargo;
 }
 
@@ -41,9 +41,11 @@ export function useAdmin(requiredCargo?: Cargo[]) {
         return;
       }
 
+      const username = session.user.user_metadata?.username || session.user.email?.split("@")[0] || "admin";
+
       setUser({
         id: session.user.id,
-        email: session.user.email || "",
+        username,
         cargo,
       });
       setLoading(false);

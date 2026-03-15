@@ -9,24 +9,25 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-interface Operator {
+interface AdminUser {
   id: string;
   user_id: string;
+  username: string;
   cargo: string;
-  email?: string;
 }
 
 const SettingsPage = () => {
   useAdmin(["super_admin"]);
   const [apiToken, setApiToken] = useState("");
-  const [operators, setOperators] = useState<Operator[]>([]);
-  const [newEmail, setNewEmail] = useState("");
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newCargo, setNewCargo] = useState<string>("editor");
   const [creating, setCreating] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "";
 
   useEffect(() => {
     loadData();
@@ -37,10 +38,18 @@ const SettingsPage = () => {
     const { data: tokenData } = await supabase.from("configuracoes" as any).select("valor").eq("chave", "api_token").single();
     if (tokenData) setApiToken((tokenData as any).valor || "");
 
-    // Load operators
-    const { data: roles } = await supabase.from("roles_usuarios").select("*");
-    if (roles) {
-      setOperators(roles.map((r: any) => ({ id: r.id, user_id: r.user_id, cargo: r.cargo })));
+    // Load users via edge function
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "list" },
+      });
+      if (!error && data?.users) setUsers(data.users);
+    } catch {
+      // Fallback: load from roles table
+      const { data: roles } = await supabase.from("roles_usuarios").select("*");
+      if (roles) {
+        setUsers(roles.map((r: any) => ({ id: r.id, user_id: r.user_id, username: r.user_id.substring(0, 8), cargo: r.cargo })));
+      }
     }
   };
 
@@ -59,44 +68,71 @@ const SettingsPage = () => {
   };
 
   const createUser = async () => {
-    if (!newEmail || !newPassword) return;
+    if (!newUsername.trim() || !newPassword.trim()) {
+      toast.error("Preencha usuário e senha");
+      return;
+    }
+    if (newUsername.length < 3) {
+      toast.error("Usuário deve ter pelo menos 3 caracteres");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
     setCreating(true);
     try {
-      // Create user via Supabase auth (needs service role, we'll use edge function)
-      // For now, we create the role entry assuming user already exists in auth
-      const { data: { user }, error } = await supabase.auth.admin.createUser({
-        email: newEmail,
-        password: newPassword,
-        email_confirm: true,
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: {
+          action: "create",
+          username: newUsername.trim(),
+          password: newPassword,
+          cargo: newCargo,
+        },
       });
 
-      if (error) {
-        // If admin API not available, instruct to create user manually
-        toast.error("Crie o usuário manualmente no painel Supabase e adicione o role aqui.");
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
         return;
       }
 
-      if (user) {
-        await supabase.from("roles_usuarios").insert({
-          user_id: user.id,
-          cargo: newCargo as any,
-        });
-        toast.success("Operador criado");
-        setNewEmail("");
-        setNewPassword("");
-        loadData();
-      }
-    } catch {
-      toast.error("Erro ao criar operador. Crie o usuário no Supabase e adicione o role.");
+      toast.success(`Usuário "${newUsername}" criado com sucesso!`);
+      setNewUsername("");
+      setNewPassword("");
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar usuário");
     } finally {
       setCreating(false);
     }
   };
 
-  const removeOperator = async (id: string) => {
-    await supabase.from("roles_usuarios").delete().eq("id", id);
-    toast.success("Operador removido");
-    loadData();
+  const removeUser = async (userId: string, username: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "delete", user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success(`Usuário "${username}" removido`);
+      loadData();
+    } catch {
+      toast.error("Erro ao remover usuário");
+    }
+  };
+
+  const cargoLabel = (cargo: string) => {
+    switch (cargo) {
+      case "super_admin": return "Super Admin";
+      case "admin": return "Admin";
+      case "editor": return "Operador";
+      default: return cargo;
+    }
   };
 
   return (
@@ -120,6 +156,14 @@ const SettingsPage = () => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">Use como Bearer Token no header Authorization das requisições à API.</p>
+          {projectId && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Base URL:</span>{" "}
+              <code className="bg-secondary px-1 py-0.5 rounded">
+                {supabaseUrl}/functions/v1/api-v1/
+              </code>
+            </div>
+          )}
         </div>
 
         {/* User Management */}
@@ -131,8 +175,19 @@ const SettingsPage = () => {
 
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Input placeholder="E-mail" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-              <Input placeholder="Senha" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <Input
+                placeholder="Usuário"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                autoComplete="off"
+              />
+              <Input
+                placeholder="Senha"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
               <Select value={newCargo} onValueChange={setNewCargo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -148,13 +203,16 @@ const SettingsPage = () => {
           </div>
 
           <div className="space-y-2 pt-4 border-t">
-            {operators.map((op) => (
-              <div key={op.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
+            {users.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum usuário cadastrado.</p>
+            )}
+            {users.map((u) => (
+              <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
                 <div>
-                  <p className="text-sm font-medium">{op.user_id.substring(0, 8)}...</p>
-                  <p className="text-xs text-muted-foreground capitalize">{op.cargo.replace("_", " ")}</p>
+                  <p className="text-sm font-medium">{u.username}</p>
+                  <p className="text-xs text-muted-foreground">{cargoLabel(u.cargo)}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeOperator(op.id)} className="text-destructive hover:bg-destructive/10">
+                <Button variant="ghost" size="icon" onClick={() => removeUser(u.user_id, u.username)} className="text-destructive hover:bg-destructive/10">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>

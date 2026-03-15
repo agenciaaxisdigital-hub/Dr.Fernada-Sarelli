@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 const AdminLoginPage = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,6 +18,9 @@ const AdminLoginPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Map username to internal email format
+      const email = `${username.toLowerCase().replace(/[^a-z0-9_]/g, "")}@admin.painel`;
+
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
@@ -35,7 +38,7 @@ const AdminLoginPage = () => {
 
       navigate("/admin/dashboard");
     } catch {
-      toast.error("Credenciais inválidas.");
+      toast.error("Usuário ou senha inválidos.");
     } finally {
       setLoading(false);
     }
@@ -54,8 +57,20 @@ const AdminLoginPage = () => {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <Label htmlFor="admin-email">E-mail</Label>
-            <Input id="admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1" required />
+            <Label htmlFor="admin-username">Usuário</Label>
+            <div className="relative mt-1">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="admin-username"
+                type="text"
+                placeholder="Digite seu usuário"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="pl-9"
+                required
+                autoComplete="username"
+              />
+            </div>
           </div>
           <div>
             <Label htmlFor="admin-password">Senha</Label>
@@ -63,10 +78,12 @@ const AdminLoginPage = () => {
               <Input
                 id="admin-password"
                 type={showPass ? "text" : "password"}
+                placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pr-10"
                 required
+                autoComplete="current-password"
               />
               <button
                 type="button"
