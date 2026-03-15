@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import TrackingProvider from "@/components/TrackingProvider";
 import Index from "./pages/Index";
@@ -22,7 +21,6 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
       <Sonner />
       <BrowserRouter>
         <TrackingProvider>
@@ -33,6 +31,8 @@ const App = () => (
             <Route path="/redes-sociais" element={<RedesSociais />} />
             <Route path="/integracao" element={<Integracao />} />
             <Route path="/contato" element={<Contato />} />
+            <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/galeria" element={<Gallery />} />
