@@ -104,22 +104,16 @@ const Forms = () => {
                 <th className="p-4 text-xs font-semibold">Telefone</th>
                 <th className="p-4 text-xs font-semibold">E-mail</th>
                 <th className="p-4 text-xs font-semibold">Mensagem</th>
-                <th className="p-4 text-xs font-semibold">Localização</th>
-                <th className="p-4 text-xs font-semibold">Dispositivo</th>
                 <th className="p-4 text-xs font-semibold">Data</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((m) => (
-                <tr key={m.id} className="border-b last:border-0 hover:bg-accent/30 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}>
+                <tr key={m.id} className="border-b last:border-0 hover:bg-accent/30 transition-colors">
                   <td className="p-4 text-sm font-medium">{m.nome}</td>
                   <td className="p-4 text-sm">{m.telefone}</td>
                   <td className="p-4 text-sm text-muted-foreground">{m.email || "—"}</td>
-                  <td className="p-4 text-sm max-w-[200px] truncate">{m.mensagem}</td>
-                  <td className="p-4 text-sm text-muted-foreground">
-                    {[m.cidade, m.estado, m.pais].filter(Boolean).join(", ") || "—"}
-                  </td>
-                  <td className="p-4 text-sm text-muted-foreground">{m.endereco_ip || "—"}</td>
+                  <td className="p-4 text-sm max-w-[300px] truncate">{m.mensagem}</td>
                   <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">{formatDate(m.criado_em)}</td>
                 </tr>
               ))}
