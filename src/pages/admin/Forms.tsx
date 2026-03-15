@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Download, Phone, Mail, MapPin, Monitor, Globe } from "lucide-react";
+import { Search, Download, Phone, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,7 @@ const Forms = () => {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const load = async () => {
@@ -104,22 +104,16 @@ const Forms = () => {
                 <th className="p-4 text-xs font-semibold">Telefone</th>
                 <th className="p-4 text-xs font-semibold">E-mail</th>
                 <th className="p-4 text-xs font-semibold">Mensagem</th>
-                <th className="p-4 text-xs font-semibold">Localização</th>
-                <th className="p-4 text-xs font-semibold">Dispositivo</th>
                 <th className="p-4 text-xs font-semibold">Data</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((m) => (
-                <tr key={m.id} className="border-b last:border-0 hover:bg-accent/30 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}>
+                <tr key={m.id} className="border-b last:border-0 hover:bg-accent/30 transition-colors">
                   <td className="p-4 text-sm font-medium">{m.nome}</td>
                   <td className="p-4 text-sm">{m.telefone}</td>
                   <td className="p-4 text-sm text-muted-foreground">{m.email || "—"}</td>
-                  <td className="p-4 text-sm max-w-[200px] truncate">{m.mensagem}</td>
-                  <td className="p-4 text-sm text-muted-foreground">
-                    {[m.cidade, m.estado, m.pais].filter(Boolean).join(", ") || "—"}
-                  </td>
-                  <td className="p-4 text-sm text-muted-foreground">{m.endereco_ip || "—"}</td>
+                  <td className="p-4 text-sm max-w-[300px] truncate">{m.mensagem}</td>
                   <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">{formatDate(m.criado_em)}</td>
                 </tr>
               ))}
@@ -130,19 +124,11 @@ const Forms = () => {
         {/* Mobile cards */}
         <div className="lg:hidden space-y-3">
           {filtered.map((m) => (
-            <div key={m.id} className="rounded-2xl border bg-card p-5 space-y-2" onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}>
+            <div key={m.id} className="rounded-2xl border bg-card p-5 space-y-2">
               <p className="font-semibold">{m.nome}</p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" />{m.telefone}</div>
               {m.email && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="h-4 w-4" />{m.email}</div>}
               <p className="text-sm text-muted-foreground">{m.mensagem}</p>
-              {expandedId === m.id && (
-                <div className="pt-2 border-t space-y-1 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1"><Globe className="h-3 w-3" />IP: {m.endereco_ip || "—"}</div>
-                  <div className="flex items-center gap-1"><MapPin className="h-3 w-3" />{[m.cidade, m.estado, m.pais].filter(Boolean).join(", ") || "—"}</div>
-                  <div className="flex items-center gap-1"><Monitor className="h-3 w-3" />{m.user_agent?.substring(0, 60) || "—"}</div>
-                  {m.latitude && <p>Coords: {m.latitude}, {m.longitude}</p>}
-                </div>
-              )}
               <p className="text-xs text-muted-foreground">{formatDate(m.criado_em)}</p>
             </div>
           ))}
