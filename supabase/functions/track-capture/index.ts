@@ -221,7 +221,6 @@ Deno.serve(async (req) => {
         telefone: body.telefone,
         email: body.email || null,
         mensagem: body.mensagem,
-        cookie_visitante: body.cookie_visitante || null,
         endereco_ip: ip,
         user_agent: body.user_agent || null,
         cidade: body.cidade || geoFields.cidade || null,
