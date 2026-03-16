@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Send, Users, MessageCircle, Facebook, Instagram } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +11,7 @@ import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
 import PageHeader from "@/components/PageHeader";
+import { getCachedGeo, getGeoMode, getVisitorId, resolveLocation, waitForGPS } from "@/lib/tracking";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Nome é obrigatório").max(100),
@@ -52,13 +52,51 @@ const Integracao = () => {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      const { error } = await supabase.from("mensagens_contato").insert({
-        nome: data.nome,
-        telefone: data.telefone,
-        email: data.email || null,
-        mensagem: data.mensagem || "Cadastro via Integração",
+      const cookie_visitante = getVisitorId();
+      let geo = getCachedGeo();
+      if (!geo || geo.geo_layer !== "gps") {
+        try {
+          geo = await waitForGPS(5000, 500);
+        } catch {
+          // use fallback below
+        }
+      }
+      if (!geo) geo = await resolveLocation().catch(() => null);
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/track-capture`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: "form",
+          nome: data.nome,
+          telefone: data.telefone,
+          email: data.email || null,
+          mensagem: data.mensagem || "Cadastro via Integração",
+          cookie_visitante,
+          user_agent: navigator.userAgent,
+          precisao_localizacao: getGeoMode(),
+          ...(geo ? {
+            cidade: geo.cidade,
+            estado: geo.estado,
+            pais: geo.pais,
+            bairro: geo.bairro,
+            cep: geo.cep,
+            rua: geo.rua,
+            endereco_completo: geo.endereco_completo,
+            latitude: geo.latitude,
+            longitude: geo.longitude,
+            zona_eleitoral: geo.zona_eleitoral,
+          } : {}),
+        }),
       });
-      if (error) throw error;
+
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error || "Falha ao registrar cadastro");
+
       toast.success("Cadastro enviado com sucesso!");
       reset();
     } catch {

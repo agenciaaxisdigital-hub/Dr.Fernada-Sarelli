@@ -18,7 +18,6 @@
  * 14. Retroactive enrichment
  */
 
-import { supabase } from "@/integrations/supabase/client";
 import { UAParser } from "ua-parser-js";
 
 // ═══════════════════════════════════════════════════════════
@@ -50,34 +49,60 @@ export const PRECISAO = {
 // ═══════════════════════════════════════════════════════════
 
 interface QueueItem {
-  table: string;
-  data: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+  table?: string;
+  data?: Record<string, unknown>;
   timestamp: number;
 }
 
-async function retryInsert(table: string, data: Record<string, unknown>): Promise<string | null> {
-  const delays = [0, 2000, 5000];
-  for (let attempt = 0; attempt < delays.length; attempt++) {
+function getTrackCaptureUrl() {
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  return `https://${projectId}.supabase.co/functions/v1/track-capture`;
+}
+
+async function sendTrackPayload(
+  payload: Record<string, unknown>,
+  options?: { preferBeacon?: boolean; keepalive?: boolean }
+): Promise<boolean> {
+  const url = getTrackCaptureUrl();
+
+  if (options?.preferBeacon && typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
     try {
-      if (delays[attempt] > 0) await sleep(delays[attempt]);
-      const { data: result, error } = await (supabase.from as any)(table).insert(data).select("id").single();
-      if (error) throw error;
-      return result?.id || null;
-    } catch (err) {
-      if (attempt === delays.length - 1) {
-        enqueue({ table, data, timestamp: Date.now() });
-        console.warn(`[Chama] Queued failed insert to ${table}`);
-        return null;
-      }
+      const sent = navigator.sendBeacon(url, new Blob([JSON.stringify(payload)], { type: "application/json" }));
+      if (sent) return true;
+    } catch {
+      // fall through to fetch
     }
   }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(payload),
+    keepalive: options?.keepalive,
+  });
+
+  return res.ok;
+}
+
+function normalizeQueuedPayload(item: QueueItem): Record<string, unknown> | null {
+  if (item.payload) return item.payload;
+  if (!item.table || !item.data) return null;
+
+  if (item.table === "acessos_site") return { action: "pageview", ...item.data };
+  if (item.table === "cliques_whatsapp") return { action: "click", ...item.data };
+  if (item.table === "mensagens_contato") return { action: "form", ...item.data };
+
   return null;
 }
 
-function enqueue(item: QueueItem) {
+function enqueue(payload: Record<string, unknown>) {
   try {
     const queue = getQueue();
-    queue.push(item);
+    queue.push({ payload, timestamp: Date.now() });
     if (queue.length > 200) queue.splice(0, queue.length - 200);
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
   } catch { /* localStorage full */ }
@@ -94,16 +119,21 @@ export async function flushQueue() {
   const queue = getQueue();
   console.log(`[Chama] Queue size on load: ${queue.length}`);
   if (queue.length === 0) return;
+
   const remaining: QueueItem[] = [];
   const results = await Promise.allSettled(
     queue.map(async (item) => {
-      const { error } = await (supabase.from as any)(item.table).insert(item.data);
-      if (error) throw error;
+      const payload = normalizeQueuedPayload(item);
+      if (!payload) throw new Error("Invalid queued payload");
+      const ok = await sendTrackPayload(payload);
+      if (!ok) throw new Error("Track request failed");
     })
   );
+
   results.forEach((result, i) => {
     if (result.status === "rejected") remaining.push(queue[i]);
   });
+
   try {
     if (remaining.length > 0) localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
     else localStorage.removeItem(QUEUE_KEY);

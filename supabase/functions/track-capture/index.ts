@@ -37,6 +37,59 @@ Deno.serve(async (req) => {
     const ip = extractIP(req);
     console.log(`[Chama] Action: ${action}, IP: ${ip}`);
 
+    // ─── PAGE VIEW CAPTURE ───
+    if (action === "pageview") {
+      let geoFields: Record<string, unknown> = {};
+      if (!body.cidade) {
+        geoFields = await serverGeoLookup(ip);
+      }
+
+      const visitRow: Record<string, unknown> = {
+        pagina: body.pagina || "/",
+        user_agent: body.user_agent || null,
+        largura_tela: body.largura_tela || null,
+        altura_tela: body.altura_tela || null,
+        referrer: body.referrer || null,
+        dispositivo: body.dispositivo || null,
+        sistema_operacional: body.sistema_operacional || null,
+        navegador: body.navegador || null,
+        cookie_visitante: body.cookie_visitante || null,
+        primeira_visita: body.primeira_visita ?? null,
+        contador_visitas: body.contador_visitas || null,
+        utm_source: body.utm_source || null,
+        utm_medium: body.utm_medium || null,
+        utm_campaign: body.utm_campaign || null,
+        utm_content: body.utm_content || null,
+        utm_term: body.utm_term || null,
+        endereco_ip: ip,
+        cidade: body.cidade || geoFields.cidade || null,
+        estado: body.estado || geoFields.estado || null,
+        pais: body.pais || geoFields.pais || null,
+        bairro: body.bairro || geoFields.bairro || null,
+        cep: body.cep || geoFields.cep || null,
+        rua: body.rua || geoFields.rua || null,
+        endereco_completo: body.endereco_completo || geoFields.endereco_completo || null,
+        latitude: body.latitude || geoFields.latitude || null,
+        longitude: body.longitude || geoFields.longitude || null,
+        zona_eleitoral: body.zona_eleitoral || geoFields.zona_eleitoral || null,
+        regiao_planejamento: body.regiao_planejamento || geoFields.regiao_planejamento || null,
+        precisao_localizacao: body.precisao_localizacao || "IP_APROXIMADO",
+      };
+
+      const { data: result, error } = await supabase
+        .from("acessos_site")
+        .insert(visitRow)
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Pageview insert error:", error.message);
+        return json({ error: error.message }, 500);
+      }
+
+      return json({ success: true, id: result?.id });
+    }
+
     // ─── UPDATE LOCATION ───
     if (action === "update-location") {
       const cookie = body.cookie_visitante as string;
