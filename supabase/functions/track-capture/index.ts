@@ -43,10 +43,11 @@ Deno.serve(async (req) => {
       }
 
       // Only allow known tables and their columns
+      const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"];
       const tableColumns: Record<string, string[]> = {
-        acessos_site: ["endereco_ip", "pais", "estado", "cidade"],
-        cliques_whatsapp: ["endereco_ip", "pais", "estado", "cidade", "latitude", "longitude"],
-        mensagens_contato: ["endereco_ip", "pais", "estado", "cidade", "latitude", "longitude"],
+        acessos_site: locationCols,
+        cliques_whatsapp: locationCols,
+        mensagens_contato: locationCols,
       };
 
       const allowedFields = tableColumns[table];
