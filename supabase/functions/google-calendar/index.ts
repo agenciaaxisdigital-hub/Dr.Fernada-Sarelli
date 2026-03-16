@@ -208,8 +208,8 @@ Deno.serve(async (req) => {
     console.log(`Returning ${events.length} events (filter: ${filter})`);
 
     return new Response(
-      JSON.stringify({ success: true, events }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } }
+      JSON.stringify({ success: true, events, generatedAt: Date.now() }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store, max-age=0' } }
     );
   } catch (error) {
     console.error('Error fetching calendar:', error);

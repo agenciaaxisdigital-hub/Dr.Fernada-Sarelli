@@ -37,7 +37,9 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
         if (options.limit) params.set("limit", String(options.limit));
 
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const url = `https://${projectId}.supabase.co/functions/v1/google-calendar?${params.toString()}`;
+        const cacheBust = `t=${Date.now()}`;
+        const query = params.toString();
+        const url = `https://${projectId}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}${cacheBust}`;
         
         const res = await fetch(url, {
           headers: {
