@@ -37,6 +37,59 @@ Deno.serve(async (req) => {
     const ip = extractIP(req);
     console.log(`[Chama] Action: ${action}, IP: ${ip}`);
 
+    // ─── PAGE VIEW CAPTURE ───
+    if (action === "pageview") {
+      let geoFields: Record<string, unknown> = {};
+      if (!body.cidade) {
+        geoFields = await serverGeoLookup(ip);
+      }
+
+      const visitRow: Record<string, unknown> = {
+        pagina: body.pagina || "/",
+        user_agent: body.user_agent || null,
+        largura_tela: body.largura_tela || null,
+        altura_tela: body.altura_tela || null,
+        referrer: body.referrer || null,
+        dispositivo: body.dispositivo || null,
+        sistema_operacional: body.sistema_operacional || null,
+        navegador: body.navegador || null,
+        cookie_visitante: body.cookie_visitante || null,
+        primeira_visita: body.primeira_visita ?? null,
+        contador_visitas: body.contador_visitas || null,
+        utm_source: body.utm_source || null,
+        utm_medium: body.utm_medium || null,
+        utm_campaign: body.utm_campaign || null,
+        utm_content: body.utm_content || null,
+        utm_term: body.utm_term || null,
+        endereco_ip: ip,
+        cidade: body.cidade || geoFields.cidade || null,
+        estado: body.estado || geoFields.estado || null,
+        pais: body.pais || geoFields.pais || null,
+        bairro: body.bairro || geoFields.bairro || null,
+        cep: body.cep || geoFields.cep || null,
+        rua: body.rua || geoFields.rua || null,
+        endereco_completo: body.endereco_completo || geoFields.endereco_completo || null,
+        latitude: body.latitude || geoFields.latitude || null,
+        longitude: body.longitude || geoFields.longitude || null,
+        zona_eleitoral: body.zona_eleitoral || geoFields.zona_eleitoral || null,
+        regiao_planejamento: body.regiao_planejamento || geoFields.regiao_planejamento || null,
+        precisao_localizacao: body.precisao_localizacao || "IP_APROXIMADO",
+      };
+
+      const { data: result, error } = await supabase
+        .from("acessos_site")
+        .insert(visitRow)
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Pageview insert error:", error.message);
+        return json({ error: error.message }, 500);
+      }
+
+      return json({ success: true, id: result?.id });
+    }
+
     // ─── UPDATE LOCATION ───
     if (action === "update-location") {
       const cookie = body.cookie_visitante as string;
@@ -47,8 +100,6 @@ Deno.serve(async (req) => {
       }
 
       const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude", "precisao_localizacao"];
-
-      // Build update data from provided fields
       const updateFields: Record<string, unknown> = {};
       for (const field of locationCols) {
         if (body[field] !== undefined && body[field] !== null) {
@@ -60,24 +111,24 @@ Deno.serve(async (req) => {
         return json({ message: "No fields to update" }, 200);
       }
 
-      // Update all 3 tables within last 24 hours for this visitor
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const tables = table ? [table] : ["acessos_site", "cliques_whatsapp", "mensagens_contato"];
+      const enderecoIp = (body.endereco_ip as string) || ip;
 
-      const results = await Promise.allSettled(
-        tables.map(t =>
-          supabase.from(t).update(updateFields)
-            .eq("cookie_visitante", cookie)
-            .gte("criado_em", twentyFourHoursAgo)
-        )
-      );
+      const updates = table
+        ? [runLocationUpdate(supabase, table, updateFields, cookie, enderecoIp, twentyFourHoursAgo)]
+        : [
+            runLocationUpdate(supabase, "acessos_site", updateFields, cookie, enderecoIp, twentyFourHoursAgo),
+            runLocationUpdate(supabase, "cliques_whatsapp", updateFields, cookie, enderecoIp, twentyFourHoursAgo),
+            runLocationUpdate(supabase, "mensagens_contato", updateFields, cookie, enderecoIp, twentyFourHoursAgo),
+          ];
 
-      const errors = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && r.value.error));
+      const results = await Promise.allSettled(updates);
+      const errors = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && r.value?.error));
       if (errors.length > 0) {
         console.error("Update location errors:", JSON.stringify(errors));
       }
 
-      console.log(`[Chama] Update-location for ${cookie}: ${Object.keys(updateFields).join(", ")} across ${tables.join(", ")}`);
+      console.log(`[Chama] Update-location for ${cookie}: ${Object.keys(updateFields).join(", ")}`);
       return json({ success: true });
     }
 
@@ -253,6 +304,29 @@ function extractIP(req: Request): string {
 
 function isPrivateIP(ip: string): boolean {
   return ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.16.") || ip.startsWith("172.17.") || ip.startsWith("172.18.") || ip.startsWith("172.19.") || ip.startsWith("172.2") || ip.startsWith("172.3");
+}
+
+async function runLocationUpdate(
+  supabase: ReturnType<typeof createClient>,
+  table: string,
+  updateFields: Record<string, unknown>,
+  cookie: string,
+  enderecoIp: string,
+  sinceIso: string,
+) {
+  if (table === "mensagens_contato") {
+    return await supabase
+      .from(table)
+      .update(updateFields)
+      .eq("endereco_ip", enderecoIp)
+      .gte("criado_em", sinceIso);
+  }
+
+  return await supabase
+    .from(table)
+    .update(updateFields)
+    .eq("cookie_visitante", cookie)
+    .gte("criado_em", sinceIso);
 }
 
 // AUDIT 3: Server-side geo with parallel calls and merge

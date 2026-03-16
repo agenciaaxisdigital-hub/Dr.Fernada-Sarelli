@@ -18,7 +18,6 @@
  * 14. Retroactive enrichment
  */
 
-import { supabase } from "@/integrations/supabase/client";
 import { UAParser } from "ua-parser-js";
 
 // ═══════════════════════════════════════════════════════════
@@ -50,34 +49,60 @@ export const PRECISAO = {
 // ═══════════════════════════════════════════════════════════
 
 interface QueueItem {
-  table: string;
-  data: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+  table?: string;
+  data?: Record<string, unknown>;
   timestamp: number;
 }
 
-async function retryInsert(table: string, data: Record<string, unknown>): Promise<string | null> {
-  const delays = [0, 2000, 5000];
-  for (let attempt = 0; attempt < delays.length; attempt++) {
+function getTrackCaptureUrl() {
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  return `https://${projectId}.supabase.co/functions/v1/track-capture`;
+}
+
+async function sendTrackPayload(
+  payload: Record<string, unknown>,
+  options?: { preferBeacon?: boolean; keepalive?: boolean }
+): Promise<boolean> {
+  const url = getTrackCaptureUrl();
+
+  if (options?.preferBeacon && typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
     try {
-      if (delays[attempt] > 0) await sleep(delays[attempt]);
-      const { data: result, error } = await (supabase.from as any)(table).insert(data).select("id").single();
-      if (error) throw error;
-      return result?.id || null;
-    } catch (err) {
-      if (attempt === delays.length - 1) {
-        enqueue({ table, data, timestamp: Date.now() });
-        console.warn(`[Chama] Queued failed insert to ${table}`);
-        return null;
-      }
+      const sent = navigator.sendBeacon(url, new Blob([JSON.stringify(payload)], { type: "application/json" }));
+      if (sent) return true;
+    } catch {
+      // fall through to fetch
     }
   }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(payload),
+    keepalive: options?.keepalive,
+  });
+
+  return res.ok;
+}
+
+function normalizeQueuedPayload(item: QueueItem): Record<string, unknown> | null {
+  if (item.payload) return item.payload;
+  if (!item.table || !item.data) return null;
+
+  if (item.table === "acessos_site") return { action: "pageview", ...item.data };
+  if (item.table === "cliques_whatsapp") return { action: "click", ...item.data };
+  if (item.table === "mensagens_contato") return { action: "form", ...item.data };
+
   return null;
 }
 
-function enqueue(item: QueueItem) {
+function enqueue(payload: Record<string, unknown>) {
   try {
     const queue = getQueue();
-    queue.push(item);
+    queue.push({ payload, timestamp: Date.now() });
     if (queue.length > 200) queue.splice(0, queue.length - 200);
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
   } catch { /* localStorage full */ }
@@ -94,16 +119,21 @@ export async function flushQueue() {
   const queue = getQueue();
   console.log(`[Chama] Queue size on load: ${queue.length}`);
   if (queue.length === 0) return;
+
   const remaining: QueueItem[] = [];
   const results = await Promise.allSettled(
     queue.map(async (item) => {
-      const { error } = await (supabase.from as any)(item.table).insert(item.data);
-      if (error) throw error;
+      const payload = normalizeQueuedPayload(item);
+      if (!payload) throw new Error("Invalid queued payload");
+      const ok = await sendTrackPayload(payload);
+      if (!ok) throw new Error("Track request failed");
     })
   );
+
   results.forEach((result, i) => {
     if (result.status === "rejected") remaining.push(queue[i]);
   });
+
   try {
     if (remaining.length > 0) localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
     else localStorage.removeItem(QUEUE_KEY);
@@ -160,12 +190,13 @@ function generateUUID(): string {
 
 // Check if visitor cookie exists in both localStorage and browser cookie
 export function getVisitorCookieStatus(): { localStorage: boolean; cookie: boolean; id: string | null } {
+  const id = getVisitorId();
   const lsId = localStorage.getItem(VISITOR_KEY);
   const cookieMatch = document.cookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
   return {
     localStorage: !!lsId,
     cookie: !!cookieMatch,
-    id: lsId || (cookieMatch ? cookieMatch[1] : null),
+    id: lsId || cookieMatch?.[1] || id || null,
   };
 }
 
@@ -454,26 +485,7 @@ async function geoFromIpApi(): Promise<Partial<GeoData>> {
 // AUDIT 3: IP geo fallback — ip-api.com with 6s timeout + district
 async function geoFromIpApiFallback(): Promise<Partial<GeoData>> {
   try {
-    const res = await fetch(
-      "http://ip-api.com/json/?fields=status,country,countryCode,regionName,region,city,district,zip,lat,lon,isp,org,as,query",
-      { signal: AbortSignal.timeout(6000) }
-    );
-    if (!res.ok) throw new Error("ip-api failed");
-    const d = await res.json();
-    if (d.status !== "success") return {};
-    return {
-      endereco_ip: d.query || null,
-      cidade: d.city || null,
-      estado: d.regionName || null,
-      pais: d.country || null,
-      cep: d.zip || null,
-      latitude: d.lat || null,
-      longitude: d.lon || null,
-      bairro: d.district || null,
-      bairro_source: d.district ? "ipapi_fallback_district" : null,
-      provedor_internet: d.isp || null,
-      geo_layer: "ipapi_fallback",
-    };
+    return {};
   } catch { return {}; }
 }
 
@@ -842,30 +854,37 @@ export async function trackPageView(pagina: string) {
     const device = detectDevice();
     const utms = getUTMParams();
 
-    const baseData: Record<string, unknown> = {
-      pagina, user_agent: navigator.userAgent,
-      largura_tela: window.innerWidth, altura_tela: window.innerHeight,
+    const payload: Record<string, unknown> = {
+      action: "pageview",
+      pagina,
+      user_agent: navigator.userAgent,
+      largura_tela: window.innerWidth,
+      altura_tela: window.innerHeight,
       referrer: document.referrer || null,
-      dispositivo: device.dispositivo, sistema_operacional: device.sistema_operacional,
-      navegador: device.navegador, cookie_visitante, primeira_visita,
-      contador_visitas: visitCount, ...utms,
-      precisao_localizacao: PRECISAO.IP, // starts as IP, upgraded when GPS resolves
+      dispositivo: device.dispositivo,
+      sistema_operacional: device.sistema_operacional,
+      navegador: device.navegador,
+      cookie_visitante,
+      primeira_visita,
+      contador_visitas: visitCount,
+      ...utms,
+      precisao_localizacao: PRECISAO.IP,
     };
 
-    // Try to get cached geo immediately
     const cachedGeo = getCachedGeo();
     if (cachedGeo) {
-      baseData.endereco_ip = cachedGeo.endereco_ip || null;
-      baseData.pais = cachedGeo.pais || null;
-      baseData.estado = cachedGeo.estado || null;
-      baseData.cidade = cachedGeo.cidade || null;
-      if (cachedGeo.precisao_localizacao) baseData.precisao_localizacao = cachedGeo.precisao_localizacao;
+      payload.endereco_ip = cachedGeo.endereco_ip || null;
+      payload.pais = cachedGeo.pais || null;
+      payload.estado = cachedGeo.estado || null;
+      payload.cidade = cachedGeo.cidade || null;
+      payload.bairro = cachedGeo.bairro || null;
+      payload.latitude = cachedGeo.latitude || null;
+      payload.longitude = cachedGeo.longitude || null;
+      if (cachedGeo.precisao_localizacao) payload.precisao_localizacao = cachedGeo.precisao_localizacao;
     }
 
-    // Fire insert immediately
-    retryInsert("acessos_site", baseData);
+    sendTrackPayload(payload).catch(() => enqueue(payload));
 
-    // When full location resolves, update the record
     resolveLocation().then((geo) => {
       if (geo.cidade || geo.latitude) {
         updateLocationViaEdge(cookie_visitante, "acessos_site", geo).catch(() => {});
@@ -885,38 +904,27 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
     const tempo_no_site = Math.round((Date.now() - parseInt(sessionStorage.getItem(SESSION_START_KEY) || String(Date.now()), 10)) / 1000);
 
     const precisao_localizacao = getGeoMode();
-    const data: Record<string, unknown> = {
-      tipo_clique, pagina_origem, user_agent: navigator.userAgent, cookie_visitante,
-      texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || "sem-secao",
+    const payload: Record<string, unknown> = {
+      action: "click",
+      tipo_clique,
+      pagina_origem,
+      user_agent: navigator.userAgent,
+      cookie_visitante,
+      texto_botao: extra?.texto_botao || null,
+      secao_pagina: extra?.secao_pagina || "sem-secao",
       url_destino: extra?.url_destino || null,
       precisao_localizacao,
+      tempo_no_site_antes_do_clique: tempo_no_site,
+      latitude: geo?.latitude || sessionStorage.getItem(LAT_KEY) || null,
+      longitude: geo?.longitude || sessionStorage.getItem(LNG_KEY) || null,
+      endereco_ip: geo?.endereco_ip || null,
+      pais: geo?.pais || null,
+      estado: geo?.estado || null,
+      cidade: geo?.cidade || null,
+      bairro: geo?.bairro || null,
     };
-    if (geo) {
-      data.endereco_ip = geo.endereco_ip || null;
-      data.pais = geo.pais || null;
-      data.estado = geo.estado || null;
-      data.cidade = geo.cidade || null;
-      if (geo.latitude) data.latitude = geo.latitude;
-      if (geo.longitude) data.longitude = geo.longitude;
-    }
 
-    // Use sendBeacon with Blob for reliability
-    try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const payload = JSON.stringify({
-        action: "click", ...data,
-        tempo_no_site_antes_do_clique: tempo_no_site,
-        latitude: data.latitude || sessionStorage.getItem(LAT_KEY) || null,
-        longitude: data.longitude || sessionStorage.getItem(LNG_KEY) || null,
-      });
-      navigator.sendBeacon(
-        `https://${projectId}.supabase.co/functions/v1/track-capture`,
-        new Blob([payload], { type: "application/json" })
-      );
-    } catch {}
-
-    // Also try direct insert as backup
-    retryInsert("cliques_whatsapp", data);
+    sendTrackPayload(payload, { preferBeacon: true, keepalive: true }).catch(() => enqueue(payload));
   } catch { /* RULE 2 */ }
 }
 
