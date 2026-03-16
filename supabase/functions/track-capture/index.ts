@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
         dispositivo: body.dispositivo || null,
         sistema_operacional: body.sistema_operacional || null,
         navegador: body.navegador || null,
+        precisao_localizacao: body.precisao_localizacao || "IP_APROXIMADO",
       };
 
       const { error } = await supabase.from("cliques_whatsapp").insert(clickRow);
