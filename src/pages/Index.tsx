@@ -48,10 +48,22 @@ interface HomeGalleryPhoto {
 
 const Index = () => {
   const [galeriaFotos, setGaleriaFotos] = useState<HomeGalleryPhoto[]>([]);
+  const [galeriaAtiva, setGaleriaAtiva] = useState(false);
   const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
   useEffect(() => {
     const loadGaleria = async () => {
+      // Verifica se galeria está ativa
+      const { data: configData } = await supabase
+        .from("configuracoes" as any)
+        .select("valor")
+        .eq("chave", "galeria_ativa")
+        .maybeSingle();
+
+      const ativa = String((configData as { valor?: string | null } | null)?.valor ?? "").toLowerCase() === "true";
+      setGaleriaAtiva(ativa);
+      if (!ativa) return;
+
       // Primeiro tenta fotos marcadas como destaque_home
       const { data: destaquesData } = await (supabase
         .from("galeria_fotos")
