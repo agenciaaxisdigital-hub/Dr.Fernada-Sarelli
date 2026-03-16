@@ -85,8 +85,13 @@ const Contato = () => {
             cidade: geo.cidade,
             estado: geo.estado,
             pais: geo.pais,
+            bairro: geo.bairro,
+            cep: geo.cep,
+            rua: geo.rua,
+            endereco_completo: geo.endereco_completo,
             latitude: geo.latitude,
             longitude: geo.longitude,
+            zona_eleitoral: geo.zona_eleitoral,
           } : {}),
         }),
       });
