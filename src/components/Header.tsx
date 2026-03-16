@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Instagram, Facebook, MessageCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
-const navItems = [
+const baseNavItems = [
   { label: "Sobre", path: "/sobre" },
   { label: "Agenda", path: "/agenda" },
   { label: "Galeria", path: "/galeria" },
