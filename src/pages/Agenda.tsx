@@ -39,7 +39,7 @@ const Agenda = () => {
   const [busca, setBusca] = useState("");
   const [tab, setTab] = useState<Tab>("proximos");
   const [visibleCount, setVisibleCount] = useState(EVENTS_PER_PAGE);
-  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string> | null>(null);
 
   const { events, loading, error } = useGoogleCalendar({ filter: "all" });
 
@@ -60,17 +60,49 @@ const Agenda = () => {
     return tab === "realizados" ? dateB - dateA : dateA - dateB;
   }), [filtrados, tab]);
 
-  // Paginated events
-  const visible = sorted.slice(0, visibleCount);
-  const hasMore = visibleCount < sorted.length;
-  const groups = groupByMonth(visible);
+  // Group ALL sorted events by month, then paginate
+  const allGroups = useMemo(() => groupByMonth(sorted), [sorted]);
+
+  // Build visible groups with pagination
+  const { visibleGroups, hasMore } = useMemo(() => {
+    let count = 0;
+    const result: typeof allGroups = [];
+    for (const group of allGroups) {
+      if (count >= visibleCount) break;
+      const remaining = visibleCount - count;
+      const sliced = group.events.slice(0, remaining);
+      result.push({ ...group, events: sliced });
+      count += sliced.length;
+    }
+    const totalEvents = sorted.length;
+    return { visibleGroups: result, hasMore: visibleCount < totalEvents };
+  }, [allGroups, visibleCount, sorted.length]);
+
+  // Auto-collapse past months on "todos" tab, current month key
+  const currentMonthKey = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()).padStart(2, "0")}`;
+  }, []);
+
+  // Default collapsed state: past months start collapsed on "proximos"/"todos"
+  const effectiveCollapsed = useMemo(() => {
+    if (collapsedMonths !== null) return collapsedMonths;
+    const auto = new Set<string>();
+    if (tab === "proximos" || tab === "todos") {
+      for (const g of allGroups) {
+        if (g.key < currentMonthKey) auto.add(g.key);
+      }
+    }
+    return auto;
+  }, [collapsedMonths, tab, allGroups, currentMonthKey]);
 
   const totalProximos = events.filter((e) => !e.passado).length;
   const totalRealizados = events.filter((e) => e.passado).length;
 
   const toggleMonth = (key: string) => {
     setCollapsedMonths((prev) => {
-      const next = new Set(prev);
+      const base = prev !== null ? prev : effectiveCollapsed;
+      const next = new Set(base);
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
@@ -80,7 +112,7 @@ const Agenda = () => {
     setTab(key);
     setVisibleCount(EVENTS_PER_PAGE);
     setBusca("");
-    setCollapsedMonths(new Set());
+    setCollapsedMonths(null);
   };
 
   return (
@@ -173,8 +205,8 @@ const Agenda = () => {
                 </div>
               )}
 
-              {groups.map((group) => {
-                const isCollapsed = collapsedMonths.has(group.key);
+              {visibleGroups.map((group) => {
+                const isCollapsed = effectiveCollapsed.has(group.key);
                 return (
                   <div key={group.key}>
                     {/* Month header - clickable to collapse */}
@@ -191,7 +223,7 @@ const Agenda = () => {
                         {group.label}
                       </span>
                       <span className="text-xs text-muted-foreground/60">
-                        ({group.events.length} evento{group.events.length !== 1 ? "s" : ""})
+                        ({(allGroups.find(g => g.key === group.key)?.events.length || group.events.length)} evento{(allGroups.find(g => g.key === group.key)?.events.length || group.events.length) !== 1 ? "s" : ""})
                       </span>
                     </button>
 
