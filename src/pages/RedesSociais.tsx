@@ -44,7 +44,7 @@ const RedesSociais = () => (
                 href={r.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center transition-shadow hover:shadow-lg group"
+                className="flex flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center transition-shadow hover:shadow-lg group h-full"
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent group-hover:bg-primary transition-colors">
                   <r.icon className="h-8 w-8 text-primary group-hover:text-primary-foreground transition-colors" />
