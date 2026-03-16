@@ -190,12 +190,13 @@ function generateUUID(): string {
 
 // Check if visitor cookie exists in both localStorage and browser cookie
 export function getVisitorCookieStatus(): { localStorage: boolean; cookie: boolean; id: string | null } {
+  const id = getVisitorId();
   const lsId = localStorage.getItem(VISITOR_KEY);
   const cookieMatch = document.cookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
   return {
     localStorage: !!lsId,
     cookie: !!cookieMatch,
-    id: lsId || (cookieMatch ? cookieMatch[1] : null),
+    id: lsId || cookieMatch?.[1] || id || null,
   };
 }
 
