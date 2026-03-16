@@ -282,6 +282,7 @@ const Index = () => {
         </div>
       </section>
 
+      {galeriaAtiva && (
       <section className="py-16 md:py-20">
         <div className="container">
           <ScrollReveal>
@@ -331,6 +332,7 @@ const Index = () => {
           </div>
         </div>
       </section>
+      )}
 
       <section className="py-16 md:py-20">
         <div className="container">
