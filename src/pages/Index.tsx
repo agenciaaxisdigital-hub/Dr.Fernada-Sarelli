@@ -214,43 +214,49 @@ const Index = () => {
             </div>
           </ScrollReveal>
 
-          <div className="mt-10 space-y-4 max-w-3xl mx-auto">
-            {eventos.map((e, i) => (
-              <ScrollReveal key={e.titulo} delay={i * 0.1}>
-                <div className="flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-soft">
-                  <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
-                    <span className="text-xl font-bold leading-none">{e.dia}</span>
-                    <span className="text-xs font-semibold uppercase">{e.mes}</span>
-                  </div>
+          {eventosLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">Carregando eventos...</span>
+            </div>
+          ) : proximosEventos.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10">Nenhum evento próximo no momento.</p>
+          ) : (
+            <div className="mt-10 space-y-4 max-w-3xl mx-auto">
+              {proximosEventos.map((e, i) => (
+                <ScrollReveal key={e.id} delay={i * 0.1}>
+                  <div className="flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-soft">
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
+                      <span className="text-xl font-bold leading-none">{e.dia}</span>
+                      <span className="text-xs font-semibold uppercase">{e.mes}</span>
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold">{e.titulo}</h3>
-                      {e.destaque && (
-                        <span className="flex-shrink-0 rounded-full border border-primary/30 bg-accent px-3 py-0.5 text-xs font-semibold text-primary">
-                          Destaque
-                        </span>
-                      )}
+                      <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{e.hora}{e.horaFim && e.horaFim !== e.hora && ` – ${e.horaFim}`}</span>
+                        {e.local && (
+                          <a href={e.mapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                            <MapPin className="h-3.5 w-3.5" />{e.local}
+                          </a>
+                        )}
+                      </div>
+                      {e.desc && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{e.desc}</p>}
+                      <a
+                        href={e.gcal}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
+                      >
+                        <Calendar className="h-3.5 w-3.5" />
+                        Adicionar à minha agenda
+                      </a>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{e.hora}</span>
-                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{e.local}</span>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{e.desc}</p>
-                    <a
-                      href={e.gcal}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
-                    >
-                      <Calendar className="h-3.5 w-3.5" />
-                      Adicionar ao Google
-                    </a>
                   </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          )}
 
           <div className="mt-8 text-center">
             <Link
