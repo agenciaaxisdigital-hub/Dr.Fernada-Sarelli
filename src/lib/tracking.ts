@@ -41,7 +41,7 @@ async function retryInsert(table: string, data: Record<string, unknown>): Promis
   for (let attempt = 0; attempt < delays.length; attempt++) {
     try {
       if (delays[attempt] > 0) await sleep(delays[attempt]);
-      const { data: result, error } = await supabase.from(table).insert(data as any).select("id").single();
+      const { data: result, error } = await (supabase.from as any)(table).insert(data).select("id").single();
       if (error) throw error;
       return result?.id || null;
     } catch (err) {
