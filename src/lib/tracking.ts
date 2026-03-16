@@ -327,6 +327,7 @@ export interface GeoData {
   fuso_horario?: string | null;
   geo_layer?: string;
   zona_eleitoral?: string;
+  precisao_localizacao?: string;
   nominatim_raw?: Record<string, unknown> | null;
 }
 
