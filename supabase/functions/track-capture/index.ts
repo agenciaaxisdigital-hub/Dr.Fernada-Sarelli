@@ -133,20 +133,31 @@ Deno.serve(async (req) => {
 
     // ─── FORM CAPTURE (enriched) ───
     if (action === "form") {
-      const { action: _, ...formData } = body;
       const ip = extractIP(req);
 
       // Server-side geo if missing
-      if (!formData.cidade) {
-        const geo = await serverGeoLookup(ip);
-        Object.assign(formData, geo);
+      let geoFields: Record<string, unknown> = {};
+      if (!body.cidade) {
+        geoFields = await serverGeoLookup(ip);
       }
 
-      formData.endereco_ip = ip;
+      const formRow: Record<string, unknown> = {
+        nome: body.nome,
+        telefone: body.telefone,
+        email: body.email || null,
+        mensagem: body.mensagem,
+        endereco_ip: ip,
+        user_agent: body.user_agent || null,
+        cidade: body.cidade || geoFields.cidade || null,
+        estado: body.estado || geoFields.estado || null,
+        pais: body.pais || geoFields.pais || null,
+        latitude: body.latitude || geoFields.latitude || null,
+        longitude: body.longitude || geoFields.longitude || null,
+      };
 
       const { data: result, error } = await supabase
         .from("mensagens_contato")
-        .insert(formData)
+        .insert(formRow)
         .select("id")
         .single();
 
