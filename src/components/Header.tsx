@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Instagram, Facebook, MessageCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
-const navItems = [
+const baseNavItems = [
   { label: "Sobre", path: "/sobre" },
   { label: "Agenda", path: "/agenda" },
   { label: "Galeria", path: "/galeria" },
@@ -20,7 +21,24 @@ const socialLinks = [
 
 const Header = () => {
   const [open, setOpen] = useState(false);
+  const [galeriaAtiva, setGaleriaAtiva] = useState(true);
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    supabase
+      .from("configuracoes" as any)
+      .select("valor")
+      .eq("chave", "galeria_ativa")
+      .maybeSingle()
+      .then(({ data }) => {
+        const val = String((data as any)?.valor ?? "true").toLowerCase();
+        setGaleriaAtiva(val === "true");
+      });
+  }, []);
+
+  const navItems = galeriaAtiva
+    ? baseNavItems
+    : baseNavItems.filter((item) => item.path !== "/galeria");
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border/50">
