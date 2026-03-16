@@ -17,20 +17,27 @@ export type Database = {
       acessos_site: {
         Row: {
           altura_tela: number | null
+          bairro: string | null
+          cep: string | null
           cidade: string | null
           contador_visitas: number | null
           cookie_visitante: string | null
           criado_em: string
           dispositivo: string | null
+          endereco_completo: string | null
           endereco_ip: string | null
           estado: string | null
           id: string
           largura_tela: number | null
+          latitude: number | null
+          longitude: number | null
           navegador: string | null
           pagina: string
           pais: string | null
           primeira_visita: boolean | null
           referrer: string | null
+          regiao_planejamento: string | null
+          rua: string | null
           sistema_operacional: string | null
           user_agent: string | null
           utm_campaign: string | null
@@ -38,23 +45,31 @@ export type Database = {
           utm_medium: string | null
           utm_source: string | null
           utm_term: string | null
+          zona_eleitoral: string | null
         }
         Insert: {
           altura_tela?: number | null
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           contador_visitas?: number | null
           cookie_visitante?: string | null
           criado_em?: string
           dispositivo?: string | null
+          endereco_completo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
           largura_tela?: number | null
+          latitude?: number | null
+          longitude?: number | null
           navegador?: string | null
           pagina: string
           pais?: string | null
           primeira_visita?: boolean | null
           referrer?: string | null
+          regiao_planejamento?: string | null
+          rua?: string | null
           sistema_operacional?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -62,23 +77,31 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          zona_eleitoral?: string | null
         }
         Update: {
           altura_tela?: number | null
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           contador_visitas?: number | null
           cookie_visitante?: string | null
           criado_em?: string
           dispositivo?: string | null
+          endereco_completo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
           largura_tela?: number | null
+          latitude?: number | null
+          longitude?: number | null
           navegador?: string | null
           pagina?: string
           pais?: string | null
           primeira_visita?: boolean | null
           referrer?: string | null
+          regiao_planejamento?: string | null
+          rua?: string | null
           sistema_operacional?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -86,6 +109,7 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          zona_eleitoral?: string | null
         }
         Relationships: []
       }
@@ -121,58 +145,85 @@ export type Database = {
       }
       cliques_whatsapp: {
         Row: {
+          bairro: string | null
+          cep: string | null
           cidade: string | null
           cookie_visitante: string | null
           criado_em: string
+          dispositivo: string | null
+          endereco_completo: string | null
           endereco_ip: string | null
           estado: string | null
           id: string
           latitude: number | null
           longitude: number | null
+          navegador: string | null
           pagina_origem: string | null
           pais: string | null
+          regiao_planejamento: string | null
+          rua: string | null
           secao_pagina: string | null
+          sistema_operacional: string | null
           telefone_destino: string | null
           texto_botao: string | null
           tipo_clique: string | null
           url_destino: string | null
           user_agent: string | null
+          zona_eleitoral: string | null
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           cookie_visitante?: string | null
           criado_em?: string
+          dispositivo?: string | null
+          endereco_completo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
+          navegador?: string | null
           pagina_origem?: string | null
           pais?: string | null
+          regiao_planejamento?: string | null
+          rua?: string | null
           secao_pagina?: string | null
+          sistema_operacional?: string | null
           telefone_destino?: string | null
           texto_botao?: string | null
           tipo_clique?: string | null
           url_destino?: string | null
           user_agent?: string | null
+          zona_eleitoral?: string | null
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           cookie_visitante?: string | null
           criado_em?: string
+          dispositivo?: string | null
+          endereco_completo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
+          navegador?: string | null
           pagina_origem?: string | null
           pais?: string | null
+          regiao_planejamento?: string | null
+          rua?: string | null
           secao_pagina?: string | null
+          sistema_operacional?: string | null
           telefone_destino?: string | null
           texto_botao?: string | null
           tipo_clique?: string | null
           url_destino?: string | null
           user_agent?: string | null
+          zona_eleitoral?: string | null
         }
         Relationships: []
       }
@@ -255,9 +306,12 @@ export type Database = {
       }
       mensagens_contato: {
         Row: {
+          bairro: string | null
+          cep: string | null
           cidade: string | null
           criado_em: string
           email: string | null
+          endereco_completo: string | null
           endereco_ip: string | null
           estado: string | null
           id: string
@@ -267,13 +321,19 @@ export type Database = {
           mensagem: string
           nome: string
           pais: string | null
+          regiao_planejamento: string | null
+          rua: string | null
           telefone: string
           user_agent: string | null
+          zona_eleitoral: string | null
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           criado_em?: string
           email?: string | null
+          endereco_completo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
@@ -283,13 +343,19 @@ export type Database = {
           mensagem: string
           nome: string
           pais?: string | null
+          regiao_planejamento?: string | null
+          rua?: string | null
           telefone: string
           user_agent?: string | null
+          zona_eleitoral?: string | null
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           criado_em?: string
           email?: string | null
+          endereco_completo?: string | null
           endereco_ip?: string | null
           estado?: string | null
           id?: string
@@ -299,8 +365,11 @@ export type Database = {
           mensagem?: string
           nome?: string
           pais?: string | null
+          regiao_planejamento?: string | null
+          rua?: string | null
           telefone?: string
           user_agent?: string | null
+          zona_eleitoral?: string | null
         }
         Relationships: []
       }
