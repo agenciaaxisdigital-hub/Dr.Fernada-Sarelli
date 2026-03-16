@@ -100,8 +100,6 @@ Deno.serve(async (req) => {
       }
 
       const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude", "precisao_localizacao"];
-
-      // Build update data from provided fields
       const updateFields: Record<string, unknown> = {};
       for (const field of locationCols) {
         if (body[field] !== undefined && body[field] !== null) {
@@ -113,24 +111,24 @@ Deno.serve(async (req) => {
         return json({ message: "No fields to update" }, 200);
       }
 
-      // Update all 3 tables within last 24 hours for this visitor
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const tables = table ? [table] : ["acessos_site", "cliques_whatsapp", "mensagens_contato"];
+      const enderecoIp = (body.endereco_ip as string) || ip;
 
-      const results = await Promise.allSettled(
-        tables.map(t =>
-          supabase.from(t).update(updateFields)
-            .eq("cookie_visitante", cookie)
-            .gte("criado_em", twentyFourHoursAgo)
-        )
-      );
+      const updates = table
+        ? [runLocationUpdate(supabase, table, updateFields, cookie, enderecoIp, twentyFourHoursAgo)]
+        : [
+            runLocationUpdate(supabase, "acessos_site", updateFields, cookie, enderecoIp, twentyFourHoursAgo),
+            runLocationUpdate(supabase, "cliques_whatsapp", updateFields, cookie, enderecoIp, twentyFourHoursAgo),
+            runLocationUpdate(supabase, "mensagens_contato", updateFields, cookie, enderecoIp, twentyFourHoursAgo),
+          ];
 
-      const errors = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && r.value.error));
+      const results = await Promise.allSettled(updates);
+      const errors = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && r.value?.error));
       if (errors.length > 0) {
         console.error("Update location errors:", JSON.stringify(errors));
       }
 
-      console.log(`[Chama] Update-location for ${cookie}: ${Object.keys(updateFields).join(", ")} across ${tables.join(", ")}`);
+      console.log(`[Chama] Update-location for ${cookie}: ${Object.keys(updateFields).join(", ")}`);
       return json({ success: true });
     }
 
