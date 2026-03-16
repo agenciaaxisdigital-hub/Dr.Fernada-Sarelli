@@ -593,6 +593,8 @@ export function startGPSResolution(): Promise<GeoData | null> {
       if (!pos) return null;
       const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
       geo.zona_eleitoral = identifyZone(geo.bairro || "", geo.cidade || "", geo.latitude, geo.longitude);
+      geo.precisao_localizacao = PRECISAO.GPS;
+      try { sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.GPS); } catch {}
       cachedGeoData = geo;
       return geo;
     } catch {
@@ -601,6 +603,13 @@ export function startGPSResolution(): Promise<GeoData | null> {
   })();
 
   return gpsResolutionPromise;
+}
+
+// Get current geo precision mode
+export function getGeoMode(): string {
+  try {
+    return sessionStorage.getItem(GEO_MODE_KEY) || PRECISAO.IP;
+  } catch { return PRECISAO.IP; }
 }
 
 export function isGPSResolved(): boolean {
