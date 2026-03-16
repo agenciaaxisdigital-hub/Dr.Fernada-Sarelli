@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
 
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const updateData: Record<string, unknown> = {};
-      for (const f of ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"]) {
+      for (const f of ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude", "precisao_localizacao"]) {
         if (body[f]) updateData[f] = body[f];
       }
 
