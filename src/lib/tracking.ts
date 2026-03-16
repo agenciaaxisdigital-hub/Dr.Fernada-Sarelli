@@ -485,26 +485,7 @@ async function geoFromIpApi(): Promise<Partial<GeoData>> {
 // AUDIT 3: IP geo fallback — ip-api.com with 6s timeout + district
 async function geoFromIpApiFallback(): Promise<Partial<GeoData>> {
   try {
-    const res = await fetch(
-      "http://ip-api.com/json/?fields=status,country,countryCode,regionName,region,city,district,zip,lat,lon,isp,org,as,query",
-      { signal: AbortSignal.timeout(6000) }
-    );
-    if (!res.ok) throw new Error("ip-api failed");
-    const d = await res.json();
-    if (d.status !== "success") return {};
-    return {
-      endereco_ip: d.query || null,
-      cidade: d.city || null,
-      estado: d.regionName || null,
-      pais: d.country || null,
-      cep: d.zip || null,
-      latitude: d.lat || null,
-      longitude: d.lon || null,
-      bairro: d.district || null,
-      bairro_source: d.district ? "ipapi_fallback_district" : null,
-      provedor_internet: d.isp || null,
-      geo_layer: "ipapi_fallback",
-    };
+    return {};
   } catch { return {}; }
 }
 
