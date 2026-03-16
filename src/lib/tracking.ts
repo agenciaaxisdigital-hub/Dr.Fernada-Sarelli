@@ -1,21 +1,32 @@
 /**
- * CHAMA ROSA — Mission-Critical Data Capture Engine v2
+ * CHAMA ROSA — Mission-Critical Data Capture Engine v3
  * 
- * FIX 1: Force GPS on every page load (no denied cache)
- * FIX 2: Robust bairro extraction from Nominatim (suburb → neighbourhood → city_district → quarter → village → hamlet → county)
- * FIX 3: Update existing records with GPS data via edge function
- * FIX 4: IP geo requests district-level data
- * FIX 5: GPS starts on page load for forms, 5s polling on submit
- * FIX 7: Retroactive enrichment of last 7 days records
+ * AUDIT FIXES:
+ * 1. UUID with crypto.getRandomValues fallback + chama_vid browser cookie
+ * 2. IP capture server-side (edge function)
+ * 3. IP geo parallel with 6s timeout + merge best result
+ * 4. GPS on every page load
+ * 5. ua-parser-js for device detection
+ * 6. Scroll depth with debounced passive listener
+ * 7. Session timing with Blob sendBeacon
+ * 8. UTM persistence in sessionStorage
+ * 9. Traffic origin classification
+ * 10. Click tracking with tempo_no_site_antes_do_clique
+ * 11. Form tracking with GPS enrichment
+ * 12. Zone identification with normalized strings
+ * 13. Retry queue with flush on page load
+ * 14. Retroactive enrichment
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import UAParser from "ua-parser-js";
 
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════
 const QUEUE_KEY = "chama_failed_queue";
 const VISITOR_KEY = "chama_visitor_id";
+const COOKIE_NAME = "chama_vid";
 const LAT_KEY = "chama_lat";
 const LNG_KEY = "chama_lng";
 const GEO_RESOLVED_KEY = "chama_geo_resolved";
@@ -73,6 +84,7 @@ function getQueue(): QueueItem[] {
 
 export async function flushQueue() {
   const queue = getQueue();
+  console.log(`[Chama] Queue size on load: ${queue.length}`);
   if (queue.length === 0) return;
   const remaining: QueueItem[] = [];
   const results = await Promise.allSettled(
@@ -95,7 +107,7 @@ function sleep(ms: number) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// VISITOR COOKIE
+// AUDIT 1: VISITOR COOKIE — localStorage + browser cookie
 // ═══════════════════════════════════════════════════════════
 
 export function getVisitorId(): string {
@@ -105,26 +117,48 @@ export function getVisitorId(): string {
       id = generateUUID();
       localStorage.setItem(VISITOR_KEY, id);
     }
+    // Always set browser cookie too
     try {
       const secure = location.protocol === "https:" ? ";Secure" : "";
-      document.cookie = `${VISITOR_KEY}=${id};path=/;max-age=31536000;SameSite=Lax${secure}`;
+      document.cookie = `${COOKIE_NAME}=${id};path=/;max-age=31536000;SameSite=Lax${secure}`;
     } catch { /* cookies blocked */ }
     return id;
   } catch {
-    const match = document.cookie.match(new RegExp(`${VISITOR_KEY}=([^;]+)`));
+    // localStorage unavailable — try cookie
+    const match = document.cookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
     if (match) return match[1];
-    return generateUUID();
+    const id = generateUUID();
+    try {
+      const secure = location.protocol === "https:" ? ";Secure" : "";
+      document.cookie = `${COOKIE_NAME}=${id};path=/;max-age=31536000;SameSite=Lax${secure}`;
+    } catch {}
+    return id;
   }
 }
 
+// AUDIT 1: UUID with crypto.getRandomValues fallback
 function generateUUID(): string {
-  try { return crypto.randomUUID(); }
-  catch {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-    });
+  try {
+    return crypto.randomUUID();
+  } catch {
+    // Fallback using crypto.getRandomValues for older browsers
+    return (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(
+      /[018]/g,
+      (c: number) =>
+        (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+    );
   }
+}
+
+// Check if visitor cookie exists in both localStorage and browser cookie
+export function getVisitorCookieStatus(): { localStorage: boolean; cookie: boolean; id: string | null } {
+  const lsId = localStorage.getItem(VISITOR_KEY);
+  const cookieMatch = document.cookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+  return {
+    localStorage: !!lsId,
+    cookie: !!cookieMatch,
+    id: lsId || (cookieMatch ? cookieMatch[1] : null),
+  };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -150,10 +184,10 @@ function isFirstVisit(): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DEVICE DETECTION
+// AUDIT 5: DEVICE DETECTION — ua-parser-js
 // ═══════════════════════════════════════════════════════════
 
-interface DeviceInfo {
+export interface DeviceInfo {
   dispositivo: string;
   navegador: string;
   versao_navegador: string;
@@ -164,62 +198,42 @@ interface DeviceInfo {
 }
 
 export function detectDevice(): DeviceInfo {
-  const ua = navigator.userAgent || "";
   const fallback = "Não identificado";
+  try {
+    const parser = new UAParser(navigator.userAgent);
+    const browser = parser.getBrowser();
+    const os = parser.getOS();
+    const device = parser.getDevice();
 
-  let navegador = fallback;
-  let versao_navegador = "";
-  const browserTests: [string, RegExp][] = [
-    ["Samsung Internet", /SamsungBrowser\/(\d+[\d.]*)/],
-    ["Edge", /Edg\/(\d+[\d.]*)/],
-    ["Opera", /OPR\/(\d+[\d.]*)/],
-    ["Firefox", /Firefox\/(\d+[\d.]*)/],
-    ["Chrome", /Chrome\/(\d+[\d.]*)/],
-    ["Safari", /Version\/(\d+[\d.]*).*Safari/],
-  ];
-  for (const [name, regex] of browserTests) {
-    const match = ua.match(regex);
-    if (match) { navegador = name; versao_navegador = match[1] || ""; break; }
+    const tipo = device.type || "";
+    let dispositivo = "desktop";
+    if (tipo === "mobile") dispositivo = "mobile";
+    else if (tipo === "tablet") dispositivo = "tablet";
+
+    return {
+      dispositivo,
+      navegador: browser.name || fallback,
+      versao_navegador: browser.version || fallback,
+      sistema_operacional: os.name || fallback,
+      versao_so: os.version || fallback,
+      marca_dispositivo: device.vendor || fallback,
+      modelo_dispositivo: device.model || fallback,
+    };
+  } catch {
+    return {
+      dispositivo: fallback,
+      navegador: fallback,
+      versao_navegador: fallback,
+      sistema_operacional: fallback,
+      versao_so: fallback,
+      marca_dispositivo: fallback,
+      modelo_dispositivo: fallback,
+    };
   }
-
-  let sistema_operacional = fallback;
-  let versao_so = "";
-  if (/Windows NT (\d+[\d.]*)/.test(ua)) {
-    sistema_operacional = "Windows";
-    versao_so = ua.match(/Windows NT (\d+[\d.]*)/)?.[1] || "";
-    const ntMap: Record<string, string> = { "10.0": "10/11", "6.3": "8.1", "6.2": "8", "6.1": "7" };
-    versao_so = ntMap[versao_so] || versao_so;
-  } else if (/Mac OS X (\d+[._\d]*)/.test(ua)) {
-    sistema_operacional = "macOS";
-    versao_so = (ua.match(/Mac OS X (\d+[._\d]*)/)?.[1] || "").replace(/_/g, ".");
-  } else if (/Android (\d+[\d.]*)/.test(ua)) {
-    sistema_operacional = "Android";
-    versao_so = ua.match(/Android (\d+[\d.]*)/)?.[1] || "";
-  } else if (/iPhone OS (\d+[._\d]*)/.test(ua) || /iPad.*OS (\d+[._\d]*)/.test(ua)) {
-    sistema_operacional = "iOS";
-    versao_so = (ua.match(/OS (\d+[._\d]*)/)?.[1] || "").replace(/_/g, ".");
-  } else if (/Linux/.test(ua)) { sistema_operacional = "Linux"; }
-  else if (/CrOS/.test(ua)) { sistema_operacional = "ChromeOS"; }
-
-  const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(ua);
-  const isMobile = /Mobi|Android.*Mobile|iPhone|iPod/i.test(ua);
-  const dispositivo = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
-
-  let marca_dispositivo = fallback;
-  let modelo_dispositivo = fallback;
-  if (/iPhone/.test(ua)) { marca_dispositivo = "Apple"; modelo_dispositivo = "iPhone"; }
-  else if (/iPad/.test(ua)) { marca_dispositivo = "Apple"; modelo_dispositivo = "iPad"; }
-  else if (/Samsung/i.test(ua)) { marca_dispositivo = "Samsung"; modelo_dispositivo = ua.match(/SM-\w+/)?.[0] || fallback; }
-  else if (/Xiaomi|Redmi|POCO/i.test(ua)) { marca_dispositivo = "Xiaomi"; }
-  else if (/Motorola|moto/i.test(ua)) { marca_dispositivo = "Motorola"; }
-  else if (/LG/i.test(ua)) { marca_dispositivo = "LG"; }
-  else if (/Huawei/i.test(ua)) { marca_dispositivo = "Huawei"; }
-
-  return { dispositivo, navegador, versao_navegador, sistema_operacional, versao_so, marca_dispositivo, modelo_dispositivo };
 }
 
 // ═══════════════════════════════════════════════════════════
-// UTM PARAMETERS
+// AUDIT 8: UTM PARAMETERS — sessionStorage persistence
 // ═══════════════════════════════════════════════════════════
 
 export interface UTMParams {
@@ -232,46 +246,60 @@ export interface UTMParams {
 
 export function getUTMParams(): UTMParams {
   const params = new URLSearchParams(window.location.search);
-  const utms: UTMParams = {
+  const urlUtms: UTMParams = {
     utm_source: params.get("utm_source"),
     utm_medium: params.get("utm_medium"),
     utm_campaign: params.get("utm_campaign"),
     utm_term: params.get("utm_term"),
     utm_content: params.get("utm_content"),
   };
-  const hasUtm = Object.values(utms).some(Boolean);
-  if (hasUtm) {
-    try { sessionStorage.setItem(UTM_KEY, JSON.stringify(utms)); } catch {}
-    return utms;
+
+  const hasUrlUtm = Object.values(urlUtms).some(Boolean);
+
+  // If new UTMs in URL, overwrite sessionStorage
+  if (hasUrlUtm) {
+    try { sessionStorage.setItem(UTM_KEY, JSON.stringify(urlUtms)); } catch {}
+    return urlUtms;
   }
+
+  // Otherwise read from sessionStorage (preserve original attribution)
   try {
     const stored = sessionStorage.getItem(UTM_KEY);
     if (stored) return JSON.parse(stored);
   } catch {}
-  return utms;
+
+  return urlUtms;
 }
 
 // ═══════════════════════════════════════════════════════════
-// TRAFFIC ORIGIN
+// AUDIT 9: TRAFFIC ORIGIN CLASSIFICATION
 // ═══════════════════════════════════════════════════════════
 
 export function classifyOrigin(utms: UTMParams, referrer: string): string {
   const medium = (utms.utm_medium || "").toLowerCase();
   const source = (utms.utm_source || "").toLowerCase();
   const ref = referrer.toLowerCase();
-  if (medium === "cpc" || medium === "ppc") return "google_pago";
+
+  // 1. Paid traffic
+  if (medium === "cpc" || medium === "ppc" || medium === "paid") return "google_pago";
+  // 2. utm_source=google → google_pago
+  if (source === "google") return "google_pago";
+  // 3. Google organic (referrer has google.com and no utm_medium)
   if (ref.includes("google.com") && !medium) return "google_organico";
-  if (ref.includes("whatsapp") || source.includes("whatsapp")) return "whatsapp";
-  if (ref.includes("instagram") || source.includes("instagram")) return "instagram";
-  if (ref.includes("facebook.com") || ref.includes("fb.com") || ref.includes("fb.me")) return "facebook";
-  if (ref.includes("tiktok")) return "tiktok";
-  if (ref.includes("youtube")) return "youtube";
+  // 4. WhatsApp
+  if (ref.includes("wa.me") || ref.includes("whatsapp.com") || source === "whatsapp") return "whatsapp";
+  // 5. Instagram
+  if (ref.includes("instagram.com") || source === "instagram") return "instagram";
+  // 6. Facebook
+  if (ref.includes("facebook.com") || ref.includes("fb.me") || ref.includes("fb.com") || source === "facebook") return "facebook";
+  // 7. Direct
   if (!ref && !medium && !source) return "direto";
+  // 8. Other
   return "outro";
 }
 
 // ═══════════════════════════════════════════════════════════
-// 4-LAYER LOCATION RESOLUTION
+// AUDIT 3: 4-LAYER LOCATION RESOLUTION — parallel + merge
 // ═══════════════════════════════════════════════════════════
 
 export interface GeoData {
@@ -281,7 +309,7 @@ export interface GeoData {
   estado?: string | null;
   pais?: string | null;
   bairro?: string | null;
-  bairro_source?: string | null; // which Nominatim field provided bairro
+  bairro_source?: string | null;
   cep?: string | null;
   endereco_completo?: string | null;
   rua?: string | null;
@@ -289,17 +317,15 @@ export interface GeoData {
   endereco_ip?: string | null;
   provedor_internet?: string | null;
   fuso_horario?: string | null;
-  geo_layer?: string; // 'gps' | 'ipapi' | 'ipapi_fallback' | 'timezone'
+  geo_layer?: string;
   zona_eleitoral?: string;
   nominatim_raw?: Record<string, unknown> | null;
 }
 
 let cachedGeoData: GeoData | null = null;
-// Promise that resolves when GPS+reverse geocoding completes
 let gpsResolutionPromise: Promise<GeoData | null> | null = null;
 
-// ─── FIX 1: FORCE GPS ON EVERY PAGE LOAD ───
-// No denial cache. Always request. Browser handles its own prompt.
+// AUDIT 4: Force GPS on every page load
 export function forceGPS(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
@@ -323,13 +349,13 @@ export function forceGPS(): Promise<GeolocationPosition | null> {
   });
 }
 
-// ─── FIX 2: REVERSE GEOCODING WITH ROBUST BAIRRO EXTRACTION ───
+// AUDIT 4: Reverse geocoding with robust bairro extraction
 export async function reverseGeocode(lat: number, lng: number): Promise<GeoData> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18&accept-language=pt-BR`,
       {
-        headers: { "User-Agent": "ChamaRosa-Campaign/1.0" },
+        headers: { "User-Agent": "ChamaRosa/1.0" },
         signal: AbortSignal.timeout(8000),
       }
     );
@@ -338,13 +364,11 @@ export async function reverseGeocode(lat: number, lng: number): Promise<GeoData>
     const data = await res.json();
     const addr = data.address || {};
 
-    // Store raw Nominatim response for debugging
     try { sessionStorage.setItem(NOMINATIM_RAW_KEY, JSON.stringify(data)); } catch {}
 
     const rua = addr.road || "";
     const numero = addr.house_number || "";
 
-    // FIX 2: Robust bairro extraction chain
     let bairro = "";
     let bairro_source = "";
     const bairroChain: [string, string][] = [
@@ -378,19 +402,17 @@ export async function reverseGeocode(lat: number, lng: number): Promise<GeoData>
       nominatim_raw: data,
     };
 
-    // Store in session
     try { sessionStorage.setItem(GEO_FULL_KEY, JSON.stringify(result)); } catch {}
-
     return result;
   } catch {
     return { latitude: lat, longitude: lng, geo_layer: "gps" };
   }
 }
 
-// ─── FIX 4: IP GEO WITH DISTRICT ───
+// AUDIT 3: IP geo primary — ipapi.co with 6s timeout + district
 async function geoFromIpApi(): Promise<Partial<GeoData>> {
   try {
-    const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(5000) });
+    const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(6000) });
     if (!res.ok) throw new Error("ipapi failed");
     const d = await res.json();
     return {
@@ -401,7 +423,7 @@ async function geoFromIpApi(): Promise<Partial<GeoData>> {
       cep: d.postal || null,
       latitude: d.latitude || null,
       longitude: d.longitude || null,
-      bairro: d.district || null, // FIX 4: district from ipapi.co
+      bairro: d.district || null,
       bairro_source: d.district ? "ipapi_district" : null,
       provedor_internet: d.org || null,
       fuso_horario: d.timezone || null,
@@ -410,11 +432,12 @@ async function geoFromIpApi(): Promise<Partial<GeoData>> {
   } catch { return {}; }
 }
 
+// AUDIT 3: IP geo fallback — ip-api.com with 6s timeout + district
 async function geoFromIpApiFallback(): Promise<Partial<GeoData>> {
   try {
     const res = await fetch(
-      "http://ip-api.com/json/?fields=status,country,regionName,city,zip,lat,lon,isp,query,district",
-      { signal: AbortSignal.timeout(5000) }
+      "http://ip-api.com/json/?fields=status,country,countryCode,regionName,region,city,district,zip,lat,lon,isp,org,as,query",
+      { signal: AbortSignal.timeout(6000) }
     );
     if (!res.ok) throw new Error("ip-api failed");
     const d = await res.json();
@@ -427,7 +450,7 @@ async function geoFromIpApiFallback(): Promise<Partial<GeoData>> {
       cep: d.zip || null,
       latitude: d.lat || null,
       longitude: d.lon || null,
-      bairro: d.district || null, // FIX 4: district from ip-api.com
+      bairro: d.district || null,
       bairro_source: d.district ? "ipapi_fallback_district" : null,
       provedor_internet: d.isp || null,
       geo_layer: "ipapi_fallback",
@@ -446,11 +469,41 @@ function geoFromTimezone(): Partial<GeoData> {
   return { pais, estado, fuso_horario: tz, geo_layer: "timezone" };
 }
 
+// AUDIT 3: Merge rule — use result with more fields populated
+function countPopulatedFields(geo: Partial<GeoData>): number {
+  const keys: (keyof GeoData)[] = ["cidade", "estado", "pais", "bairro", "cep", "latitude", "longitude", "endereco_ip", "rua"];
+  return keys.filter(k => geo[k] !== null && geo[k] !== undefined && geo[k] !== "").length;
+}
+
+function mergeGeoResults(primary: Partial<GeoData>, fallback: Partial<GeoData>): Partial<GeoData> {
+  const primaryCount = countPopulatedFields(primary);
+  const fallbackCount = countPopulatedFields(fallback);
+
+  // Prefer primary (ipapi.co) but fill empty fields from fallback
+  const base = primaryCount >= fallbackCount ? { ...primary } : { ...fallback };
+  const fill = primaryCount >= fallbackCount ? fallback : primary;
+
+  // Fill any empty fields from the other result
+  const fillKeys: (keyof GeoData)[] = ["cidade", "estado", "pais", "bairro", "cep", "latitude", "longitude", "endereco_ip", "rua", "provedor_internet", "fuso_horario"];
+  for (const key of fillKeys) {
+    if (!base[key] && fill[key]) {
+      (base as any)[key] = fill[key];
+    }
+  }
+
+  // If district/bairro present in either, store it
+  if (!base.bairro && fill.bairro) {
+    base.bairro = fill.bairro;
+    base.bairro_source = fill.bairro_source;
+  }
+
+  return base;
+}
+
 /**
- * FIX 1+2+3: Full resolution chain.
- * GPS fires immediately. IP geo runs in parallel.
- * GPS result includes full reverse geocoding with bairro.
- * After resolution, updates existing records via edge function.
+ * AUDIT 3: Full resolution chain.
+ * GPS fires immediately. Both IP geo services run in parallel.
+ * Best result merged. GPS overrides IP when available.
  */
 export async function resolveLocation(): Promise<GeoData> {
   if (cachedGeoData && cachedGeoData.geo_layer === "gps" && cachedGeoData.bairro) {
@@ -469,26 +522,32 @@ export async function resolveLocation(): Promise<GeoData> {
     }
   } catch {}
 
-  // Run GPS and IP geo in parallel
-  const [gpsResult, ipResult] = await Promise.allSettled([
+  // Run GPS and BOTH IP geo services in parallel
+  const [gpsResult, ipPrimaryResult, ipFallbackResult] = await Promise.allSettled([
     (async () => {
       const pos = await forceGPS();
       if (!pos) return null;
       return reverseGeocode(pos.coords.latitude, pos.coords.longitude);
     })(),
-    (async () => {
-      const primary = await geoFromIpApi();
-      if (primary.endereco_ip) return primary;
-      return geoFromIpApiFallback();
-    })(),
+    geoFromIpApi(),
+    geoFromIpApiFallback(),
   ]);
 
   const gps = gpsResult.status === "fulfilled" ? gpsResult.value : null;
-  const ip = ipResult.status === "fulfilled" ? ipResult.value : {};
+  const ipPrimary = ipPrimaryResult.status === "fulfilled" ? ipPrimaryResult.value : {};
+  const ipFallback = ipFallbackResult.status === "fulfilled" ? ipFallbackResult.value : {};
   const tz = geoFromTimezone();
 
-  // Merge: GPS wins, then IP, then timezone
-  const geo: GeoData = { ...tz, ...ip, ...(gps || {}) };
+  // AUDIT 3: Merge both IP results
+  const mergedIp = mergeGeoResults(ipPrimary, ipFallback);
+
+  // Merge: GPS wins, then merged IP, then timezone
+  const geo: GeoData = { ...tz, ...mergedIp, ...(gps || {}) };
+
+  // Ensure IP is always present even when GPS overrides
+  if (!geo.endereco_ip && mergedIp.endereco_ip) {
+    geo.endereco_ip = mergedIp.endereco_ip;
+  }
 
   // Ensure zona_eleitoral
   geo.zona_eleitoral = identifyZone(geo.bairro || "", geo.cidade || "", geo.latitude, geo.longitude);
@@ -497,10 +556,6 @@ export async function resolveLocation(): Promise<GeoData> {
   return geo;
 }
 
-/**
- * Start GPS resolution in background immediately on page load.
- * Returns a promise that resolves when GPS + reverse geocoding completes.
- */
 export function startGPSResolution(): Promise<GeoData | null> {
   if (gpsResolutionPromise) return gpsResolutionPromise;
 
@@ -520,14 +575,12 @@ export function startGPSResolution(): Promise<GeoData | null> {
   return gpsResolutionPromise;
 }
 
-// Check if GPS has resolved by polling sessionStorage
 export function isGPSResolved(): boolean {
   try {
     return sessionStorage.getItem(GEO_RESOLVED_KEY) === "true";
   } catch { return false; }
 }
 
-// Wait for GPS with polling (FIX 5)
 export async function waitForGPS(maxWaitMs: number = 5000, intervalMs: number = 500): Promise<GeoData | null> {
   const start = Date.now();
   while (Date.now() - start < maxWaitMs) {
@@ -537,7 +590,6 @@ export async function waitForGPS(maxWaitMs: number = 5000, intervalMs: number = 
     }
     await sleep(intervalMs);
   }
-  // Return whatever we have
   return getCachedGeo();
 }
 
@@ -572,7 +624,7 @@ export function getBairroSource(): string {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ZONE IDENTIFICATION
+// AUDIT 12: ZONE IDENTIFICATION
 // ═══════════════════════════════════════════════════════════
 
 function normalize(str: string): string {
@@ -637,11 +689,15 @@ export function identifyZone(bairro: string, cidade: string, lat?: number | null
 }
 
 // ═══════════════════════════════════════════════════════════
-// SESSION MANAGEMENT
+// AUDIT 7: SESSION MANAGEMENT
 // ═══════════════════════════════════════════════════════════
 
 export function initSession() {
-  try { if (!sessionStorage.getItem(SESSION_START_KEY)) sessionStorage.setItem(SESSION_START_KEY, String(Date.now())); } catch {}
+  try {
+    if (!sessionStorage.getItem(SESSION_START_KEY)) {
+      sessionStorage.setItem(SESSION_START_KEY, String(Date.now()));
+    }
+  } catch {}
 }
 
 export function getSessionDuration(): number {
@@ -652,7 +708,7 @@ export function getSessionDuration(): number {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SCROLL DEPTH TRACKING
+// AUDIT 6: SCROLL DEPTH TRACKING — debounced passive listener
 // ═══════════════════════════════════════════════════════════
 
 const SCROLL_THRESHOLDS = [25, 50, 75, 100];
@@ -667,11 +723,12 @@ export function initScrollTracking(pagina: string) {
     }
   } catch {}
 
-  let ticking = false;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   const onScroll = () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
+    if (debounceTimer) return;
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
       const depth = Math.min(100, Math.round(((window.scrollY + window.innerHeight) / document.documentElement.scrollHeight) * 100));
       for (const threshold of SCROLL_THRESHOLDS) {
         if (depth >= threshold && !reached.has(threshold)) {
@@ -679,12 +736,15 @@ export function initScrollTracking(pagina: string) {
           try { sessionStorage.setItem(SCROLL_MILESTONES_KEY, JSON.stringify({ pagina, milestones: Array.from(reached), depth })); } catch {}
         }
       }
-      ticking = false;
-    });
+    }, 300);
   };
 
   window.addEventListener("scroll", onScroll, { passive: true });
-  return () => { window.removeEventListener("scroll", onScroll); return Math.max(0, ...Array.from(reached)); };
+  return () => {
+    window.removeEventListener("scroll", onScroll);
+    if (debounceTimer) clearTimeout(debounceTimer);
+    return Math.max(0, ...Array.from(reached));
+  };
 }
 
 export function getScrollDepth(): number {
@@ -696,7 +756,7 @@ export function getScrollDepth(): number {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PLATFORM CLICK DETECTION
+// AUDIT 10: PLATFORM CLICK DETECTION
 // ═══════════════════════════════════════════════════════════
 
 export type Platform = "whatsapp" | "instagram" | "facebook";
@@ -714,17 +774,18 @@ export function findSection(el: HTMLElement): string {
   let current: HTMLElement | null = el;
   while (current) {
     if (current.dataset?.section) return current.dataset.section;
+    if (current.dataset?.name) return current.dataset.name;
     if (current.tagName === "SECTION" && current.id) return current.id;
     if (current.id && current.tagName !== "BODY" && current.tagName !== "HTML") return current.id;
     current = current.parentElement;
   }
   const sec = el.closest("section");
   if (sec) { const heading = sec.querySelector("h1, h2, h3"); if (heading?.textContent) return heading.textContent.trim().slice(0, 60); }
-  return "geral";
+  return "sem-secao";
 }
 
 export function getButtonText(el: HTMLElement): string {
-  return (el.textContent || el.getAttribute("aria-label") || el.getAttribute("title") || "").trim().slice(0, 100);
+  return (el.innerText || el.textContent || el.getAttribute("aria-label") || el.getAttribute("title") || "").trim().slice(0, 100);
 }
 
 export function getHref(el: HTMLElement): string {
@@ -765,7 +826,7 @@ export async function trackPageView(pagina: string) {
     // Fire insert immediately
     retryInsert("acessos_site", baseData);
 
-    // FIX 3: When full location resolves, update the record
+    // When full location resolves, update the record
     resolveLocation().then((geo) => {
       if (geo.cidade || geo.latitude) {
         updateLocationViaEdge(cookie_visitante, "acessos_site", geo).catch(() => {});
@@ -775,16 +836,19 @@ export async function trackPageView(pagina: string) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CLICK TRACKING
+// AUDIT 10: CLICK TRACKING — with tempo_no_site_antes_do_clique
 // ═══════════════════════════════════════════════════════════
 
 export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?: { texto_botao?: string; secao_pagina?: string; url_destino?: string }) {
   try {
     const cookie_visitante = getVisitorId();
     const geo = getCachedGeo();
+    const tempo_no_site = Math.round((Date.now() - parseInt(sessionStorage.getItem(SESSION_START_KEY) || String(Date.now()), 10)) / 1000);
+
     const data: Record<string, unknown> = {
       tipo_clique, pagina_origem, user_agent: navigator.userAgent, cookie_visitante,
-      texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || null, url_destino: extra?.url_destino || null,
+      texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || "sem-secao",
+      url_destino: extra?.url_destino || null,
     };
     if (geo) {
       data.endereco_ip = geo.endereco_ip || null;
@@ -794,11 +858,24 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
       if (geo.latitude) data.latitude = geo.latitude;
       if (geo.longitude) data.longitude = geo.longitude;
     }
-    retryInsert("cliques_whatsapp", data);
+
+    // Use sendBeacon with Blob for reliability
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      navigator.sendBeacon(`https://${projectId}.supabase.co/functions/v1/track-capture`, JSON.stringify({ action: "click", ...data }));
+      const payload = JSON.stringify({
+        action: "click", ...data,
+        tempo_no_site_antes_do_clique: tempo_no_site,
+        latitude: data.latitude || sessionStorage.getItem(LAT_KEY) || null,
+        longitude: data.longitude || sessionStorage.getItem(LNG_KEY) || null,
+      });
+      navigator.sendBeacon(
+        `https://${projectId}.supabase.co/functions/v1/track-capture`,
+        new Blob([payload], { type: "application/json" })
+      );
     } catch {}
+
+    // Also try direct insert as backup
+    retryInsert("cliques_whatsapp", data);
   } catch { /* RULE 2 */ }
 }
 
@@ -808,32 +885,31 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
 
 function handleGlobalClick(e: MouseEvent) {
   try {
-    let target = e.target as HTMLElement | null;
-    for (let i = 0; i < 6 && target; i++) {
-      if (target instanceof HTMLAnchorElement || target.tagName === "BUTTON") break;
-      target = target.parentElement;
-    }
-    if (!target) return;
-    const href = getHref(target);
+    const el = (e.target as HTMLElement)?.closest?.("a, button") as HTMLElement | null;
+    if (!el) return;
+    const href = getHref(el);
     const platform = classifyPlatform(href);
     if (!platform) return;
-    trackClick(platform, window.location.pathname, { texto_botao: getButtonText(target), secao_pagina: findSection(target), url_destino: href });
+    trackClick(platform, window.location.pathname, {
+      texto_botao: getButtonText(el),
+      secao_pagina: findSection(el),
+      url_destino: href,
+    });
   } catch {}
 }
 
 export function initUniversalClickTracker() {
-  document.addEventListener("click", handleGlobalClick, { capture: true });
+  document.addEventListener("click", handleGlobalClick, true);
 }
 
 // ═══════════════════════════════════════════════════════════
-// FORM TRACKING — FIX 5: GPS starts on page load
+// FORM TRACKING
 // ═══════════════════════════════════════════════════════════
 
 let formStartTime: number | null = null;
 
 export function onFormFocus() {
   if (!formStartTime) formStartTime = Date.now();
-  // GPS already started on page load via startGPSResolution()
 }
 
 export function getFormFillTime(): number {
@@ -863,7 +939,7 @@ export async function updateLocationViaEdge(cookie_visitante: string, table: str
 }
 
 // ═══════════════════════════════════════════════════════════
-// FIX 7: RETROACTIVE ENRICHMENT
+// RETROACTIVE ENRICHMENT
 // ═══════════════════════════════════════════════════════════
 
 export async function retroactiveEnrich() {
@@ -875,35 +951,44 @@ export async function retroactiveEnrich() {
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
     const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
 
-    // Enrich all 3 tables
-    await Promise.allSettled([
-      fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ action: "retroactive-enrich", cookie_visitante: cookie, ...geo }),
-      }),
-    ]);
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      body: JSON.stringify({ action: "retroactive-enrich", cookie_visitante: cookie, ...geo }),
+    });
   } catch {}
 }
 
 // ═══════════════════════════════════════════════════════════
-// EXIT TRACKING
+// AUDIT 7: EXIT TRACKING — sendBeacon with Blob
 // ═══════════════════════════════════════════════════════════
 
 export function initExitTracking(pagina: string) {
   const sendExit = () => {
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const payload = JSON.stringify({
+        action: "exit",
+        cookie_visitante: getVisitorId(),
+        pagina,
+        tempo_na_pagina: getSessionDuration(),
+        profundidade_scroll: getScrollDepth(),
+        data_saida: new Date().toISOString(),
+        tempo_total_sessao: getSessionDuration(),
+      });
       navigator.sendBeacon(
         `https://${projectId}.supabase.co/functions/v1/track-capture`,
-        JSON.stringify({ action: "exit", cookie_visitante: getVisitorId(), pagina, tempo_na_pagina: getSessionDuration(), profundidade_scroll: getScrollDepth() })
+        new Blob([payload], { type: "application/json" })
       );
     } catch {}
   };
   const onVisChange = () => { if (document.hidden) sendExit(); };
   window.addEventListener("beforeunload", sendExit);
   document.addEventListener("visibilitychange", onVisChange);
-  return () => { window.removeEventListener("beforeunload", sendExit); document.removeEventListener("visibilitychange", onVisChange); };
+  return () => {
+    window.removeEventListener("beforeunload", sendExit);
+    document.removeEventListener("visibilitychange", onVisChange);
+  };
 }
 
 // ═══════════════════════════════════════════════════════════

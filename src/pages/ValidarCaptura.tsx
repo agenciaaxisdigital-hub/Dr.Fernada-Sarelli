@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getVisitorId,
+  getVisitorCookieStatus,
   detectDevice,
   getUTMParams,
   resolveLocation,
@@ -22,7 +23,7 @@ import {
   type GeoData,
 } from "@/lib/tracking";
 
-type Status = "pending" | "ok" | "error";
+type Status = "pending" | "ok" | "warn" | "error";
 
 interface Check {
   label: string;
@@ -46,6 +47,8 @@ const ValidarCaptura = () => {
   const [formResult, setFormResult] = useState("");
   const [queueItems, setQueueItems] = useState<unknown[]>([]);
   const [updateResult, setUpdateResult] = useState("");
+  const [recentClicks, setRecentClicks] = useState<unknown[]>([]);
+  const [recentForm, setRecentForm] = useState<unknown>(null);
 
   const isAuthorized = searchParams.get("chama") === "validar";
 
@@ -61,35 +64,64 @@ const ValidarCaptura = () => {
   useEffect(() => {
     if (!isAuthorized) return;
 
-    // Supabase
+    // ═══════════════════════════════════════════════════════
+    // AUDIT 15: Run all checks on load
+    // ═══════════════════════════════════════════════════════
+
+    // 1. Supabase connection
     (async () => {
       updateCheck("Conexão Supabase", "pending", "Testando...");
       try {
-        const { error } = await supabase.from("configuracoes").select("id").limit(1);
-        if (error) throw error;
-        updateCheck("Conexão Supabase", "ok", "Conectado com sucesso");
+        const tables = ["configuracoes", "acessos_site", "cliques_whatsapp", "mensagens_contato", "galeria_fotos"];
+        const counts: Record<string, number> = {};
+        await Promise.all(tables.map(async (t) => {
+          const { count, error } = await (supabase.from as any)(t).select("id", { count: "exact", head: true });
+          if (error) throw error;
+          counts[t] = count || 0;
+        }));
+        const detail = Object.entries(counts).map(([t, c]) => `${t}: ${c}`).join(" | ");
+        updateCheck("Conexão Supabase", "ok", `Conectado — ${detail}`);
       } catch (e) { updateCheck("Conexão Supabase", "error", `Falha: ${(e as Error).message}`); }
     })();
 
-    // Visitor
-    const visitorId = getVisitorId();
-    updateCheck("Cookie do Visitante", visitorId ? "ok" : "error", visitorId ? `ID: ${visitorId}` : "Falha");
+    // 2. Visitor Cookie — check both localStorage and browser cookie
+    const cookieStatus = getVisitorCookieStatus();
+    const bothPresent = cookieStatus.localStorage && cookieStatus.cookie;
+    updateCheck(
+      "Cookie do Visitante",
+      bothPresent ? "ok" : cookieStatus.localStorage || cookieStatus.cookie ? "warn" : "error",
+      `ID: ${cookieStatus.id || "AUSENTE"} | localStorage: ${cookieStatus.localStorage ? "✅" : "❌"} | cookie (chama_vid): ${cookieStatus.cookie ? "✅" : "❌"}`
+    );
 
-    // Device
+    // 3. Device Detection — check all fields are populated strings
     const device = detectDevice();
-    updateCheck("Detecção de Dispositivo", "ok", Object.entries(device).map(([k, v]) => `${k}: ${v}`).join(" | "));
+    const deviceFields = Object.entries(device);
+    const hasUndefined = deviceFields.some(([, v]) => !v || v === "undefined" || v === "null");
+    updateCheck(
+      "Detecção de Dispositivo",
+      hasUndefined ? "warn" : "ok",
+      deviceFields.map(([k, v]) => `${k}: ${v}`).join(" | ")
+    );
 
-    // UTMs
+    // 4. UTMs
     const utms = getUTMParams();
     const hasUtm = Object.values(utms).some(Boolean);
-    updateCheck("Captura de UTMs", "ok", hasUtm ? Object.entries(utms).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(", ") : "Nenhum UTM na URL");
+    updateCheck("Captura de UTMs", "ok", hasUtm ? Object.entries(utms).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(", ") : "Nenhum UTM na URL — adicione ?utm_source=teste para validar");
 
-    // Traffic origin
+    // 5. Traffic origin
     updateCheck("Origem do Tráfego", "ok", `Classificado como: ${classifyOrigin(utms, document.referrer || "")}`);
 
-    // Location
+    // 6. Session
+    updateCheck("Sessão", "ok", `Duração: ${getSessionDuration()}s | Scroll: ${getScrollDepth()}%`);
+
+    // 7. Queue
+    const queue = getFailedQueue();
+    setQueueItems(queue);
+    updateCheck("Fila de Redundância", queue.length === 0 ? "ok" : "warn", `${queue.length} item(s) na fila`);
+
+    // 8. Location resolution
     (async () => {
-      updateCheck("Resolução de Localização", "pending", "Resolvendo 4 camadas...");
+      updateCheck("Resolução de Localização", "pending", "Resolvendo 4 camadas (GPS + 2x IP + Timezone)...");
       try {
         const geo = await resolveLocation();
         const fields = [
@@ -106,16 +138,47 @@ const ValidarCaptura = () => {
           geo.endereco_completo && `Endereço: ${geo.endereco_completo}`,
         ].filter(Boolean).join(" | ");
 
-        const hasBairro = !!geo.bairro;
-        updateCheck("Resolução de Localização",
-          hasBairro ? "ok" : geo.cidade ? "ok" : "error",
-          fields || "Nenhum dado obtido"
+        const ipOk = !!geo.endereco_ip && geo.endereco_ip !== "0.0.0.0" && !geo.endereco_ip.startsWith("127.") && !geo.endereco_ip.startsWith("192.168.");
+        const geoOk = !!geo.cidade && !!geo.estado && !!geo.latitude && !!geo.longitude;
+
+        updateCheck("Resolução de Localização", geoOk ? "ok" : "warn", fields || "Nenhum dado obtido");
+        updateCheck("IP Capturado", ipOk ? "ok" : "warn", `IP: ${geo.endereco_ip || "NÃO CAPTURADO"} ${!ipOk ? "— IP local/privado detectado" : ""}`);
+        updateCheck("IP Geolocalização", geoOk ? "ok" : "error",
+          `Cidade: ${geo.cidade || "❌"} | Estado: ${geo.estado || "❌"} | Lat: ${geo.latitude || "❌"} | Lng: ${geo.longitude || "❌"}`
         );
       } catch (e) { updateCheck("Resolução de Localização", "error", `Erro: ${(e as Error).message}`); }
     })();
 
-    updateCheck("Sessão", "ok", `Duração: ${getSessionDuration()}s | Scroll: ${getScrollDepth()}%`);
-    setQueueItems(getFailedQueue());
+    // 9. Fetch recent clicks for this visitor
+    (async () => {
+      try {
+        const vid = getVisitorId();
+        const { data } = await (supabase.from as any)("cliques_whatsapp")
+          .select("id, tipo_clique, texto_botao, secao_pagina, criado_em")
+          .eq("cookie_visitante", vid)
+          .order("criado_em", { ascending: false })
+          .limit(3);
+        setRecentClicks(data || []);
+        updateCheck("Click Tracking", data && data.length > 0 ? "ok" : "warn",
+          data && data.length > 0 ? `${data.length} clique(s) recente(s) encontrado(s)` : "Nenhum clique registrado para este visitante"
+        );
+      } catch { updateCheck("Click Tracking", "error", "Falha ao consultar cliques"); }
+    })();
+
+    // 10. Fetch recent form for this visitor
+    (async () => {
+      try {
+        const { data } = await (supabase.from as any)("mensagens_contato")
+          .select("id, nome, criado_em, cidade, bairro, zona_eleitoral")
+          .order("criado_em", { ascending: false })
+          .limit(1);
+        setRecentForm(data?.[0] || null);
+        updateCheck("Form Tracking", data && data.length > 0 ? "ok" : "warn",
+          data && data.length > 0 ? `Último: ${data[0].nome} em ${data[0].criado_em}` : "Nenhum formulário registrado"
+        );
+      } catch { updateCheck("Form Tracking", "error", "Falha ao consultar formulários"); }
+    })();
+
   }, [isAuthorized, updateCheck]);
 
   // Scroll live
@@ -180,12 +243,14 @@ const ValidarCaptura = () => {
     } catch (e) { setFormResult(`❌ ${(e as Error).message}`); }
   };
 
+  const statusIcon = (s: Status) => s === "ok" ? "✅" : s === "warn" ? "🟡" : s === "error" ? "❌" : "⏳";
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">🔍 Validação de Captura v2</h1>
-          <p className="text-sm text-muted-foreground mt-1">Diagnóstico completo — GPS, Bairro, Zona Eleitoral</p>
+          <h1 className="text-2xl font-bold text-foreground">🔍 Validação de Captura v3</h1>
+          <p className="text-sm text-muted-foreground mt-1">Auditoria completa — 15 pontos de verificação</p>
         </div>
 
         {/* Auto checks */}
@@ -193,7 +258,7 @@ const ValidarCaptura = () => {
           <h2 className="font-bold text-lg">Verificações Automáticas</h2>
           {checks.map((check) => (
             <div key={check.label} className="flex items-start gap-3 py-2 border-b last:border-0">
-              <span className="text-xl mt-0.5">{check.status === "ok" ? "✅" : check.status === "error" ? "❌" : "⏳"}</span>
+              <span className="text-xl mt-0.5">{statusIcon(check.status)}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">{check.label}</p>
                 <p className="text-xs text-muted-foreground break-all">{check.detail}</p>
@@ -204,13 +269,14 @@ const ValidarCaptura = () => {
 
         {/* Scroll */}
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-bold text-lg mb-2">📜 Scroll Tracking</h2>
+          <h2 className="font-bold text-lg mb-2">📜 Scroll Tracking (ao vivo)</h2>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
               <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${scrollDepth}%` }} />
             </div>
             <span className="text-sm font-mono font-bold">{scrollDepth}%</span>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">Role a página para ver os milestones 25%, 50%, 75%, 100% sendo registrados</p>
         </div>
 
         {/* GPS + Nominatim detail */}
@@ -228,7 +294,6 @@ const ValidarCaptura = () => {
                 <p className="text-destructive text-sm">❌ Erro ao obter GPS</p>
               ) : (
                 <>
-                  {/* Precision badge */}
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
                       gpsData.bairro ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
@@ -237,7 +302,6 @@ const ValidarCaptura = () => {
                     </span>
                   </div>
 
-                  {/* Extracted fields */}
                   <div className="bg-muted rounded-lg p-3 text-xs space-y-1">
                     <p><strong>Coordenadas:</strong> {gpsData.latitude}, {gpsData.longitude}</p>
                     <p><strong>Rua:</strong> {gpsData.rua || "—"} {gpsData.numero || ""}</p>
@@ -249,7 +313,6 @@ const ValidarCaptura = () => {
                     <p><strong>Zona Eleitoral:</strong> {gpsData.zona_eleitoral || "—"}</p>
                   </div>
 
-                  {/* Raw Nominatim response */}
                   {nominatimRaw && (
                     <details className="text-xs">
                       <summary className="cursor-pointer font-medium text-primary">🔬 Resposta bruta do Nominatim</summary>
@@ -299,9 +362,20 @@ const ValidarCaptura = () => {
           </div>
         </div>
 
-        {/* Click + Form tests */}
+        {/* Recent clicks from DB */}
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-bold text-lg mb-3">🖱️ Teste de Cliques</h2>
+          <h2 className="font-bold text-lg mb-3">🖱️ Cliques Recentes (Supabase)</h2>
+          {recentClicks.length > 0 ? (
+            <div className="space-y-2">
+              {recentClicks.map((c: any, i: number) => (
+                <div key={i} className="bg-muted rounded-lg p-2 text-xs">
+                  <span className="font-bold">{c.tipo_clique}</span> — {c.texto_botao} — {c.secao_pagina} — {new Date(c.criado_em).toLocaleString("pt-BR")}
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-muted-foreground">Nenhum clique registrado</p>}
+
+          <h3 className="font-medium text-sm mt-4 mb-2">Testar Clique Manual:</h3>
           <div className="flex gap-2 flex-wrap">
             {["whatsapp", "instagram", "facebook"].map((p) => (
               <div key={p} className="flex items-center gap-2">
@@ -312,15 +386,24 @@ const ValidarCaptura = () => {
           </div>
         </div>
 
+        {/* Recent form from DB */}
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-bold text-lg mb-3">📝 Teste de Formulário</h2>
-          <button onClick={handleFormTest} className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-medium">Submeter Formulário Teste</button>
+          <h2 className="font-bold text-lg mb-3">📝 Último Formulário (Supabase)</h2>
+          {recentForm ? (
+            <div className="bg-muted rounded-lg p-3 text-xs space-y-1">
+              {Object.entries(recentForm as Record<string, unknown>).map(([k, v]) => (
+                <p key={k}><strong>{k}:</strong> {String(v ?? "—")}</p>
+              ))}
+            </div>
+          ) : <p className="text-sm text-muted-foreground">Nenhum formulário registrado</p>}
+
+          <button onClick={handleFormTest} className="mt-3 rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-medium">Submeter Formulário Teste</button>
           {formResult && <p className="mt-2 text-sm">{formResult}</p>}
         </div>
 
         {/* Queue */}
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-bold text-lg mb-3">📦 Fila de Falhas</h2>
+          <h2 className="font-bold text-lg mb-3">📦 Fila de Redundância</h2>
           {queueItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">✅ Nenhum registro na fila</p>
           ) : (

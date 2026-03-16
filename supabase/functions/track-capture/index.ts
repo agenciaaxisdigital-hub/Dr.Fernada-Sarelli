@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   try {
     let body: Record<string, unknown>;
 
-    // Support both JSON and sendBeacon (plain text)
+    // Support both JSON and sendBeacon (plain text / blob)
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
       body = await req.json();
@@ -33,6 +33,10 @@ Deno.serve(async (req) => {
 
     const action = body.action as string;
 
+    // ─── AUDIT 2: IP CAPTURE SERVER-SIDE ───
+    const ip = extractIP(req);
+    console.log(`[Chama] Action: ${action}, IP: ${ip}`);
+
     // ─── UPDATE LOCATION ───
     if (action === "update-location") {
       const cookie = body.cookie_visitante as string;
@@ -42,7 +46,6 @@ Deno.serve(async (req) => {
         return json({ error: "Missing cookie_visitante or table" }, 400);
       }
 
-      // Only allow known tables and their columns
       const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"];
       const tableColumns: Record<string, string[]> = {
         acessos_site: locationCols,
@@ -55,7 +58,6 @@ Deno.serve(async (req) => {
         return json({ error: "Invalid table" }, 400);
       }
 
-      // Build update data from provided fields — only known columns
       const updateFields: Record<string, unknown> = {};
       for (const field of allowedFields) {
         if (body[field] !== undefined && body[field] !== null) {
@@ -67,7 +69,6 @@ Deno.serve(async (req) => {
         return json({ message: "No fields to update" }, 200);
       }
 
-      // Update records from last 30 minutes for this visitor
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
       const { error } = await supabase
@@ -84,18 +85,14 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
-    // ─── CLICK CAPTURE (via sendBeacon) ───
+    // ─── CLICK CAPTURE ───
     if (action === "click") {
-      // Extract real IP server-side
-      const ip = extractIP(req);
-
-      // Server-side geo if missing
+      // AUDIT 3: Server-side geo with parallel calls and merge
       let geoFields: Record<string, unknown> = {};
       if (!body.cidade) {
         geoFields = await serverGeoLookup(ip);
       }
 
-      // Only insert known columns
       const clickRow: Record<string, unknown> = {
         tipo_clique: body.tipo_clique || "whatsapp",
         pagina_origem: body.pagina_origem || null,
@@ -109,8 +106,15 @@ Deno.serve(async (req) => {
         cidade: body.cidade || geoFields.cidade || null,
         estado: body.estado || geoFields.estado || null,
         pais: body.pais || geoFields.pais || null,
+        bairro: body.bairro || geoFields.bairro || null,
+        cep: body.cep || geoFields.cep || null,
+        rua: body.rua || geoFields.rua || null,
+        endereco_completo: body.endereco_completo || geoFields.endereco_completo || null,
         latitude: body.latitude || geoFields.latitude || null,
         longitude: body.longitude || geoFields.longitude || null,
+        dispositivo: body.dispositivo || null,
+        sistema_operacional: body.sistema_operacional || null,
+        navegador: body.navegador || null,
       };
 
       const { error } = await supabase.from("cliques_whatsapp").insert(clickRow);
@@ -121,7 +125,7 @@ Deno.serve(async (req) => {
       return json({ success: !error });
     }
 
-    // ─── RETROACTIVE ENRICHMENT (FIX 7) ───
+    // ─── RETROACTIVE ENRICHMENT ───
     if (action === "retroactive-enrich") {
       const cookie = body.cookie_visitante as string;
       if (!cookie) return json({ error: "Missing cookie" }, 400);
@@ -156,11 +160,9 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
-    // ─── FORM CAPTURE (enriched) ───
+    // ─── FORM CAPTURE ───
     if (action === "form") {
-      const ip = extractIP(req);
-
-      // Server-side geo if missing
+      // AUDIT 3: Server-side geo with parallel calls
       let geoFields: Record<string, unknown> = {};
       if (!body.cidade) {
         geoFields = await serverGeoLookup(ip);
@@ -176,8 +178,13 @@ Deno.serve(async (req) => {
         cidade: body.cidade || geoFields.cidade || null,
         estado: body.estado || geoFields.estado || null,
         pais: body.pais || geoFields.pais || null,
+        bairro: body.bairro || geoFields.bairro || null,
+        cep: body.cep || geoFields.cep || null,
+        rua: body.rua || geoFields.rua || null,
+        endereco_completo: body.endereco_completo || geoFields.endereco_completo || null,
         latitude: body.latitude || geoFields.latitude || null,
         longitude: body.longitude || geoFields.longitude || null,
+        zona_eleitoral: body.zona_eleitoral || geoFields.zona_eleitoral || null,
       };
 
       const { data: result, error } = await supabase
@@ -210,61 +217,108 @@ function json(data: unknown, status = 200) {
   });
 }
 
+// AUDIT 2: IP extraction with full priority chain + proxy warnings
 function extractIP(req: Request): string {
-  return (
-    req.headers.get("cf-connecting-ip") ||
-    req.headers.get("true-client-ip") ||
-    (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
-    req.headers.get("x-real-ip") ||
-    "0.0.0.0"
-  );
+  const cfIp = req.headers.get("cf-connecting-ip");
+  if (cfIp) { console.log(`[Chama] IP source: cf-connecting-ip`); return cfIp; }
+
+  const trueClientIp = req.headers.get("true-client-ip");
+  if (trueClientIp) { console.log(`[Chama] IP source: true-client-ip`); return trueClientIp; }
+
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const ips = forwarded.split(",").map(s => s.trim());
+    // Find first non-private IP
+    const publicIp = ips.find(ip => !isPrivateIP(ip));
+    if (publicIp) {
+      console.log(`[Chama] IP source: x-forwarded-for (public)`);
+      return publicIp;
+    }
+    // If all are private, use first one
+    console.log(`[Chama] IP source: x-forwarded-for (private — PROXY_IP_NOT_CONFIGURED)`);
+    console.warn(`[Chama] PROXY_IP_NOT_CONFIGURED: All forwarded IPs are private: ${forwarded}`);
+    return ips[0];
+  }
+
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) {
+    if (isPrivateIP(realIp)) {
+      console.warn(`[Chama] PROXY_IP_NOT_CONFIGURED: x-real-ip is private: ${realIp}`);
+    }
+    console.log(`[Chama] IP source: x-real-ip`);
+    return realIp;
+  }
+
+  console.warn("[Chama] PROXY_IP_NOT_CONFIGURED: No IP headers found, using 0.0.0.0");
+  return "0.0.0.0";
 }
 
+function isPrivateIP(ip: string): boolean {
+  return ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.16.") || ip.startsWith("172.17.") || ip.startsWith("172.18.") || ip.startsWith("172.19.") || ip.startsWith("172.2") || ip.startsWith("172.3");
+}
+
+// AUDIT 3: Server-side geo with parallel calls and merge
 async function serverGeoLookup(ip: string): Promise<Record<string, unknown>> {
-  if (!ip || ip === "0.0.0.0" || ip.startsWith("127.") || ip.startsWith("192.168.")) {
+  if (!ip || ip === "0.0.0.0" || isPrivateIP(ip)) {
+    console.warn(`[Chama] Skipping geo lookup for private/missing IP: ${ip}`);
     return {};
   }
 
-  // Layer 2: ipapi.co
-  try {
-    const res = await fetch(`https://ipapi.co/${ip}/json/`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
+  // Run both in parallel
+  const [primaryResult, fallbackResult] = await Promise.allSettled([
+    (async () => {
+      const res = await fetch(`https://ipapi.co/${ip}/json/`, { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) throw new Error("ipapi failed");
       const d = await res.json();
-      if (d.city) {
-        return {
-          cidade: d.city,
-          estado: d.region,
-          pais: d.country_name,
-          cep: d.postal,
-          latitude: d.latitude,
-          longitude: d.longitude,
-        };
-      }
-    }
-  } catch { /* fallback */ }
-
-  // Layer 3: ip-api.com
-  try {
-    const res = await fetch(
-      `http://ip-api.com/json/${ip}?fields=status,country,regionName,city,zip,lat,lon`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (res.ok) {
+      if (!d.city) throw new Error("ipapi no city");
+      return {
+        cidade: d.city || null,
+        estado: d.region || null,
+        pais: d.country_name || null,
+        cep: d.postal || null,
+        latitude: d.latitude || null,
+        longitude: d.longitude || null,
+        bairro: d.district || null,
+        provedor: d.org || null,
+      };
+    })(),
+    (async () => {
+      const res = await fetch(
+        `http://ip-api.com/json/${ip}?fields=status,country,countryCode,regionName,region,city,district,zip,lat,lon,isp,org,as,query`,
+        { signal: AbortSignal.timeout(6000) }
+      );
+      if (!res.ok) throw new Error("ip-api failed");
       const d = await res.json();
-      if (d.status === "success") {
-        return {
-          cidade: d.city,
-          estado: d.regionName,
-          pais: d.country,
-          cep: d.zip,
-          latitude: d.lat,
-          longitude: d.lon,
-        };
-      }
-    }
-  } catch { /* ignore */ }
+      if (d.status !== "success") throw new Error("ip-api not success");
+      return {
+        cidade: d.city || null,
+        estado: d.regionName || null,
+        pais: d.country || null,
+        cep: d.zip || null,
+        latitude: d.lat || null,
+        longitude: d.lon || null,
+        bairro: d.district || null,
+        provedor: d.isp || null,
+      };
+    })(),
+  ]);
 
-  return {};
+  const primary = primaryResult.status === "fulfilled" ? primaryResult.value : null;
+  const fallback = fallbackResult.status === "fulfilled" ? fallbackResult.value : null;
+
+  if (!primary && !fallback) return {};
+
+  // Merge: prefer primary, fill gaps from fallback
+  const base = primary || {};
+  const fill = fallback || {};
+  const merged: Record<string, unknown> = { ...base };
+
+  for (const key of Object.keys(fill)) {
+    if (!merged[key] && (fill as any)[key]) {
+      merged[key] = (fill as any)[key];
+    }
+  }
+
+  console.log(`[Chama] Geo lookup for ${ip}: cidade=${merged.cidade}, estado=${merged.estado}, bairro=${merged.bairro}`);
+  return merged;
 }
