@@ -7,12 +7,12 @@ import {
   initExitTracking,
   initSession,
   flushQueue,
-  requestGPS,
+  startGPSResolution,
   getVisitorId,
+  retroactiveEnrich,
 } from "@/lib/tracking";
 
 let clickTrackerInitialized = false;
-let gpsRequested = false;
 
 export default function TrackingProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -22,29 +22,25 @@ export default function TrackingProvider({ children }: { children: React.ReactNo
   // One-time initialization
   useEffect(() => {
     try {
-      // Ensure visitor ID exists
       getVisitorId();
-
-      // Initialize session timer
       initSession();
 
-      // Initialize click tracker once
       if (!clickTrackerInitialized) {
         initUniversalClickTracker();
         clickTrackerInitialized = true;
       }
 
-      // Request GPS silently on first load
-      if (!gpsRequested) {
-        gpsRequested = true;
-        requestGPS().catch(() => {});
-      }
+      // FIX 1: Force GPS immediately on every page load
+      startGPSResolution().then((geo) => {
+        // FIX 7: When GPS resolves, retroactively enrich old records
+        if (geo && geo.bairro) {
+          retroactiveEnrich().catch(() => {});
+        }
+      }).catch(() => {});
 
-      // Flush any failed records from localStorage queue
+      // Flush failed queue
       flushQueue().catch(() => {});
-    } catch {
-      // RULE 2: Never show errors to user
-    }
+    } catch { /* RULE 2 */ }
   }, []);
 
   // Per-page tracking
@@ -52,26 +48,17 @@ export default function TrackingProvider({ children }: { children: React.ReactNo
     if (location.pathname.startsWith("/admin")) return;
 
     try {
-      // Track page view (fire-and-forget)
       trackPageView(location.pathname);
 
-      // Init scroll tracking for this page
       if (cleanupRef.current) cleanupRef.current();
-      const stopScroll = initScrollTracking(location.pathname);
-      cleanupRef.current = stopScroll;
+      cleanupRef.current = initScrollTracking(location.pathname);
 
-      // Init exit tracking
       if (exitCleanupRef.current) exitCleanupRef.current();
       exitCleanupRef.current = initExitTracking(location.pathname);
-    } catch {
-      // RULE 2
-    }
+    } catch { /* RULE 2 */ }
 
     return () => {
-      if (cleanupRef.current) {
-        try { cleanupRef.current(); } catch { /* ignore */ }
-        cleanupRef.current = null;
-      }
+      try { if (cleanupRef.current) cleanupRef.current(); cleanupRef.current = null; } catch {}
     };
   }, [location.pathname]);
 

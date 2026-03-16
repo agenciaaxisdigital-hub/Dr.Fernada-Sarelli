@@ -1,14 +1,12 @@
 /**
- * CHAMA ROSA — Mission-Critical Data Capture Engine
+ * CHAMA ROSA — Mission-Critical Data Capture Engine v2
  * 
- * Features:
- * - 3-attempt retry with exponential backoff + localStorage queue
- * - 4-layer location resolution (GPS → ipapi.co → ip-api.com → timezone)
- * - Fire-and-forget pattern — never blocks UI
- * - Zone identification for Goiânia electoral zones
- * - Scroll depth tracking, exit tracking with sendBeacon
- * - Comprehensive device detection
- * - UTM persistence across pages
+ * FIX 1: Force GPS on every page load (no denied cache)
+ * FIX 2: Robust bairro extraction from Nominatim (suburb → neighbourhood → city_district → quarter → village → hamlet → county)
+ * FIX 3: Update existing records with GPS data via edge function
+ * FIX 4: IP geo requests district-level data
+ * FIX 5: GPS starts on page load for forms, 5s polling on submit
+ * FIX 7: Retroactive enrichment of last 7 days records
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -20,8 +18,10 @@ const QUEUE_KEY = "chama_failed_queue";
 const VISITOR_KEY = "chama_visitor_id";
 const LAT_KEY = "chama_lat";
 const LNG_KEY = "chama_lng";
-const GEO_DENIED_KEY = "chama_geo_denied";
+const GEO_RESOLVED_KEY = "chama_geo_resolved";
 const GEO_FULL_KEY = "chama_geo_full";
+const NOMINATIM_RAW_KEY = "chama_nominatim_raw";
+const BAIRRO_SOURCE_KEY = "chama_bairro_source";
 const UTM_KEY = "chama_utms";
 const SESSION_START_KEY = "chama_session_start";
 const SCROLL_MILESTONES_KEY = "chama_scroll_milestones";
@@ -46,7 +46,6 @@ async function retryInsert(table: string, data: Record<string, unknown>): Promis
       return result?.id || null;
     } catch (err) {
       if (attempt === delays.length - 1) {
-        // All retries failed — queue to localStorage
         enqueue({ table, data, timestamp: Date.now() });
         console.warn(`[Chama] Queued failed insert to ${table}`);
         return null;
@@ -60,46 +59,34 @@ function enqueue(item: QueueItem) {
   try {
     const queue = getQueue();
     queue.push(item);
-    // Keep max 200 items to avoid localStorage overflow
     if (queue.length > 200) queue.splice(0, queue.length - 200);
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-  } catch { /* localStorage full — silently drop */ }
+  } catch { /* localStorage full */ }
 }
 
 function getQueue(): QueueItem[] {
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 export async function flushQueue() {
   const queue = getQueue();
   if (queue.length === 0) return;
-
   const remaining: QueueItem[] = [];
   const results = await Promise.allSettled(
     queue.map(async (item) => {
       const { error } = await (supabase.from as any)(item.table).insert(item.data);
       if (error) throw error;
-      return item;
     })
   );
-
   results.forEach((result, i) => {
-    if (result.status === "rejected") {
-      remaining.push(queue[i]);
-    }
+    if (result.status === "rejected") remaining.push(queue[i]);
   });
-
   try {
-    if (remaining.length > 0) {
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
-    } else {
-      localStorage.removeItem(QUEUE_KEY);
-    }
+    if (remaining.length > 0) localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
+    else localStorage.removeItem(QUEUE_KEY);
   } catch { /* ignore */ }
 }
 
@@ -108,7 +95,7 @@ function sleep(ms: number) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// VISITOR COOKIE — GUARANTEED
+// VISITOR COOKIE
 // ═══════════════════════════════════════════════════════════
 
 export function getVisitorId(): string {
@@ -118,14 +105,12 @@ export function getVisitorId(): string {
       id = generateUUID();
       localStorage.setItem(VISITOR_KEY, id);
     }
-    // Also set as cookie for redundancy
     try {
       const secure = location.protocol === "https:" ? ";Secure" : "";
       document.cookie = `${VISITOR_KEY}=${id};path=/;max-age=31536000;SameSite=Lax${secure}`;
     } catch { /* cookies blocked */ }
     return id;
   } catch {
-    // localStorage blocked — try cookie
     const match = document.cookie.match(new RegExp(`${VISITOR_KEY}=([^;]+)`));
     if (match) return match[1];
     return generateUUID();
@@ -133,10 +118,8 @@ export function getVisitorId(): string {
 }
 
 function generateUUID(): string {
-  try {
-    return crypto.randomUUID();
-  } catch {
-    // Fallback for older browsers
+  try { return crypto.randomUUID(); }
+  catch {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
       const r = (Math.random() * 16) | 0;
       return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
@@ -154,27 +137,20 @@ function getVisitCount(): number {
     const count = parseInt(localStorage.getItem(key) || "0", 10) + 1;
     localStorage.setItem(key, count.toString());
     return count;
-  } catch {
-    return 1;
-  }
+  } catch { return 1; }
 }
 
 function isFirstVisit(): boolean {
   try {
     const key = "chama_has_visited";
     const visited = localStorage.getItem(key);
-    if (!visited) {
-      localStorage.setItem(key, "true");
-      return true;
-    }
+    if (!visited) { localStorage.setItem(key, "true"); return true; }
     return false;
-  } catch {
-    return true;
-  }
+  } catch { return true; }
 }
 
 // ═══════════════════════════════════════════════════════════
-// DEVICE DETECTION — COMPREHENSIVE
+// DEVICE DETECTION
 // ═══════════════════════════════════════════════════════════
 
 interface DeviceInfo {
@@ -191,10 +167,8 @@ export function detectDevice(): DeviceInfo {
   const ua = navigator.userAgent || "";
   const fallback = "Não identificado";
 
-  // Browser detection
   let navegador = fallback;
   let versao_navegador = "";
-
   const browserTests: [string, RegExp][] = [
     ["Samsung Internet", /SamsungBrowser\/(\d+[\d.]*)/],
     ["Edge", /Edg\/(\d+[\d.]*)/],
@@ -203,20 +177,13 @@ export function detectDevice(): DeviceInfo {
     ["Chrome", /Chrome\/(\d+[\d.]*)/],
     ["Safari", /Version\/(\d+[\d.]*).*Safari/],
   ];
-
   for (const [name, regex] of browserTests) {
     const match = ua.match(regex);
-    if (match) {
-      navegador = name;
-      versao_navegador = match[1] || "";
-      break;
-    }
+    if (match) { navegador = name; versao_navegador = match[1] || ""; break; }
   }
 
-  // OS detection
   let sistema_operacional = fallback;
   let versao_so = "";
-
   if (/Windows NT (\d+[\d.]*)/.test(ua)) {
     sistema_operacional = "Windows";
     versao_so = ua.match(/Windows NT (\d+[\d.]*)/)?.[1] || "";
@@ -231,21 +198,15 @@ export function detectDevice(): DeviceInfo {
   } else if (/iPhone OS (\d+[._\d]*)/.test(ua) || /iPad.*OS (\d+[._\d]*)/.test(ua)) {
     sistema_operacional = "iOS";
     versao_so = (ua.match(/OS (\d+[._\d]*)/)?.[1] || "").replace(/_/g, ".");
-  } else if (/Linux/.test(ua)) {
-    sistema_operacional = "Linux";
-  } else if (/CrOS/.test(ua)) {
-    sistema_operacional = "ChromeOS";
-  }
+  } else if (/Linux/.test(ua)) { sistema_operacional = "Linux"; }
+  else if (/CrOS/.test(ua)) { sistema_operacional = "ChromeOS"; }
 
-  // Device type
   const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(ua);
   const isMobile = /Mobi|Android.*Mobile|iPhone|iPod/i.test(ua);
   const dispositivo = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
 
-  // Brand/model extraction
   let marca_dispositivo = fallback;
   let modelo_dispositivo = fallback;
-
   if (/iPhone/.test(ua)) { marca_dispositivo = "Apple"; modelo_dispositivo = "iPhone"; }
   else if (/iPad/.test(ua)) { marca_dispositivo = "Apple"; modelo_dispositivo = "iPad"; }
   else if (/Samsung/i.test(ua)) { marca_dispositivo = "Samsung"; modelo_dispositivo = ua.match(/SM-\w+/)?.[0] || fallback; }
@@ -254,19 +215,11 @@ export function detectDevice(): DeviceInfo {
   else if (/LG/i.test(ua)) { marca_dispositivo = "LG"; }
   else if (/Huawei/i.test(ua)) { marca_dispositivo = "Huawei"; }
 
-  return {
-    dispositivo,
-    navegador,
-    versao_navegador,
-    sistema_operacional,
-    versao_so,
-    marca_dispositivo,
-    modelo_dispositivo,
-  };
+  return { dispositivo, navegador, versao_navegador, sistema_operacional, versao_so, marca_dispositivo, modelo_dispositivo };
 }
 
 // ═══════════════════════════════════════════════════════════
-// UTM PARAMETERS — SESSION PERSISTENCE
+// UTM PARAMETERS
 // ═══════════════════════════════════════════════════════════
 
 export interface UTMParams {
@@ -286,32 +239,26 @@ export function getUTMParams(): UTMParams {
     utm_term: params.get("utm_term"),
     utm_content: params.get("utm_content"),
   };
-
-  // If UTMs present in URL, save to session
   const hasUtm = Object.values(utms).some(Boolean);
   if (hasUtm) {
-    try { sessionStorage.setItem(UTM_KEY, JSON.stringify(utms)); } catch { /* ignore */ }
+    try { sessionStorage.setItem(UTM_KEY, JSON.stringify(utms)); } catch {}
     return utms;
   }
-
-  // Fallback: read from session
   try {
     const stored = sessionStorage.getItem(UTM_KEY);
     if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
-
+  } catch {}
   return utms;
 }
 
 // ═══════════════════════════════════════════════════════════
-// TRAFFIC ORIGIN CLASSIFICATION
+// TRAFFIC ORIGIN
 // ═══════════════════════════════════════════════════════════
 
 export function classifyOrigin(utms: UTMParams, referrer: string): string {
   const medium = (utms.utm_medium || "").toLowerCase();
   const source = (utms.utm_source || "").toLowerCase();
   const ref = referrer.toLowerCase();
-
   if (medium === "cpc" || medium === "ppc") return "google_pago";
   if (ref.includes("google.com") && !medium) return "google_organico";
   if (ref.includes("whatsapp") || source.includes("whatsapp")) return "whatsapp";
@@ -334,6 +281,7 @@ export interface GeoData {
   estado?: string | null;
   pais?: string | null;
   bairro?: string | null;
+  bairro_source?: string | null; // which Nominatim field provided bairro
   cep?: string | null;
   endereco_completo?: string | null;
   rua?: string | null;
@@ -343,17 +291,17 @@ export interface GeoData {
   fuso_horario?: string | null;
   geo_layer?: string; // 'gps' | 'ipapi' | 'ipapi_fallback' | 'timezone'
   zona_eleitoral?: string;
+  nominatim_raw?: Record<string, unknown> | null;
 }
 
 let cachedGeoData: GeoData | null = null;
+// Promise that resolves when GPS+reverse geocoding completes
+let gpsResolutionPromise: Promise<GeoData | null> | null = null;
 
-// Layer 1: GPS
-export function requestGPS(): Promise<GeolocationPosition | null> {
+// ─── FIX 1: FORCE GPS ON EVERY PAGE LOAD ───
+// No denial cache. Always request. Browser handles its own prompt.
+export function forceGPS(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
-    if (sessionStorage.getItem(GEO_DENIED_KEY) === "true") {
-      resolve(null);
-      return;
-    }
     if (!navigator.geolocation) {
       resolve(null);
       return;
@@ -363,50 +311,75 @@ export function requestGPS(): Promise<GeolocationPosition | null> {
         try {
           sessionStorage.setItem(LAT_KEY, String(pos.coords.latitude));
           sessionStorage.setItem(LNG_KEY, String(pos.coords.longitude));
-        } catch { /* ignore */ }
+          sessionStorage.setItem(GEO_RESOLVED_KEY, "true");
+        } catch {}
         resolve(pos);
       },
       () => {
-        try { sessionStorage.setItem(GEO_DENIED_KEY, "true"); } catch { /* ignore */ }
         resolve(null);
       },
-      { timeout: 15000, maximumAge: 60000, enableHighAccuracy: true }
+      { timeout: 20000, maximumAge: 0, enableHighAccuracy: true }
     );
   });
 }
 
-// Reverse geocoding via Nominatim
-async function reverseGeocode(lat: number, lng: number): Promise<Partial<GeoData>> {
+// ─── FIX 2: REVERSE GEOCODING WITH ROBUST BAIRRO EXTRACTION ───
+export async function reverseGeocode(lat: number, lng: number): Promise<GeoData> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18&accept-language=pt-BR`,
       {
-        headers: { "User-Agent": "ChamaRosaDigital/1.0" },
-        signal: AbortSignal.timeout(5000),
+        headers: { "User-Agent": "ChamaRosa-Campaign/1.0" },
+        signal: AbortSignal.timeout(8000),
       }
     );
-    if (!res.ok) return {};
+    if (!res.ok) return { latitude: lat, longitude: lng, geo_layer: "gps" };
+
     const data = await res.json();
     const addr = data.address || {};
+
+    // Store raw Nominatim response for debugging
+    try { sessionStorage.setItem(NOMINATIM_RAW_KEY, JSON.stringify(data)); } catch {}
+
     const rua = addr.road || "";
     const numero = addr.house_number || "";
-    const bairro = addr.suburb || addr.neighbourhood || "";
-    const distrito = addr.city_district || "";
-    const cidade = addr.city || addr.town || addr.village || "";
+
+    // FIX 2: Robust bairro extraction chain
+    let bairro = "";
+    let bairro_source = "";
+    const bairroChain: [string, string][] = [
+      ["suburb", addr.suburb],
+      ["neighbourhood", addr.neighbourhood],
+      ["city_district", addr.city_district],
+      ["quarter", addr.quarter],
+      ["village", addr.village],
+      ["hamlet", addr.hamlet],
+      ["county", addr.county],
+    ];
+    for (const [field, value] of bairroChain) {
+      if (value && value.trim()) {
+        bairro = value.trim();
+        bairro_source = field;
+        break;
+      }
+    }
+
+    try { sessionStorage.setItem(BAIRRO_SOURCE_KEY, bairro_source || "none"); } catch {}
+
+    const cidade = addr.city || addr.town || addr.village || addr.municipality || "";
     const estado = addr.state || "";
     const cep = addr.postcode || "";
     const parts = [rua, numero, bairro, cidade, estado, cep].filter(Boolean);
     const endereco_completo = parts.join(", ");
 
-    const result: Partial<GeoData> = {
-      rua, numero, bairro, cidade, estado, cep, endereco_completo,
+    const result: GeoData = {
+      rua, numero, bairro, bairro_source, cidade, estado, cep, endereco_completo,
       latitude: lat, longitude: lng, geo_layer: "gps",
+      nominatim_raw: data,
     };
 
-    // Store full geo in session
-    try {
-      sessionStorage.setItem(GEO_FULL_KEY, JSON.stringify(result));
-    } catch { /* ignore */ }
+    // Store in session
+    try { sessionStorage.setItem(GEO_FULL_KEY, JSON.stringify(result)); } catch {}
 
     return result;
   } catch {
@@ -414,7 +387,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<Partial<GeoData
   }
 }
 
-// Layer 2: ipapi.co
+// ─── FIX 4: IP GEO WITH DISTRICT ───
 async function geoFromIpApi(): Promise<Partial<GeoData>> {
   try {
     const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(5000) });
@@ -428,20 +401,19 @@ async function geoFromIpApi(): Promise<Partial<GeoData>> {
       cep: d.postal || null,
       latitude: d.latitude || null,
       longitude: d.longitude || null,
+      bairro: d.district || null, // FIX 4: district from ipapi.co
+      bairro_source: d.district ? "ipapi_district" : null,
       provedor_internet: d.org || null,
       fuso_horario: d.timezone || null,
       geo_layer: "ipapi",
     };
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
 
-// Layer 3: ip-api.com
 async function geoFromIpApiFallback(): Promise<Partial<GeoData>> {
   try {
     const res = await fetch(
-      "http://ip-api.com/json/?fields=status,country,regionName,city,zip,lat,lon,isp,query",
+      "http://ip-api.com/json/?fields=status,country,regionName,city,zip,lat,lon,isp,query,district",
       { signal: AbortSignal.timeout(5000) }
     );
     if (!res.ok) throw new Error("ip-api failed");
@@ -455,58 +427,52 @@ async function geoFromIpApiFallback(): Promise<Partial<GeoData>> {
       cep: d.zip || null,
       latitude: d.lat || null,
       longitude: d.lon || null,
+      bairro: d.district || null, // FIX 4: district from ip-api.com
+      bairro_source: d.district ? "ipapi_fallback_district" : null,
       provedor_internet: d.isp || null,
       geo_layer: "ipapi_fallback",
     };
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
 
-// Layer 4: Timezone/Language fallback
 function geoFromTimezone(): Partial<GeoData> {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
   const lang = navigator.language || "";
-  
   let pais = "Não identificado";
   let estado = "Não identificado";
-  
-  // Brazil timezones
-  if (tz.includes("Sao_Paulo") || tz.includes("Brasilia")) {
-    pais = "Brasil";
-    estado = "Não identificado (fuso SP/DF)";
-  } else if (tz.includes("America/")) {
-    pais = "Brasil";
-  }
-
+  if (tz.includes("Sao_Paulo") || tz.includes("Brasilia")) { pais = "Brasil"; estado = "Não identificado (fuso SP/DF)"; }
+  else if (tz.includes("America/")) { pais = "Brasil"; }
   if (lang.startsWith("pt")) pais = "Brasil";
-
   return { pais, estado, fuso_horario: tz, geo_layer: "timezone" };
 }
 
 /**
- * Resolve location using 4-layer strategy.
- * GPS runs in parallel with IP geo. Best result wins.
+ * FIX 1+2+3: Full resolution chain.
+ * GPS fires immediately. IP geo runs in parallel.
+ * GPS result includes full reverse geocoding with bairro.
+ * After resolution, updates existing records via edge function.
  */
 export async function resolveLocation(): Promise<GeoData> {
-  if (cachedGeoData) return cachedGeoData;
+  if (cachedGeoData && cachedGeoData.geo_layer === "gps" && cachedGeoData.bairro) {
+    return cachedGeoData;
+  }
 
-  // Check session for cached GPS data
+  // Check session for cached GPS data with bairro
   try {
     const stored = sessionStorage.getItem(GEO_FULL_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.latitude && parsed.longitude) {
+      const parsed = JSON.parse(stored) as GeoData;
+      if (parsed.geo_layer === "gps" && parsed.bairro) {
         cachedGeoData = parsed;
         return parsed;
       }
     }
-  } catch { /* ignore */ }
+  } catch {}
 
   // Run GPS and IP geo in parallel
   const [gpsResult, ipResult] = await Promise.allSettled([
     (async () => {
-      const pos = await requestGPS();
+      const pos = await forceGPS();
       if (!pos) return null;
       return reverseGeocode(pos.coords.latitude, pos.coords.longitude);
     })(),
@@ -522,11 +488,7 @@ export async function resolveLocation(): Promise<GeoData> {
   const tz = geoFromTimezone();
 
   // Merge: GPS wins, then IP, then timezone
-  const geo: GeoData = {
-    ...tz,
-    ...ip,
-    ...(gps || {}),
-  };
+  const geo: GeoData = { ...tz, ...ip, ...(gps || {}) };
 
   // Ensure zona_eleitoral
   geo.zona_eleitoral = identifyZone(geo.bairro || "", geo.cidade || "", geo.latitude, geo.longitude);
@@ -535,13 +497,56 @@ export async function resolveLocation(): Promise<GeoData> {
   return geo;
 }
 
-// Get cached coordinates from session (for click tracking)
+/**
+ * Start GPS resolution in background immediately on page load.
+ * Returns a promise that resolves when GPS + reverse geocoding completes.
+ */
+export function startGPSResolution(): Promise<GeoData | null> {
+  if (gpsResolutionPromise) return gpsResolutionPromise;
+
+  gpsResolutionPromise = (async () => {
+    try {
+      const pos = await forceGPS();
+      if (!pos) return null;
+      const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+      geo.zona_eleitoral = identifyZone(geo.bairro || "", geo.cidade || "", geo.latitude, geo.longitude);
+      cachedGeoData = geo;
+      return geo;
+    } catch {
+      return null;
+    }
+  })();
+
+  return gpsResolutionPromise;
+}
+
+// Check if GPS has resolved by polling sessionStorage
+export function isGPSResolved(): boolean {
+  try {
+    return sessionStorage.getItem(GEO_RESOLVED_KEY) === "true";
+  } catch { return false; }
+}
+
+// Wait for GPS with polling (FIX 5)
+export async function waitForGPS(maxWaitMs: number = 5000, intervalMs: number = 500): Promise<GeoData | null> {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    if (isGPSResolved()) {
+      const geo = getCachedGeo();
+      if (geo && geo.geo_layer === "gps") return geo;
+    }
+    await sleep(intervalMs);
+  }
+  // Return whatever we have
+  return getCachedGeo();
+}
+
 export function getCachedCoords(): { lat: number; lng: number } | null {
   try {
     const lat = sessionStorage.getItem(LAT_KEY);
     const lng = sessionStorage.getItem(LNG_KEY);
     if (lat && lng) return { lat: parseFloat(lat), lng: parseFloat(lng) };
-  } catch { /* ignore */ }
+  } catch {}
   return null;
 }
 
@@ -550,8 +555,20 @@ export function getCachedGeo(): GeoData | null {
   try {
     const stored = sessionStorage.getItem(GEO_FULL_KEY);
     if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
+  } catch {}
   return null;
+}
+
+export function getNominatimRaw(): Record<string, unknown> | null {
+  try {
+    const raw = sessionStorage.getItem(NOMINATIM_RAW_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+export function getBairroSource(): string {
+  try { return sessionStorage.getItem(BAIRRO_SOURCE_KEY) || "none"; } catch { return "none"; }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -563,57 +580,17 @@ function normalize(str: string): string {
 }
 
 const ZONE_MAP: Record<string, string[]> = {
-  "1ª Zona": [
-    "Jardim Goiás", "Setor Bueno", "St. Bueno", "St Bueno", "Setor Marista",
-    "Setor Sul", "Setor Sudoeste", "Setor Pedro Ludovico", "Setor Bela Vista",
-    "Jardim América", "Setor Nova Suíça", "Setor Aeroporto",
-    "Setor Leste Universitário", "Setor Coimbra", "Parque Amazônia",
-  ],
-  "2ª Zona": [
-    "Setor Central", "Setor Norte Ferroviário", "Setor Campinas", "Vila Nova",
-    "Jardim Novo Mundo", "Setor Santos Dumont", "Setor dos Funcionários",
-    "Vila União", "Setor Crimeia Leste", "Setor Crimeia Oeste",
-  ],
-  "127ª Zona": [
-    "Jardim das Esmeraldas", "Jardim Presidente", "Parque Amazônia Sul",
-    "Residencial Eldorado", "Setor Jardim da Luz", "Jardim das Oliveiras",
-    "Vila Redenção", "Conjunto Vera Cruz", "Parque das Laranjeiras",
-  ],
-  "133ª Zona": [
-    "Setor Faiçalville", "Jardim Atlântico", "Residencial Montreal",
-    "Vila Brasília", "Jardim Fonte Nova", "Jardim das Acácias",
-    "Setor Universitário", "Jardim Guanabara", "Residencial Buena Vista",
-  ],
-  "134ª Zona": [
-    "Conjunto Vera Cruz", "Jardim Cerrado", "Residencial Araguaia",
-    "Setor Recanto do Bosque", "Vila Mutirão", "Jardim Curitiba",
-    "Residencial Flamboyant", "Conjunto Caiçara", "Residencial Coimbra",
-    "Jardim Dom Fernando",
-  ],
-  "135ª Zona": [
-    "Setor Jardim Europa", "Residencial Vale dos Sonhos",
-    "Jardim Balneário Meia Ponte", "Vila Santa Helena",
-    "Setor dos Afonsos", "Parque Tremendão", "Residencial Granville",
-  ],
-  "136ª Zona": [
-    "Setor Perim", "Bairro Feliz", "Vila Redenção Sul", "Jardim Bela Vista",
-    "Boa Esperança", "Setor Goiânia 2", "Jardim Novo Horizonte",
-    "Vila Bela Aliança",
-  ],
-  "146ª Zona": [
-    "Setor Santa Genoveva", "Conjunto Riviera", "Jardim Planalto",
-    "Parque Atheneu", "Sítio de Recreio Ipê", "São Domingos",
-    "Residencial Granville Norte", "São Patrício", "Setor Fama",
-    "Chácara do Governador",
-  ],
-  "147ª Zona": [
-    "Conjunto Caiçara Norte", "Jardim Dom Fernando Norte",
-    "Setor Morada do Sol", "Chácara Coimbra", "Jardim Reny",
-    "Chácara dos Bandeirantes", "Residencial Fonte das Águas",
-  ],
+  "1ª Zona": ["Jardim Goiás","Setor Bueno","St. Bueno","St Bueno","Setor Marista","Setor Sul","Setor Sudoeste","Setor Pedro Ludovico","Setor Bela Vista","Jardim América","Setor Nova Suíça","Setor Aeroporto","Setor Leste Universitário","Setor Coimbra","Parque Amazônia"],
+  "2ª Zona": ["Setor Central","Setor Norte Ferroviário","Setor Campinas","Vila Nova","Jardim Novo Mundo","Setor Santos Dumont","Setor dos Funcionários","Vila União","Setor Crimeia Leste","Setor Crimeia Oeste"],
+  "127ª Zona": ["Jardim das Esmeraldas","Jardim Presidente","Parque Amazônia Sul","Residencial Eldorado","Setor Jardim da Luz","Jardim das Oliveiras","Vila Redenção","Conjunto Vera Cruz","Parque das Laranjeiras"],
+  "133ª Zona": ["Setor Faiçalville","Jardim Atlântico","Residencial Montreal","Vila Brasília","Jardim Fonte Nova","Jardim das Acácias","Setor Universitário","Jardim Guanabara","Residencial Buena Vista"],
+  "134ª Zona": ["Conjunto Vera Cruz","Jardim Cerrado","Residencial Araguaia","Setor Recanto do Bosque","Vila Mutirão","Jardim Curitiba","Residencial Flamboyant","Conjunto Caiçara","Residencial Coimbra","Jardim Dom Fernando"],
+  "135ª Zona": ["Setor Jardim Europa","Residencial Vale dos Sonhos","Jardim Balneário Meia Ponte","Vila Santa Helena","Setor dos Afonsos","Parque Tremendão","Residencial Granville"],
+  "136ª Zona": ["Setor Perim","Bairro Feliz","Vila Redenção Sul","Jardim Bela Vista","Boa Esperança","Setor Goiânia 2","Jardim Novo Horizonte","Vila Bela Aliança"],
+  "146ª Zona": ["Setor Santa Genoveva","Conjunto Riviera","Jardim Planalto","Parque Atheneu","Sítio de Recreio Ipê","São Domingos","Residencial Granville Norte","São Patrício","Setor Fama","Chácara do Governador"],
+  "147ª Zona": ["Conjunto Caiçara Norte","Jardim Dom Fernando Norte","Setor Morada do Sol","Chácara Coimbra","Jardim Reny","Chácara dos Bandeirantes","Residencial Fonte das Águas"],
 };
 
-// Pre-normalize the zone map
 const ZONE_MAP_NORMALIZED: Record<string, string[]> = {};
 for (const [zone, neighborhoods] of Object.entries(ZONE_MAP)) {
   ZONE_MAP_NORMALIZED[zone] = neighborhoods.map(normalize);
@@ -635,47 +612,27 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function identifyZone(
-  bairro: string,
-  cidade: string,
-  lat?: number | null,
-  lng?: number | null
-): string {
-  // Step 1: Match bairro
+export function identifyZone(bairro: string, cidade: string, lat?: number | null, lng?: number | null): string {
   if (bairro) {
     const normalizedBairro = normalize(bairro);
     for (const [zone, neighborhoods] of Object.entries(ZONE_MAP_NORMALIZED)) {
-      if (neighborhoods.some((n) => normalizedBairro.includes(n) || n.includes(normalizedBairro))) {
-        return zone;
-      }
+      if (neighborhoods.some((n) => normalizedBairro.includes(n) || n.includes(normalizedBairro))) return zone;
     }
   }
-
-  // Step 2: Nearest centroid if Goiânia
   const normalizedCidade = normalize(cidade);
   if (normalizedCidade.includes("goiania") && lat && lng) {
-    let nearest = "";
-    let minDist = Infinity;
+    let nearest = ""; let minDist = Infinity;
     for (const [zone, [clat, clng]] of Object.entries(ZONE_CENTROIDS)) {
       const dist = haversineDistance(lat, lng, clat, clng);
-      if (dist < minDist) {
-        minDist = dist;
-        nearest = zone;
-      }
+      if (dist < minDist) { minDist = dist; nearest = zone; }
     }
     if (nearest) return nearest;
   }
-
-  // Step 3: Aparecida de Goiânia
   if (normalizedCidade.includes("aparecida")) return "Aparecida de Goiânia";
-
-  // Step 4: fallback
   return "Não identificada";
 }
 
@@ -684,20 +641,14 @@ export function identifyZone(
 // ═══════════════════════════════════════════════════════════
 
 export function initSession() {
-  try {
-    if (!sessionStorage.getItem(SESSION_START_KEY)) {
-      sessionStorage.setItem(SESSION_START_KEY, String(Date.now()));
-    }
-  } catch { /* ignore */ }
+  try { if (!sessionStorage.getItem(SESSION_START_KEY)) sessionStorage.setItem(SESSION_START_KEY, String(Date.now())); } catch {}
 }
 
 export function getSessionDuration(): number {
   try {
     const start = parseInt(sessionStorage.getItem(SESSION_START_KEY) || String(Date.now()), 10);
     return Math.round((Date.now() - start) / 1000);
-  } catch {
-    return 0;
-  }
+  } catch { return 0; }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -708,40 +659,24 @@ const SCROLL_THRESHOLDS = [25, 50, 75, 100];
 
 export function initScrollTracking(pagina: string) {
   const reached = new Set<number>();
-  
-  // Restore milestones for this page
   try {
     const stored = sessionStorage.getItem(SCROLL_MILESTONES_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (parsed.pagina === pagina) {
-        parsed.milestones.forEach((m: number) => reached.add(m));
-      }
+      if (parsed.pagina === pagina) parsed.milestones.forEach((m: number) => reached.add(m));
     }
-  } catch { /* ignore */ }
+  } catch {}
 
   let ticking = false;
-
   const onScroll = () => {
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(() => {
-      const scrollHeight = document.documentElement.scrollHeight;
-      const viewportHeight = window.innerHeight;
-      const scrollTop = window.scrollY;
-      const depth = Math.min(100, Math.round(((scrollTop + viewportHeight) / scrollHeight) * 100));
-
+      const depth = Math.min(100, Math.round(((window.scrollY + window.innerHeight) / document.documentElement.scrollHeight) * 100));
       for (const threshold of SCROLL_THRESHOLDS) {
         if (depth >= threshold && !reached.has(threshold)) {
           reached.add(threshold);
-          // Fire and forget — save scroll milestone
-          try {
-            sessionStorage.setItem(SCROLL_MILESTONES_KEY, JSON.stringify({
-              pagina,
-              milestones: Array.from(reached),
-              depth,
-            }));
-          } catch { /* ignore */ }
+          try { sessionStorage.setItem(SCROLL_MILESTONES_KEY, JSON.stringify({ pagina, milestones: Array.from(reached), depth })); } catch {}
         }
       }
       ticking = false;
@@ -749,25 +684,14 @@ export function initScrollTracking(pagina: string) {
   };
 
   window.addEventListener("scroll", onScroll, { passive: true });
-
-  return () => {
-    window.removeEventListener("scroll", onScroll);
-    return Math.max(0, ...Array.from(reached));
-  };
+  return () => { window.removeEventListener("scroll", onScroll); return Math.max(0, ...Array.from(reached)); };
 }
-
-// ═══════════════════════════════════════════════════════════
-// EXIT TRACKING — sendBeacon for reliability
-// ═══════════════════════════════════════════════════════════
 
 export function getScrollDepth(): number {
   try {
     const stored = sessionStorage.getItem(SCROLL_MILESTONES_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return Math.max(0, ...(parsed.milestones || [0]));
-    }
-  } catch { /* ignore */ }
+    if (stored) { const parsed = JSON.parse(stored); return Math.max(0, ...(parsed.milestones || [0])); }
+  } catch {}
   return 0;
 }
 
@@ -795,10 +719,7 @@ export function findSection(el: HTMLElement): string {
     current = current.parentElement;
   }
   const sec = el.closest("section");
-  if (sec) {
-    const heading = sec.querySelector("h1, h2, h3");
-    if (heading?.textContent) return heading.textContent.trim().slice(0, 60);
-  }
+  if (sec) { const heading = sec.querySelector("h1, h2, h3"); if (heading?.textContent) return heading.textContent.trim().slice(0, 60); }
   return "geral";
 }
 
@@ -822,25 +743,14 @@ export async function trackPageView(pagina: string) {
     const primeira_visita = isFirstVisit();
     const device = detectDevice();
     const utms = getUTMParams();
-    const origem_trafego = classifyOrigin(utms, document.referrer || "");
 
-    // Resolve location in background — don't block
-    const geoPromise = resolveLocation();
-
-    // Insert with whatever we have immediately, then update with geo
     const baseData: Record<string, unknown> = {
-      pagina,
-      user_agent: navigator.userAgent,
-      largura_tela: window.innerWidth,
-      altura_tela: window.innerHeight,
+      pagina, user_agent: navigator.userAgent,
+      largura_tela: window.innerWidth, altura_tela: window.innerHeight,
       referrer: document.referrer || null,
-      dispositivo: device.dispositivo,
-      sistema_operacional: device.sistema_operacional,
-      navegador: device.navegador,
-      cookie_visitante,
-      primeira_visita,
-      contador_visitas: visitCount,
-      ...utms,
+      dispositivo: device.dispositivo, sistema_operacional: device.sistema_operacional,
+      navegador: device.navegador, cookie_visitante, primeira_visita,
+      contador_visitas: visitCount, ...utms,
     };
 
     // Try to get cached geo immediately
@@ -852,45 +762,30 @@ export async function trackPageView(pagina: string) {
       baseData.cidade = cachedGeo.cidade || null;
     }
 
-    // Fire insert
+    // Fire insert immediately
     retryInsert("acessos_site", baseData);
 
-    // When geo resolves, update the record
-    geoPromise.then((geo) => {
-      if (geo.endereco_ip || geo.latitude) {
-        // Update via edge function for richer data
+    // FIX 3: When full location resolves, update the record
+    resolveLocation().then((geo) => {
+      if (geo.cidade || geo.latitude) {
         updateLocationViaEdge(cookie_visitante, "acessos_site", geo).catch(() => {});
       }
     }).catch(() => {});
-  } catch {
-    // RULE 2: Never show error to user
-  }
+  } catch { /* RULE 2 */ }
 }
 
 // ═══════════════════════════════════════════════════════════
 // CLICK TRACKING
 // ═══════════════════════════════════════════════════════════
 
-export function trackClick(
-  tipo_clique: Platform,
-  pagina_origem: string,
-  extra?: { texto_botao?: string; secao_pagina?: string; url_destino?: string }
-) {
+export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?: { texto_botao?: string; secao_pagina?: string; url_destino?: string }) {
   try {
     const cookie_visitante = getVisitorId();
     const geo = getCachedGeo();
-    const sessionDuration = getSessionDuration();
-
     const data: Record<string, unknown> = {
-      tipo_clique,
-      pagina_origem,
-      user_agent: navigator.userAgent,
-      cookie_visitante,
-      texto_botao: extra?.texto_botao || null,
-      secao_pagina: extra?.secao_pagina || null,
-      url_destino: extra?.url_destino || null,
+      tipo_clique, pagina_origem, user_agent: navigator.userAgent, cookie_visitante,
+      texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || null, url_destino: extra?.url_destino || null,
     };
-
     if (geo) {
       data.endereco_ip = geo.endereco_ip || null;
       data.pais = geo.pais || null;
@@ -899,25 +794,12 @@ export function trackClick(
       if (geo.latitude) data.latitude = geo.latitude;
       if (geo.longitude) data.longitude = geo.longitude;
     }
-
-    // Fire and forget with retry
     retryInsert("cliques_whatsapp", data);
-
-    // Also try sendBeacon for reliability (navigation may close page)
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const beaconUrl = `https://${projectId}.supabase.co/functions/v1/track-capture`;
-      const beaconData = JSON.stringify({ action: "click", ...data });
-      navigator.sendBeacon(beaconUrl, beaconData);
-    } catch { /* ignore */ }
-
-    // Attempt fresh GPS in background with short timeout
-    if (!getCachedCoords()) {
-      requestGPS().catch(() => {});
-    }
-  } catch {
-    // RULE 2: Never show error
-  }
+      navigator.sendBeacon(`https://${projectId}.supabase.co/functions/v1/track-capture`, JSON.stringify({ action: "click", ...data }));
+    } catch {}
+  } catch { /* RULE 2 */ }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -932,17 +814,11 @@ function handleGlobalClick(e: MouseEvent) {
       target = target.parentElement;
     }
     if (!target) return;
-
     const href = getHref(target);
     const platform = classifyPlatform(href);
     if (!platform) return;
-
-    trackClick(platform, window.location.pathname, {
-      texto_botao: getButtonText(target),
-      secao_pagina: findSection(target),
-      url_destino: href,
-    });
-  } catch { /* RULE 2 */ }
+    trackClick(platform, window.location.pathname, { texto_botao: getButtonText(target), secao_pagina: findSection(target), url_destino: href });
+  } catch {}
 }
 
 export function initUniversalClickTracker() {
@@ -950,21 +826,14 @@ export function initUniversalClickTracker() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// FORM TRACKING — GPS on focus, enriched submission
+// FORM TRACKING — FIX 5: GPS starts on page load
 // ═══════════════════════════════════════════════════════════
 
 let formStartTime: number | null = null;
-let formGpsRequested = false;
 
 export function onFormFocus() {
-  if (!formStartTime) {
-    formStartTime = Date.now();
-  }
-  if (!formGpsRequested) {
-    formGpsRequested = true;
-    // Request GPS in background — gives 30-60s before submission
-    requestGPS().catch(() => {});
-  }
+  if (!formStartTime) formStartTime = Date.now();
+  // GPS already started on page load via startGPSResolution()
 }
 
 export function getFormFillTime(): number {
@@ -974,35 +843,47 @@ export function getFormFillTime(): number {
 
 export function resetFormTracking() {
   formStartTime = null;
-  formGpsRequested = false;
 }
 
 // ═══════════════════════════════════════════════════════════
 // LOCATION UPDATE VIA EDGE FUNCTION
 // ═══════════════════════════════════════════════════════════
 
-async function updateLocationViaEdge(
-  cookie_visitante: string,
-  table: string,
-  geo: Partial<GeoData>
-) {
+export async function updateLocationViaEdge(cookie_visitante: string, table: string, geo: Partial<GeoData>) {
   try {
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
     const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      },
-      body: JSON.stringify({
-        action: "update-location",
-        cookie_visitante,
-        table,
-        ...geo,
-      }),
+      headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      body: JSON.stringify({ action: "update-location", cookie_visitante, table, ...geo }),
     });
-  } catch { /* fire and forget */ }
+    return await res.json();
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FIX 7: RETROACTIVE ENRICHMENT
+// ═══════════════════════════════════════════════════════════
+
+export async function retroactiveEnrich() {
+  try {
+    const geo = getCachedGeo();
+    if (!geo || geo.geo_layer !== "gps" || !geo.bairro) return;
+
+    const cookie = getVisitorId();
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
+
+    // Enrich all 3 tables
+    await Promise.allSettled([
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        body: JSON.stringify({ action: "retroactive-enrich", cookie_visitante: cookie, ...geo }),
+      }),
+    ]);
+  } catch {}
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1012,40 +893,21 @@ async function updateLocationViaEdge(
 export function initExitTracking(pagina: string) {
   const sendExit = () => {
     try {
-      const duration = getSessionDuration();
-      const scrollDepth = getScrollDepth();
-      const cookie_visitante = getVisitorId();
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
-
-      const data = JSON.stringify({
-        action: "exit",
-        cookie_visitante,
-        pagina,
-        tempo_na_pagina: duration,
-        profundidade_scroll: scrollDepth,
-      });
-
-      // sendBeacon guarantees delivery on page unload
-      navigator.sendBeacon(url, data);
-    } catch { /* ignore */ }
+      navigator.sendBeacon(
+        `https://${projectId}.supabase.co/functions/v1/track-capture`,
+        JSON.stringify({ action: "exit", cookie_visitante: getVisitorId(), pagina, tempo_na_pagina: getSessionDuration(), profundidade_scroll: getScrollDepth() })
+      );
+    } catch {}
   };
-
-  const onVisChange = () => {
-    if (document.hidden) sendExit();
-  };
-
+  const onVisChange = () => { if (document.hidden) sendExit(); };
   window.addEventListener("beforeunload", sendExit);
   document.addEventListener("visibilitychange", onVisChange);
-
-  return () => {
-    window.removeEventListener("beforeunload", sendExit);
-    document.removeEventListener("visibilitychange", onVisChange);
-  };
+  return () => { window.removeEventListener("beforeunload", sendExit); document.removeEventListener("visibilitychange", onVisChange); };
 }
 
 // ═══════════════════════════════════════════════════════════
-// EXPORTS FOR VALIDATION PAGE
+// EXPORTS
 // ═══════════════════════════════════════════════════════════
 
 export { ZONE_MAP, ZONE_CENTROIDS, getQueue as getFailedQueue };

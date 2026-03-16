@@ -120,13 +120,42 @@ Deno.serve(async (req) => {
       return json({ success: !error });
     }
 
+    // ─── RETROACTIVE ENRICHMENT (FIX 7) ───
+    if (action === "retroactive-enrich") {
+      const cookie = body.cookie_visitante as string;
+      if (!cookie) return json({ error: "Missing cookie" }, 400);
+
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const updateData: Record<string, unknown> = {};
+      for (const f of ["endereco_ip", "pais", "estado", "cidade"]) {
+        if (body[f]) updateData[f] = body[f];
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        // Update acessos_site records missing cidade
+        await supabase.from("acessos_site").update(updateData)
+          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
+
+        // Update cliques with lat/lng too
+        const clickUpdate = { ...updateData };
+        if (body.latitude) clickUpdate.latitude = body.latitude;
+        if (body.longitude) clickUpdate.longitude = body.longitude;
+
+        await supabase.from("cliques_whatsapp").update(clickUpdate)
+          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
+
+        await supabase.from("mensagens_contato").update(clickUpdate)
+          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
+      }
+
+      console.log(`Retroactive enrich for ${cookie}: updated with ${JSON.stringify(updateData)}`);
+      return json({ success: true });
+    }
+
     // ─── EXIT TRACKING ───
     if (action === "exit") {
-      // Exit data is informational — store as page view update
       const cookie = body.cookie_visitante as string;
       if (cookie) {
-        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-        // Just log — no update needed for current schema
         console.log(`Exit: ${cookie}, page: ${body.pagina}, time: ${body.tempo_na_pagina}s, scroll: ${body.profundidade_scroll}%`);
       }
       return json({ success: true });
