@@ -84,19 +84,34 @@ Deno.serve(async (req) => {
 
     // ─── CLICK CAPTURE (via sendBeacon) ───
     if (action === "click") {
-      const { action: _, ...clickData } = body;
-
       // Extract real IP server-side
       const ip = extractIP(req);
-      clickData.endereco_ip = ip;
 
-      // If no geo data, try server-side IP geo
-      if (!clickData.cidade) {
-        const geo = await serverGeoLookup(ip);
-        Object.assign(clickData, geo);
+      // Server-side geo if missing
+      let geoFields: Record<string, unknown> = {};
+      if (!body.cidade) {
+        geoFields = await serverGeoLookup(ip);
       }
 
-      const { error } = await supabase.from("cliques_whatsapp").insert(clickData);
+      // Only insert known columns
+      const clickRow: Record<string, unknown> = {
+        tipo_clique: body.tipo_clique || "whatsapp",
+        pagina_origem: body.pagina_origem || null,
+        cookie_visitante: body.cookie_visitante || null,
+        texto_botao: body.texto_botao || null,
+        secao_pagina: body.secao_pagina || null,
+        url_destino: body.url_destino || null,
+        telefone_destino: body.telefone_destino || null,
+        user_agent: body.user_agent || null,
+        endereco_ip: ip,
+        cidade: body.cidade || geoFields.cidade || null,
+        estado: body.estado || geoFields.estado || null,
+        pais: body.pais || geoFields.pais || null,
+        latitude: body.latitude || geoFields.latitude || null,
+        longitude: body.longitude || geoFields.longitude || null,
+      };
+
+      const { error } = await supabase.from("cliques_whatsapp").insert(clickRow);
       if (error) {
         console.error("Click insert error:", error.message);
       }
