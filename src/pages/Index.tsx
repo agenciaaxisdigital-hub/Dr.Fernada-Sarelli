@@ -48,6 +48,7 @@ interface HomeGalleryPhoto {
 
 const Index = () => {
   const [galeriaFotos, setGaleriaFotos] = useState<HomeGalleryPhoto[]>([]);
+  const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
   useEffect(() => {
     const loadGaleria = async () => {
