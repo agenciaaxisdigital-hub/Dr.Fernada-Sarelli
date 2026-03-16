@@ -19,7 +19,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import UAParser from "ua-parser-js";
+import { UAParser } from "ua-parser-js";
 
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
