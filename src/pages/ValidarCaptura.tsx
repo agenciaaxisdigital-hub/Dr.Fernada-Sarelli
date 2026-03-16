@@ -19,6 +19,8 @@ import {
   getNominatimRaw,
   getBairroSource,
   updateLocationViaEdge,
+  getGeoMode,
+  PRECISAO,
   ZONE_MAP,
   type GeoData,
 } from "@/lib/tracking";
