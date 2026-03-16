@@ -59,6 +59,9 @@ const Gallery = () => {
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadCaption, setUploadCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [editAlbumId, setEditAlbumId] = useState<string | null>(null);
+  const [editAlbumName, setEditAlbumName] = useState("");
+  const [editAlbumOpen, setEditAlbumOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     const [{ data: albumData, error: albumError }, { data: fotoData, error: fotoError }, { data: configData, error: configError }] = await Promise.all([
