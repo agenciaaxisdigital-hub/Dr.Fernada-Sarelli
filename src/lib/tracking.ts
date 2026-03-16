@@ -334,10 +334,15 @@ export interface GeoData {
 let cachedGeoData: GeoData | null = null;
 let gpsResolutionPromise: Promise<GeoData | null> | null = null;
 
-// AUDIT 4: Force GPS on every page load
+// Force GPS on every page load — sets denied flag on error
 export function forceGPS(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    // Skip if already denied this session
+    if (sessionStorage.getItem(GEO_DENIED_KEY) === "true") {
       resolve(null);
       return;
     }
@@ -347,10 +352,15 @@ export function forceGPS(): Promise<GeolocationPosition | null> {
           sessionStorage.setItem(LAT_KEY, String(pos.coords.latitude));
           sessionStorage.setItem(LNG_KEY, String(pos.coords.longitude));
           sessionStorage.setItem(GEO_RESOLVED_KEY, "true");
+          sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.GPS);
         } catch {}
         resolve(pos);
       },
       () => {
+        try {
+          sessionStorage.setItem(GEO_DENIED_KEY, "true");
+          sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.IP);
+        } catch {}
         resolve(null);
       },
       { timeout: 20000, maximumAge: 0, enableHighAccuracy: true }
