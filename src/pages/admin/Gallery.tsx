@@ -361,21 +361,61 @@ const Gallery = () => {
           >
             Todas
           </button>
-          {albuns.map((album) => {
+          {albuns.map((album, idx) => {
             const count = fotos.filter((f) => f.album_id === album.id).length;
+            const isSelected = selectedAlbum === album.id;
             return (
-              <button
-                key={album.id}
-                onClick={() => setSelectedAlbum(album.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors flex items-center gap-1 ${
-                  selectedAlbum === album.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
-                }`}
-              >
-                {album.nome}
-                <span className={`text-[10px] rounded-full px-1 py-0.5 ${
-                  selectedAlbum === album.id ? "bg-primary-foreground/20" : "bg-muted"
-                }`}>{count}</span>
-              </button>
+              <div key={album.id} className="shrink-0 flex items-center gap-0.5">
+                {isSelected && idx > 0 && (
+                  <button onClick={() => moveAlbum(album.id, "left")} className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent" title="Mover para esquerda">
+                    <ArrowLeft className="h-3 w-3" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedAlbum(album.id)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-colors flex items-center gap-1 ${
+                    isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
+                  }`}
+                >
+                  {album.nome}
+                  <span className={`text-[10px] rounded-full px-1 py-0.5 ${
+                    isSelected ? "bg-primary-foreground/20" : "bg-muted"
+                  }`}>{count}</span>
+                </button>
+                {isSelected && (
+                  <>
+                    {idx < albuns.length - 1 && (
+                      <button onClick={() => moveAlbum(album.id, "right")} className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent" title="Mover para direita">
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setEditAlbumId(album.id); setEditAlbumName(album.nome); setEditAlbumOpen(true); }}
+                      className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent"
+                      title="Editar álbum"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors" title="Excluir álbum">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir álbum "{album.nome}"?</AlertDialogTitle>
+                          <AlertDialogDescription>As fotos do álbum serão mantidas sem categoria. Esta ação não pode ser desfeita.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteAlbum(album.id)}>Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
+              </div>
             );
           })}
           <Dialog open={newAlbumOpen} onOpenChange={setNewAlbumOpen}>
@@ -393,6 +433,17 @@ const Gallery = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Dialog editar álbum */}
+        <Dialog open={editAlbumOpen} onOpenChange={setEditAlbumOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar Álbum</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <Input placeholder="Nome do álbum" value={editAlbumName} onChange={(e) => setEditAlbumName(e.target.value)} />
+              <Button onClick={updateAlbum} className="rounded-full w-full">Salvar</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Ações rápidas */}
         <div className="flex flex-wrap gap-2">
