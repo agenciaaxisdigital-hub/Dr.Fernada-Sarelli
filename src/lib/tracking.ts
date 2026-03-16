@@ -36,6 +36,14 @@ const BAIRRO_SOURCE_KEY = "chama_bairro_source";
 const UTM_KEY = "chama_utms";
 const SESSION_START_KEY = "chama_session_start";
 const SCROLL_MILESTONES_KEY = "chama_scroll_milestones";
+const GEO_MODE_KEY = "chama_geo_mode";
+const GEO_DENIED_KEY = "chama_geo_denied";
+
+// Location precision modes
+export const PRECISAO = {
+  GPS: "GPS_PRECISO" as const,
+  IP: "IP_APROXIMADO" as const,
+};
 
 // ═══════════════════════════════════════════════════════════
 // RETRY ENGINE — RULE 1: NEVER LOSE A RECORD
