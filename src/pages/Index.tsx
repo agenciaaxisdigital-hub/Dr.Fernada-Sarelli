@@ -372,7 +372,7 @@ const Index = () => {
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <a
-                href="https://w.app/drafernandasarelli"
+                href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
