@@ -50,12 +50,12 @@ const Footer = () => (
       <div className="container flex flex-col sm:flex-row items-center justify-between py-4 text-xs">
         <p>© 2026 Dra. Fernanda Sarelli. Todos os direitos reservados.</p>
         <div className="flex items-center gap-3 mt-2 sm:mt-0">
+          <Link to="/admin/login" className="text-primary-foreground/30 hover:text-primary-foreground/60 transition-colors mr-2">
+            •
+          </Link>
           <p className="flex items-center gap-1">
             Feito com <Heart className="h-3 w-3 fill-primary text-primary" /> para Goiás
           </p>
-          <Link to="/admin/login" className="text-primary-foreground/30 hover:text-primary-foreground/60 transition-colors">
-            •
-          </Link>
         </div>
       </div>
     </div>
