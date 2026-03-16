@@ -13,13 +13,13 @@ import Layout from "@/components/Layout";
 import PageHeader from "@/components/PageHeader";
 import {
   getVisitorId,
-  detectDevice,
   resolveLocation,
   getCachedGeo,
+  waitForGPS,
   onFormFocus,
   getFormFillTime,
   resetFormTracking,
-  identifyZone,
+  updateLocationViaEdge,
 } from "@/lib/tracking";
 
 const schema = z.object({
