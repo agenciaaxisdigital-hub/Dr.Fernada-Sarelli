@@ -382,6 +382,27 @@ export type Database = {
         }
         Relationships: []
       }
+      roles_painel: {
+        Row: {
+          cargo: Database["public"]["Enums"]["cargo_admin"]
+          criado_em: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          cargo?: Database["public"]["Enums"]["cargo_admin"]
+          criado_em?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          cargo?: Database["public"]["Enums"]["cargo_admin"]
+          criado_em?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       roles_usuarios: {
         Row: {
           cargo: Database["public"]["Enums"]["cargo_admin"]
@@ -410,7 +431,15 @@ export type Database = {
     Functions: {
       criar_primeiro_admin: { Args: { _email: string }; Returns: undefined }
       eh_admin: { Args: { _user_id: string }; Returns: boolean }
+      eh_admin_painel: { Args: { _user_id: string }; Returns: boolean }
       tem_cargo: {
+        Args: {
+          _cargo: Database["public"]["Enums"]["cargo_admin"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      tem_cargo_painel: {
         Args: {
           _cargo: Database["public"]["Enums"]["cargo_admin"]
           _user_id: string
