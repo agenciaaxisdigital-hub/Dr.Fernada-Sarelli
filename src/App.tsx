@@ -15,6 +15,7 @@ import Gallery from "./pages/admin/Gallery";
 import Forms from "./pages/admin/Forms";
 import SettingsPage from "./pages/admin/SettingsPage";
 import NotFound from "./pages/NotFound";
+import ValidarCaptura from "./pages/ValidarCaptura";
 
 const queryClient = new QueryClient();
 
