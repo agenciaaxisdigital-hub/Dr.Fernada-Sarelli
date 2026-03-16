@@ -34,6 +34,7 @@ export type Database = {
           navegador: string | null
           pagina: string
           pais: string | null
+          precisao_localizacao: string | null
           primeira_visita: boolean | null
           referrer: string | null
           regiao_planejamento: string | null
@@ -66,6 +67,7 @@ export type Database = {
           navegador?: string | null
           pagina: string
           pais?: string | null
+          precisao_localizacao?: string | null
           primeira_visita?: boolean | null
           referrer?: string | null
           regiao_planejamento?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           navegador?: string | null
           pagina?: string
           pais?: string | null
+          precisao_localizacao?: string | null
           primeira_visita?: boolean | null
           referrer?: string | null
           regiao_planejamento?: string | null
@@ -160,6 +163,7 @@ export type Database = {
           navegador: string | null
           pagina_origem: string | null
           pais: string | null
+          precisao_localizacao: string | null
           regiao_planejamento: string | null
           rua: string | null
           secao_pagina: string | null
@@ -187,6 +191,7 @@ export type Database = {
           navegador?: string | null
           pagina_origem?: string | null
           pais?: string | null
+          precisao_localizacao?: string | null
           regiao_planejamento?: string | null
           rua?: string | null
           secao_pagina?: string | null
@@ -214,6 +219,7 @@ export type Database = {
           navegador?: string | null
           pagina_origem?: string | null
           pais?: string | null
+          precisao_localizacao?: string | null
           regiao_planejamento?: string | null
           rua?: string | null
           secao_pagina?: string | null
@@ -321,6 +327,7 @@ export type Database = {
           mensagem: string
           nome: string
           pais: string | null
+          precisao_localizacao: string | null
           regiao_planejamento: string | null
           rua: string | null
           telefone: string
@@ -343,6 +350,7 @@ export type Database = {
           mensagem: string
           nome: string
           pais?: string | null
+          precisao_localizacao?: string | null
           regiao_planejamento?: string | null
           rua?: string | null
           telefone: string
@@ -365,6 +373,7 @@ export type Database = {
           mensagem?: string
           nome?: string
           pais?: string | null
+          precisao_localizacao?: string | null
           regiao_planejamento?: string | null
           rua?: string | null
           telefone?: string
