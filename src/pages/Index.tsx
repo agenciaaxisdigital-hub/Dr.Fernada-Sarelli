@@ -398,7 +398,7 @@ const Index = () => {
               <MessageCircle className="h-8 w-8 flex-shrink-0" />
               <div className="text-left">
                 <p className="text-sm">Receba as informações direto em seu celular</p>
-                <p className="text-lg font-bold">(62) 98133-6168</p>
+                <p className="text-lg font-bold">(62) 99323-7397</p>
               </div>
             </a>
           </ScrollReveal>
