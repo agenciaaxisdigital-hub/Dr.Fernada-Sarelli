@@ -923,38 +923,27 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
     const tempo_no_site = Math.round((Date.now() - parseInt(sessionStorage.getItem(SESSION_START_KEY) || String(Date.now()), 10)) / 1000);
 
     const precisao_localizacao = getGeoMode();
-    const data: Record<string, unknown> = {
-      tipo_clique, pagina_origem, user_agent: navigator.userAgent, cookie_visitante,
-      texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || "sem-secao",
+    const payload: Record<string, unknown> = {
+      action: "click",
+      tipo_clique,
+      pagina_origem,
+      user_agent: navigator.userAgent,
+      cookie_visitante,
+      texto_botao: extra?.texto_botao || null,
+      secao_pagina: extra?.secao_pagina || "sem-secao",
       url_destino: extra?.url_destino || null,
       precisao_localizacao,
+      tempo_no_site_antes_do_clique: tempo_no_site,
+      latitude: geo?.latitude || sessionStorage.getItem(LAT_KEY) || null,
+      longitude: geo?.longitude || sessionStorage.getItem(LNG_KEY) || null,
+      endereco_ip: geo?.endereco_ip || null,
+      pais: geo?.pais || null,
+      estado: geo?.estado || null,
+      cidade: geo?.cidade || null,
+      bairro: geo?.bairro || null,
     };
-    if (geo) {
-      data.endereco_ip = geo.endereco_ip || null;
-      data.pais = geo.pais || null;
-      data.estado = geo.estado || null;
-      data.cidade = geo.cidade || null;
-      if (geo.latitude) data.latitude = geo.latitude;
-      if (geo.longitude) data.longitude = geo.longitude;
-    }
 
-    // Use sendBeacon with Blob for reliability
-    try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const payload = JSON.stringify({
-        action: "click", ...data,
-        tempo_no_site_antes_do_clique: tempo_no_site,
-        latitude: data.latitude || sessionStorage.getItem(LAT_KEY) || null,
-        longitude: data.longitude || sessionStorage.getItem(LNG_KEY) || null,
-      });
-      navigator.sendBeacon(
-        `https://${projectId}.supabase.co/functions/v1/track-capture`,
-        new Blob([payload], { type: "application/json" })
-      );
-    } catch {}
-
-    // Also try direct insert as backup
-    retryInsert("cliques_whatsapp", data);
+    sendTrackPayload(payload, { preferBeacon: true, keepalive: true }).catch(() => enqueue(payload));
   } catch { /* RULE 2 */ }
 }
 
