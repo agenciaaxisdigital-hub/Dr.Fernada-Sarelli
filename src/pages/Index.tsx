@@ -32,11 +32,6 @@ const bandeiras = [
   },
 ];
 
-const eventos = [
-  { dia: "14", mes: "MAR", diaSemana: "sábado", dataFull: "14 de março", titulo: "Encontro Comunitário — Saúde para Todos", hora: "14:00", local: "Goiânia — Centro de Convenções", desc: "Evento aberto à comunidade para discutir melhorias na saúde pública goiana.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Encontro+Comunit%C3%A1rio+%E2%80%94+Sa%C3%BAde+para+Todos&dates=20260314T180000Z%2F20260314T200000Z&details=Evento+aberto+%C3%A0+comunidade+para+discutir+melhorias+na+sa%C3%BAde+p%C3%BAblica+goiana.&location=Goi%C3%A2nia%2C+Centro+de+Conven%C3%A7%C3%B5es" },
-  { dia: "21", mes: "MAR", diaSemana: "sábado", dataFull: "21 de março", titulo: "Audiência Pública — Educação em Goiás", hora: "09:00", local: "Anápolis — Câmara Municipal", desc: "Debate sobre investimentos e políticas educacionais para o estado.", destaque: false, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Audi%C3%AAncia+P%C3%BAblica+%E2%80%94+Educa%C3%A7%C3%A3o+em+Goi%C3%A1s&dates=20260321T130000Z%2F20260321T150000Z&details=Debate+sobre+investimentos+e+pol%C3%ADticas+educacionais+para+o+estado.&location=An%C3%A1polis%2C+C%C3%A2mara+Municipal" },
-  { dia: "04", mes: "ABR", diaSemana: "sábado", dataFull: "04 de abril", titulo: "Caravana da Saúde — Região Metropolitana", hora: "08:00", local: "Aparecida de Goiânia — Praça Central", desc: "Atendimento gratuito e orientações de saúde para a população.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Caravana+da+Sa%C3%BAde+%E2%80%94+Regi%C3%A3o+Metropolitana&dates=20260404T120000Z%2F20260404T140000Z&details=Atendimento+gratuito+e+orienta%C3%A7%C3%B5es+de+sa%C3%BAde+para+a+popula%C3%A7%C3%A3o.&location=Aparecida+de+Goi%C3%A2nia%2C+Pra%C3%A7a+Central" },
-];
 
 const redes = [
   { icon: MessageCircle, label: "WhatsApp", handle: "(62) 98133-6168", url: "https://w.app/drafernandasarelli" },
