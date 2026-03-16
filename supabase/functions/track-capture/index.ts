@@ -43,10 +43,11 @@ Deno.serve(async (req) => {
       }
 
       // Only allow known tables and their columns
+      const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"];
       const tableColumns: Record<string, string[]> = {
-        acessos_site: ["endereco_ip", "pais", "estado", "cidade"],
-        cliques_whatsapp: ["endereco_ip", "pais", "estado", "cidade", "latitude", "longitude"],
-        mensagens_contato: ["endereco_ip", "pais", "estado", "cidade", "latitude", "longitude"],
+        acessos_site: locationCols,
+        cliques_whatsapp: locationCols,
+        mensagens_contato: locationCols,
       };
 
       const allowedFields = tableColumns[table];
@@ -127,25 +128,19 @@ Deno.serve(async (req) => {
 
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const updateData: Record<string, unknown> = {};
-      for (const f of ["endereco_ip", "pais", "estado", "cidade"]) {
+      for (const f of ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"]) {
         if (body[f]) updateData[f] = body[f];
       }
 
       if (Object.keys(updateData).length > 0) {
-        // Update acessos_site records missing cidade
-        await supabase.from("acessos_site").update(updateData)
-          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
-
-        // Update cliques with lat/lng too
-        const clickUpdate = { ...updateData };
-        if (body.latitude) clickUpdate.latitude = body.latitude;
-        if (body.longitude) clickUpdate.longitude = body.longitude;
-
-        await supabase.from("cliques_whatsapp").update(clickUpdate)
-          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
-
-        await supabase.from("mensagens_contato").update(clickUpdate)
-          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
+        await Promise.allSettled([
+          supabase.from("acessos_site").update(updateData)
+            .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null),
+          supabase.from("cliques_whatsapp").update(updateData)
+            .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null),
+          supabase.from("mensagens_contato").update(updateData)
+            .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null),
+        ]);
       }
 
       console.log(`Retroactive enrich for ${cookie}: updated with ${JSON.stringify(updateData)}`);

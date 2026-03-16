@@ -9,7 +9,7 @@ import { useGoogleCalendar, type CalendarEvent } from "@/hooks/useGoogleCalendar
 
 type Tab = "proximos" | "realizados" | "todos";
 
-const EVENTS_PER_PAGE = 10;
+const EVENTS_PER_PAGE = 50;
 
 /* Group events by month/year */
 function groupByMonth(events: CalendarEvent[]) {
