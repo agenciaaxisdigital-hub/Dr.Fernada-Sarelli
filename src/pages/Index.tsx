@@ -124,7 +124,7 @@ const Index = () => {
                     Ver Agenda
                   </Link>
                   <a
-                    href="https://w.app/drafernandasarelli"
+                    href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-full border-2 border-primary-foreground/40 px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
