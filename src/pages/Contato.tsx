@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Send, Mail, Phone, MapPin } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +11,16 @@ import { toast } from "sonner";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
 import PageHeader from "@/components/PageHeader";
+import {
+  getVisitorId,
+  detectDevice,
+  resolveLocation,
+  getCachedGeo,
+  onFormFocus,
+  getFormFillTime,
+  resetFormTracking,
+  identifyZone,
+} from "@/lib/tracking";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Nome é obrigatório").max(100),
@@ -24,22 +33,94 @@ type FormData = z.infer<typeof schema>;
 
 const Contato = () => {
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
+  // Trigger GPS request on any form focus
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const handler = () => onFormFocus();
+    form.addEventListener("focusin", handler, { passive: true });
+    return () => form.removeEventListener("focusin", handler);
+  }, []);
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      const { error } = await supabase.from("mensagens_contato").insert({
-        nome: data.nome,
-        telefone: data.telefone,
-        email: data.email || null,
-        mensagem: data.mensagem,
+      const cookie_visitante = getVisitorId();
+      const device = detectDevice();
+      const fillTime = getFormFillTime();
+
+      // Wait up to 3 seconds for GPS if still resolving
+      let geo = getCachedGeo();
+      if (!geo) {
+        try {
+          geo = await Promise.race([
+            resolveLocation(),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+          ]);
+        } catch { /* ignore */ }
+      }
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: "form",
+          nome: data.nome,
+          telefone: data.telefone,
+          email: data.email || null,
+          mensagem: data.mensagem,
+          cookie_visitante,
+          user_agent: navigator.userAgent,
+          ...(geo ? {
+            cidade: geo.cidade,
+            estado: geo.estado,
+            pais: geo.pais,
+            latitude: geo.latitude,
+            longitude: geo.longitude,
+          } : {}),
+        }),
       });
-      if (error) throw error;
+
+      const result = await res.json();
+
+      if (!result.success) throw new Error(result.error);
+
       toast.success("Mensagem enviada com sucesso!");
       reset();
+      resetFormTracking();
+
+      // If GPS resolves later, update the record
+      if (!geo?.latitude) {
+        resolveLocation().then((laterGeo) => {
+          if (laterGeo.latitude) {
+            fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: JSON.stringify({
+                action: "update-location",
+                cookie_visitante,
+                table: "mensagens_contato",
+                ...laterGeo,
+              }),
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
     } catch {
       toast.error("Erro ao enviar. Tente novamente.");
     } finally {
@@ -96,7 +177,7 @@ const Contato = () => {
 
             {/* Form */}
             <ScrollReveal delay={0.15}>
-              <form onSubmit={handleSubmit(onSubmit)} className="rounded-2xl border bg-card p-6 md:p-8">
+              <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="rounded-2xl border bg-card p-6 md:p-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="nome">Nome *</Label>
