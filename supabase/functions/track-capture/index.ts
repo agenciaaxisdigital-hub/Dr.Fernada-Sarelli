@@ -182,6 +182,7 @@ Deno.serve(async (req) => {
         latitude: body.latitude || geoFields.latitude || null,
         longitude: body.longitude || geoFields.longitude || null,
         zona_eleitoral: body.zona_eleitoral || geoFields.zona_eleitoral || null,
+        precisao_localizacao: body.precisao_localizacao || "IP_APROXIMADO",
       };
 
       const { data: result, error } = await supabase
