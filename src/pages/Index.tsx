@@ -34,7 +34,7 @@ const bandeiras = [
 
 
 const redes = [
-  { icon: MessageCircle, label: "WhatsApp", handle: "(62) 98133-6168", url: "https://w.app/drafernandasarelli" },
+  { icon: MessageCircle, label: "WhatsApp", handle: "(62) 99323-7397", url: "https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli" },
   { icon: Facebook, label: "Facebook", handle: "@drafernandaSarelli", url: "https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" },
   { icon: Instagram, label: "Instagram", handle: "@drafernandasarelli", url: "https://www.instagram.com/drafernandasarelli/" },
 ];
