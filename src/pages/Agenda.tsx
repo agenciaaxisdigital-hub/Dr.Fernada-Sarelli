@@ -205,8 +205,8 @@ const Agenda = () => {
                 </div>
               )}
 
-              {groups.map((group) => {
-                const isCollapsed = collapsedMonths.has(group.key);
+              {visibleGroups.map((group) => {
+                const isCollapsed = effectiveCollapsed.has(group.key);
                 return (
                   <div key={group.key}>
                     {/* Month header - clickable to collapse */}
