@@ -873,30 +873,37 @@ export async function trackPageView(pagina: string) {
     const device = detectDevice();
     const utms = getUTMParams();
 
-    const baseData: Record<string, unknown> = {
-      pagina, user_agent: navigator.userAgent,
-      largura_tela: window.innerWidth, altura_tela: window.innerHeight,
+    const payload: Record<string, unknown> = {
+      action: "pageview",
+      pagina,
+      user_agent: navigator.userAgent,
+      largura_tela: window.innerWidth,
+      altura_tela: window.innerHeight,
       referrer: document.referrer || null,
-      dispositivo: device.dispositivo, sistema_operacional: device.sistema_operacional,
-      navegador: device.navegador, cookie_visitante, primeira_visita,
-      contador_visitas: visitCount, ...utms,
-      precisao_localizacao: PRECISAO.IP, // starts as IP, upgraded when GPS resolves
+      dispositivo: device.dispositivo,
+      sistema_operacional: device.sistema_operacional,
+      navegador: device.navegador,
+      cookie_visitante,
+      primeira_visita,
+      contador_visitas: visitCount,
+      ...utms,
+      precisao_localizacao: PRECISAO.IP,
     };
 
-    // Try to get cached geo immediately
     const cachedGeo = getCachedGeo();
     if (cachedGeo) {
-      baseData.endereco_ip = cachedGeo.endereco_ip || null;
-      baseData.pais = cachedGeo.pais || null;
-      baseData.estado = cachedGeo.estado || null;
-      baseData.cidade = cachedGeo.cidade || null;
-      if (cachedGeo.precisao_localizacao) baseData.precisao_localizacao = cachedGeo.precisao_localizacao;
+      payload.endereco_ip = cachedGeo.endereco_ip || null;
+      payload.pais = cachedGeo.pais || null;
+      payload.estado = cachedGeo.estado || null;
+      payload.cidade = cachedGeo.cidade || null;
+      payload.bairro = cachedGeo.bairro || null;
+      payload.latitude = cachedGeo.latitude || null;
+      payload.longitude = cachedGeo.longitude || null;
+      if (cachedGeo.precisao_localizacao) payload.precisao_localizacao = cachedGeo.precisao_localizacao;
     }
 
-    // Fire insert immediately
-    retryInsert("acessos_site", baseData);
+    sendTrackPayload(payload).catch(() => enqueue(payload));
 
-    // When full location resolves, update the record
     resolveLocation().then((geo) => {
       if (geo.cidade || geo.latitude) {
         updateLocationViaEdge(cookie_visitante, "acessos_site", geo).catch(() => {});
