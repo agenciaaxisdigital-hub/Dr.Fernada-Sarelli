@@ -884,10 +884,12 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
     const geo = getCachedGeo();
     const tempo_no_site = Math.round((Date.now() - parseInt(sessionStorage.getItem(SESSION_START_KEY) || String(Date.now()), 10)) / 1000);
 
+    const precisao_localizacao = getGeoMode();
     const data: Record<string, unknown> = {
       tipo_clique, pagina_origem, user_agent: navigator.userAgent, cookie_visitante,
       texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || "sem-secao",
       url_destino: extra?.url_destino || null,
+      precisao_localizacao,
     };
     if (geo) {
       data.endereco_ip = geo.endereco_ip || null;
