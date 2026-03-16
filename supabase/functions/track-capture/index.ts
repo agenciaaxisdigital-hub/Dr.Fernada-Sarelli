@@ -133,20 +133,14 @@ Deno.serve(async (req) => {
       }
 
       if (Object.keys(updateData).length > 0) {
-        // Update acessos_site records missing cidade
-        await supabase.from("acessos_site").update(updateData)
-          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
-
-        // Update cliques with lat/lng too
-        const clickUpdate = { ...updateData };
-        if (body.latitude) clickUpdate.latitude = body.latitude;
-        if (body.longitude) clickUpdate.longitude = body.longitude;
-
-        await supabase.from("cliques_whatsapp").update(clickUpdate)
-          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
-
-        await supabase.from("mensagens_contato").update(clickUpdate)
-          .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null);
+        await Promise.allSettled([
+          supabase.from("acessos_site").update(updateData)
+            .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null),
+          supabase.from("cliques_whatsapp").update(updateData)
+            .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null),
+          supabase.from("mensagens_contato").update(updateData)
+            .eq("cookie_visitante", cookie).gte("criado_em", sevenDaysAgo).is("cidade", null),
+        ]);
       }
 
       console.log(`Retroactive enrich for ${cookie}: updated with ${JSON.stringify(updateData)}`);
