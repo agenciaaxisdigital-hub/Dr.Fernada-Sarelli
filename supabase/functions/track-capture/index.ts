@@ -42,20 +42,21 @@ Deno.serve(async (req) => {
         return json({ error: "Missing cookie_visitante or table" }, 400);
       }
 
-      // Only allow known tables
-      const allowedTables = ["acessos_site", "cliques_whatsapp", "mensagens_contato"];
-      if (!allowedTables.includes(table)) {
+      // Only allow known tables and their columns
+      const tableColumns: Record<string, string[]> = {
+        acessos_site: ["endereco_ip", "pais", "estado", "cidade"],
+        cliques_whatsapp: ["endereco_ip", "pais", "estado", "cidade", "latitude", "longitude"],
+        mensagens_contato: ["endereco_ip", "pais", "estado", "cidade", "latitude", "longitude"],
+      };
+
+      const allowedFields = tableColumns[table];
+      if (!allowedFields) {
         return json({ error: "Invalid table" }, 400);
       }
 
-      // Build update data from provided fields
+      // Build update data from provided fields — only known columns
       const updateFields: Record<string, unknown> = {};
-      const locationFields = [
-        "endereco_ip", "pais", "estado", "cidade", "bairro", "cep",
-        "endereco_completo", "latitude", "longitude", "zona_eleitoral",
-      ];
-
-      for (const field of locationFields) {
+      for (const field of allowedFields) {
         if (body[field] !== undefined && body[field] !== null) {
           updateFields[field] = body[field];
         }
