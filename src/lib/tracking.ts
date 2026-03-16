@@ -557,7 +557,7 @@ export async function resolveLocation(): Promise<GeoData> {
   const ipFallback = ipFallbackResult.status === "fulfilled" ? ipFallbackResult.value : {};
   const tz = geoFromTimezone();
 
-  // AUDIT 3: Merge both IP results
+  // Merge both IP results
   const mergedIp = mergeGeoResults(ipPrimary, ipFallback);
 
   // Merge: GPS wins, then merged IP, then timezone
@@ -566,6 +566,15 @@ export async function resolveLocation(): Promise<GeoData> {
   // Ensure IP is always present even when GPS overrides
   if (!geo.endereco_ip && mergedIp.endereco_ip) {
     geo.endereco_ip = mergedIp.endereco_ip;
+  }
+
+  // Set precisao_localizacao based on whether GPS resolved
+  if (gps && gps.latitude) {
+    geo.precisao_localizacao = PRECISAO.GPS;
+    try { sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.GPS); } catch {}
+  } else {
+    geo.precisao_localizacao = PRECISAO.IP;
+    try { sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.IP); } catch {}
   }
 
   // Ensure zona_eleitoral
