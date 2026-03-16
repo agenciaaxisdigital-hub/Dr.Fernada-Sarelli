@@ -390,7 +390,7 @@ const Index = () => {
 
           <ScrollReveal delay={0.2}>
             <a
-              href="https://w.app/drafernandasarelli"
+              href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-10 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-primary p-5 text-primary-foreground transition-transform hover:scale-105"
