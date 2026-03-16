@@ -21,7 +21,24 @@ const socialLinks = [
 
 const Header = () => {
   const [open, setOpen] = useState(false);
+  const [galeriaAtiva, setGaleriaAtiva] = useState(true);
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    supabase
+      .from("configuracoes" as any)
+      .select("valor")
+      .eq("chave", "galeria_ativa")
+      .maybeSingle()
+      .then(({ data }) => {
+        const val = String((data as any)?.valor ?? "true").toLowerCase();
+        setGaleriaAtiva(val === "true");
+      });
+  }, []);
+
+  const navItems = galeriaAtiva
+    ? baseNavItems
+    : baseNavItems.filter((item) => item.path !== "/galeria");
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border/50">
