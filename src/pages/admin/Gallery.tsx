@@ -293,13 +293,13 @@ const Gallery = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-5">
+      <div className="space-y-4 px-1">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Galeria</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold">Galeria</h2>
           <div className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5">
             <span className={`text-xs font-medium ${galeriaAtiva ? "text-primary" : "text-muted-foreground"}`}>
-              {galeriaAtiva ? "Ativa" : "Desativada"}
+              {galeriaAtiva ? "Ativa" : "Off"}
             </span>
             <Switch id="galeria-toggle" checked={galeriaAtiva} onCheckedChange={toggleGaleria} />
           </div>
@@ -309,7 +309,7 @@ const Gallery = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
           <button
             onClick={() => setSelectedAlbum(null)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors ${
               !selectedAlbum ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
             }`}
           >
@@ -321,12 +321,12 @@ const Gallery = () => {
               <button
                 key={album.id}
                 onClick={() => setSelectedAlbum(album.id)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors flex items-center gap-1 ${
                   selectedAlbum === album.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent"
                 }`}
               >
                 {album.nome}
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${
+                <span className={`text-[10px] rounded-full px-1 py-0.5 ${
                   selectedAlbum === album.id ? "bg-primary-foreground/20" : "bg-muted"
                 }`}>{count}</span>
               </button>
@@ -334,8 +334,8 @@ const Gallery = () => {
           })}
           <Dialog open={newAlbumOpen} onOpenChange={setNewAlbumOpen}>
             <DialogTrigger asChild>
-              <button className="shrink-0 rounded-full h-9 w-9 flex items-center justify-center border border-dashed border-primary text-primary hover:bg-accent transition-colors" title="Novo Álbum">
-                <FolderPlus className="h-4 w-4" />
+              <button className="shrink-0 rounded-full h-8 w-8 flex items-center justify-center border border-dashed border-primary text-primary hover:bg-accent transition-colors" title="Novo Álbum">
+                <FolderPlus className="h-3.5 w-3.5" />
               </button>
             </DialogTrigger>
             <DialogContent>
@@ -348,11 +348,11 @@ const Gallery = () => {
           </Dialog>
         </div>
 
-        {/* Ações rápidas - grid compacto */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        {/* Ações rápidas */}
+        <div className="flex flex-wrap gap-2">
           <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="rounded-full text-xs"><Plus className="mr-1.5 h-3.5 w-3.5" />Por URL</Button>
+              <Button size="sm" variant="outline" className="rounded-full text-xs h-8"><Plus className="mr-1 h-3 w-3" />URL</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Adicionar Foto por URL</DialogTitle></DialogHeader>
@@ -365,17 +365,18 @@ const Gallery = () => {
             </DialogContent>
           </Dialog>
 
-          <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={populateTestPhotos}>
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />Teste
+          <Button size="sm" variant="outline" className="rounded-full text-xs h-8" onClick={populateTestPhotos}>
+            <Sparkles className="mr-1 h-3 w-3" />Teste
           </Button>
 
           {hasTestPhotos && (
-            <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => clearTestPhotos()}>
-              <Eraser className="mr-1.5 h-3.5 w-3.5" />Limpar teste
+            <Button size="sm" variant="outline" className="rounded-full text-xs h-8" onClick={() => clearTestPhotos()}>
+              <Eraser className="mr-1 h-3 w-3" />Limpar
             </Button>
           )}
         </div>
 
+        {/* Upload area - compacta no mobile */}
         <input
           type="file"
           id="file-upload-input"
@@ -411,48 +412,50 @@ const Gallery = () => {
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleFileDrop}
-          className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer hover:border-primary hover:bg-accent/50 ${
+          className={`rounded-2xl border-2 border-dashed p-4 sm:p-8 text-center transition-colors cursor-pointer hover:border-primary hover:bg-accent/50 ${
             dragOver ? "border-primary bg-accent" : "border-border"
           }`}
         >
-          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">Toque aqui ou arraste fotos para upload</p>
+          <Upload className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground mb-1" />
+          <p className="text-xs sm:text-sm text-muted-foreground">Toque para enviar fotos</p>
         </div>
 
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+        {/* Photo grid - mobile-first com botões sempre visíveis */}
+        <div className="grid grid-cols-2 sm:columns-2 lg:columns-3 xl:columns-4 gap-2 sm:gap-4">
           {filteredFotos.map((foto) => (
-            <div key={foto.id} className="break-inside-avoid rounded-2xl border bg-card overflow-hidden group relative">
-              <img src={foto.url_foto} alt={foto.titulo} className="w-full object-cover" loading="lazy" />
-              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors flex items-end opacity-0 group-hover:opacity-100">
-                <div className="w-full p-3 bg-gradient-to-t from-foreground/80 to-transparent">
-                  <p className="text-sm font-medium text-primary-foreground">{foto.titulo}</p>
-                  {foto.legenda && <p className="text-xs text-primary-foreground/80">{foto.legenda}</p>}
-                </div>
+            <div key={foto.id} className="rounded-xl border bg-card overflow-hidden relative">
+              <img src={foto.url_foto} alt={foto.titulo} className="w-full aspect-square object-cover" loading="lazy" />
+              
+              {/* Info bar - sempre visível */}
+              <div className="p-2">
+                <p className="text-xs font-medium truncate">{foto.titulo}</p>
+                {foto.legenda && <p className="text-[10px] text-muted-foreground truncate">{foto.legenda}</p>}
               </div>
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+              {/* Action buttons - sempre visíveis no mobile, hover no desktop */}
+              <div className="absolute top-1.5 right-1.5 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => toggleDestaqueHome(foto.id, !!foto.destaque_home)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-colors ${
-                    foto.destaque_home ? "bg-primary text-primary-foreground" : "bg-card hover:bg-accent"
+                  className={`flex h-7 w-7 items-center justify-center rounded-full shadow-sm transition-colors ${
+                    foto.destaque_home ? "bg-primary text-primary-foreground" : "bg-card/90 backdrop-blur-sm hover:bg-accent"
                   }`}
-                  aria-label={foto.destaque_home ? "Remover do feed da home" : "Fixar no feed da home"}
-                  title={foto.destaque_home ? "Fixada no feed" : "Fixar no feed da home"}
+                  aria-label={foto.destaque_home ? "Remover do feed" : "Fixar no feed"}
                 >
-                  <Pin className="h-4 w-4" />
+                  <Pin className="h-3 w-3" />
                 </button>
                 <button
                   onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:bg-accent transition-colors"
-                  aria-label={foto.visivel ? "Ocultar foto" : "Mostrar foto"}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-card/90 backdrop-blur-sm shadow-sm hover:bg-accent transition-colors"
+                  aria-label={foto.visivel ? "Ocultar" : "Mostrar"}
                 >
-                  {foto.visivel ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                  {foto.visivel ? <Eye className="h-3 w-3 text-primary" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
                 </button>
                 <button
                   onClick={() => deletePhoto(foto.id)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  aria-label="Apagar foto"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-card/90 backdrop-blur-sm shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  aria-label="Apagar"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3 w-3" />
                 </button>
               </div>
             </div>
@@ -460,7 +463,7 @@ const Gallery = () => {
         </div>
 
         {filteredFotos.length === 0 && (
-          <p className="text-center text-muted-foreground py-10">Nenhuma foto neste álbum.</p>
+          <p className="text-center text-muted-foreground py-10 text-sm">Nenhuma foto neste álbum.</p>
         )}
       </div>
     </AdminLayout>
