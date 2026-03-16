@@ -28,7 +28,7 @@ const Footer = () => (
           <div className="space-y-1 text-sm">
             <p>Goiânia — GO, Brasil</p>
             <p>contato@fernandasarelli.com.br</p>
-            <p>(62) 98133-6168</p>
+            <p>(62) 99323-7397</p>
           </div>
           <div className="flex items-center gap-3 mt-4">
             <a href="https://www.instagram.com/drafernandasarelli/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
