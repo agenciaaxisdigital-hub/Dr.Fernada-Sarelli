@@ -849,6 +849,7 @@ export async function trackPageView(pagina: string) {
       dispositivo: device.dispositivo, sistema_operacional: device.sistema_operacional,
       navegador: device.navegador, cookie_visitante, primeira_visita,
       contador_visitas: visitCount, ...utms,
+      precisao_localizacao: PRECISAO.IP, // starts as IP, upgraded when GPS resolves
     };
 
     // Try to get cached geo immediately
@@ -858,6 +859,7 @@ export async function trackPageView(pagina: string) {
       baseData.pais = cachedGeo.pais || null;
       baseData.estado = cachedGeo.estado || null;
       baseData.cidade = cachedGeo.cidade || null;
+      if (cachedGeo.precisao_localizacao) baseData.precisao_localizacao = cachedGeo.precisao_localizacao;
     }
 
     // Fire insert immediately
