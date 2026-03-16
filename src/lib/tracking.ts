@@ -82,7 +82,7 @@ export async function flushQueue() {
   const remaining: QueueItem[] = [];
   const results = await Promise.allSettled(
     queue.map(async (item) => {
-      const { error } = await supabase.from(item.table).insert(item.data as any);
+      const { error } = await (supabase.from as any)(item.table).insert(item.data);
       if (error) throw error;
       return item;
     })
