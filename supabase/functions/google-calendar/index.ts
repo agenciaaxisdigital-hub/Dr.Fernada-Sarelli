@@ -108,12 +108,19 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
     const location = (props['LOCATION'] || '').replace(/\\,/g, ',').replace(/\\n/g, ' ');
     const uid = props['UID'] || `event-${i}`;
 
-    // Skip free/busy blocks and events without real titles
-    const skipTitles = ['busy', 'ocupado', 'sem título', 'free', 'livre'];
-    if (!dtstart) continue;
-    if (skipTitles.includes(summary.toLowerCase().trim())) continue;
-    // Skip VFREEBUSY blocks (they appear as VEVENT with generic titles)
-    if (props['TRANSP'] === 'TRANSPARENT') continue;
+    const normalizedSummary = summary.toLowerCase().trim();
+    const isBusyBlock =
+      normalizedSummary === 'busy' ||
+      normalizedSummary === 'ocupado' ||
+      normalizedSummary === 'free' ||
+      normalizedSummary === 'livre' ||
+      normalizedSummary === 'sem título' ||
+      normalizedSummary.startsWith('busy ') ||
+      normalizedSummary.includes('out of office') ||
+      normalizedSummary.includes('working location') ||
+      (!description.trim() && !location.trim() && normalizedSummary.length <= 10);
+
+    if (!dtstart || isBusyBlock) continue;
 
 
     const startDate = parseICalDate(dtstart);
@@ -201,8 +208,8 @@ Deno.serve(async (req) => {
     console.log(`Returning ${events.length} events (filter: ${filter})`);
 
     return new Response(
-      JSON.stringify({ success: true, events }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } }
+      JSON.stringify({ success: true, events, generatedAt: Date.now() }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store, max-age=0' } }
     );
   } catch (error) {
     console.error('Error fetching calendar:', error);
