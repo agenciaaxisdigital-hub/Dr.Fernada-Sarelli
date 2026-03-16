@@ -6,9 +6,12 @@ const WhatsAppFloat = () => (
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Fale pelo WhatsApp"
-    className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-[0_10px_20px_hsl(340_82%_55%/0.35)] transition-transform hover:scale-110 animate-[pulse_3s_ease-in-out_infinite]"
+    className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-[0_10px_20px_hsl(340_82%_55%/0.35)] transition-transform hover:scale-110"
   >
-    <MessageCircle className="h-7 w-7 text-primary-foreground" />
+    {/* Ripple rings */}
+    <span className="absolute inset-0 rounded-full bg-primary animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] opacity-30" />
+    <span className="absolute inset-0 rounded-full bg-primary animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite_0.8s] opacity-20" />
+    <MessageCircle className="relative h-7 w-7 text-primary-foreground" />
   </a>
 );
 
