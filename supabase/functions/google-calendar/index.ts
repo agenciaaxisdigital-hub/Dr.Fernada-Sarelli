@@ -108,12 +108,19 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
     const location = (props['LOCATION'] || '').replace(/\\,/g, ',').replace(/\\n/g, ' ');
     const uid = props['UID'] || `event-${i}`;
 
-    // Skip free/busy blocks and events without real titles
-    const skipTitles = ['busy', 'ocupado', 'sem título', 'free', 'livre'];
-    if (!dtstart) continue;
-    if (skipTitles.includes(summary.toLowerCase().trim())) continue;
-    // Skip VFREEBUSY blocks (they appear as VEVENT with generic titles)
-    if (props['TRANSP'] === 'TRANSPARENT') continue;
+    const normalizedSummary = summary.toLowerCase().trim();
+    const isBusyBlock =
+      normalizedSummary === 'busy' ||
+      normalizedSummary === 'ocupado' ||
+      normalizedSummary === 'free' ||
+      normalizedSummary === 'livre' ||
+      normalizedSummary === 'sem título' ||
+      normalizedSummary.startsWith('busy ') ||
+      normalizedSummary.includes('out of office') ||
+      normalizedSummary.includes('working location') ||
+      (!description.trim() && !location.trim() && normalizedSummary.length <= 10);
+
+    if (!dtstart || isBusyBlock) continue;
 
 
     const startDate = parseICalDate(dtstart);
