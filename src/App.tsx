@@ -39,6 +39,7 @@ const App = () => (
             <Route path="/admin/galeria" element={<Gallery />} />
             <Route path="/admin/formularios" element={<Forms />} />
             <Route path="/admin/configuracoes" element={<SettingsPage />} />
+            <Route path="/validar-captura" element={<ValidarCaptura />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TrackingProvider>
