@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2 } from "lucide-react";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import WaveDivider from "@/components/WaveDivider";
@@ -31,11 +32,6 @@ const bandeiras = [
   },
 ];
 
-const eventos = [
-  { dia: "14", mes: "MAR", diaSemana: "sábado", dataFull: "14 de março", titulo: "Encontro Comunitário — Saúde para Todos", hora: "14:00", local: "Goiânia — Centro de Convenções", desc: "Evento aberto à comunidade para discutir melhorias na saúde pública goiana.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Encontro+Comunit%C3%A1rio+%E2%80%94+Sa%C3%BAde+para+Todos&dates=20260314T180000Z%2F20260314T200000Z&details=Evento+aberto+%C3%A0+comunidade+para+discutir+melhorias+na+sa%C3%BAde+p%C3%BAblica+goiana.&location=Goi%C3%A2nia%2C+Centro+de+Conven%C3%A7%C3%B5es" },
-  { dia: "21", mes: "MAR", diaSemana: "sábado", dataFull: "21 de março", titulo: "Audiência Pública — Educação em Goiás", hora: "09:00", local: "Anápolis — Câmara Municipal", desc: "Debate sobre investimentos e políticas educacionais para o estado.", destaque: false, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Audi%C3%AAncia+P%C3%BAblica+%E2%80%94+Educa%C3%A7%C3%A3o+em+Goi%C3%A1s&dates=20260321T130000Z%2F20260321T150000Z&details=Debate+sobre+investimentos+e+pol%C3%ADticas+educacionais+para+o+estado.&location=An%C3%A1polis%2C+C%C3%A2mara+Municipal" },
-  { dia: "04", mes: "ABR", diaSemana: "sábado", dataFull: "04 de abril", titulo: "Caravana da Saúde — Região Metropolitana", hora: "08:00", local: "Aparecida de Goiânia — Praça Central", desc: "Atendimento gratuito e orientações de saúde para a população.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Caravana+da+Sa%C3%BAde+%E2%80%94+Regi%C3%A3o+Metropolitana&dates=20260404T120000Z%2F20260404T140000Z&details=Atendimento+gratuito+e+orienta%C3%A7%C3%B5es+de+sa%C3%BAde+para+a+popula%C3%A7%C3%A3o.&location=Aparecida+de+Goi%C3%A2nia%2C+Pra%C3%A7a+Central" },
-];
 
 const redes = [
   { icon: MessageCircle, label: "WhatsApp", handle: "(62) 98133-6168", url: "https://w.app/drafernandasarelli" },
@@ -52,6 +48,7 @@ interface HomeGalleryPhoto {
 
 const Index = () => {
   const [galeriaFotos, setGaleriaFotos] = useState<HomeGalleryPhoto[]>([]);
+  const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
   useEffect(() => {
     const loadGaleria = async () => {
@@ -217,43 +214,49 @@ const Index = () => {
             </div>
           </ScrollReveal>
 
-          <div className="mt-10 space-y-4 max-w-3xl mx-auto">
-            {eventos.map((e, i) => (
-              <ScrollReveal key={e.titulo} delay={i * 0.1}>
-                <div className="flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-soft">
-                  <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
-                    <span className="text-xl font-bold leading-none">{e.dia}</span>
-                    <span className="text-xs font-semibold uppercase">{e.mes}</span>
-                  </div>
+          {eventosLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">Carregando eventos...</span>
+            </div>
+          ) : proximosEventos.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10">Nenhum evento próximo no momento.</p>
+          ) : (
+            <div className="mt-10 space-y-4 max-w-3xl mx-auto">
+              {proximosEventos.map((e, i) => (
+                <ScrollReveal key={e.id} delay={i * 0.1}>
+                  <div className="flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-soft">
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
+                      <span className="text-xl font-bold leading-none">{e.dia}</span>
+                      <span className="text-xs font-semibold uppercase">{e.mes}</span>
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold">{e.titulo}</h3>
-                      {e.destaque && (
-                        <span className="flex-shrink-0 rounded-full border border-primary/30 bg-accent px-3 py-0.5 text-xs font-semibold text-primary">
-                          Destaque
-                        </span>
-                      )}
+                      <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{e.hora}{e.horaFim && e.horaFim !== e.hora && ` – ${e.horaFim}`}</span>
+                        {e.local && (
+                          <a href={e.mapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
+                            <MapPin className="h-3.5 w-3.5" />{e.local}
+                          </a>
+                        )}
+                      </div>
+                      {e.desc && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{e.desc}</p>}
+                      <a
+                        href={e.gcal}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
+                      >
+                        <Calendar className="h-3.5 w-3.5" />
+                        Adicionar à minha agenda
+                      </a>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{e.hora}</span>
-                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{e.local}</span>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{e.desc}</p>
-                    <a
-                      href={e.gcal}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
-                    >
-                      <Calendar className="h-3.5 w-3.5" />
-                      Adicionar ao Google
-                    </a>
                   </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          )}
 
           <div className="mt-8 text-center">
             <Link

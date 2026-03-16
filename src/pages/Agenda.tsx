@@ -1,31 +1,10 @@
 import { useState } from "react";
-import { Calendar, Clock, MapPin, Search } from "lucide-react";
+import { Calendar, Clock, MapPin, Search, ExternalLink, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
 import PageHeader from "@/components/PageHeader";
-
-interface Evento {
-  id: number;
-  dia: string;
-  mes: string;
-  titulo: string;
-  hora: string;
-  local: string;
-  desc: string;
-  destaque: boolean;
-  gcal: string;
-  passado: boolean;
-}
-
-const eventos: Evento[] = [
-  { id: 1, dia: "11", mes: "ABR", titulo: "Reunião com Lideranças Comunitárias", hora: "19:00", local: "Goiânia — Sede da Campanha", desc: "Encontro com líderes de bairros para ouvir demandas da comunidade.", destaque: false, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Reuni%C3%A3o+com+Lideran%C3%A7as+Comunit%C3%A1rias&dates=20260411T230000Z%2F20260412T010000Z&details=Encontro+com+l%C3%ADderes+de+bairros+para+ouvir+demandas+da+comunidade.&location=Goi%C3%A2nia%2C+Sede+da+Campanha", passado: false },
-  { id: 2, dia: "04", mes: "ABR", titulo: "Caravana da Saúde — Região Metropolitana", hora: "08:00", local: "Aparecida de Goiânia — Praça Central", desc: "Atendimento gratuito e orientações de saúde para a população.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Caravana+da+Sa%C3%BAde+%E2%80%94+Regi%C3%A3o+Metropolitana&dates=20260404T120000Z%2F20260404T140000Z&details=Atendimento+gratuito+e+orienta%C3%A7%C3%B5es+de+sa%C3%BAde+para+a+popula%C3%A7%C3%A3o.&location=Aparecida+de+Goi%C3%A2nia%2C+Pra%C3%A7a+Central", passado: false },
-  { id: 3, dia: "21", mes: "MAR", titulo: "Audiência Pública — Educação em Goiás", hora: "09:00", local: "Anápolis — Câmara Municipal", desc: "Debate sobre investimentos e políticas educacionais para o estado.", destaque: false, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Audi%C3%AAncia+P%C3%BAblica+%E2%80%94+Educa%C3%A7%C3%A3o+em+Goi%C3%A1s&dates=20260321T130000Z%2F20260321T150000Z&details=Debate+sobre+investimentos+e+pol%C3%ADticas+educacionais+para+o+estado.&location=An%C3%A1polis%2C+C%C3%A2mara+Municipal", passado: false },
-  { id: 4, dia: "14", mes: "MAR", titulo: "Encontro Comunitário — Saúde para Todos", hora: "14:00", local: "Goiânia — Centro de Convenções", desc: "Evento aberto à comunidade para discutir melhorias na saúde pública goiana.", destaque: true, gcal: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Encontro+Comunit%C3%A1rio+%E2%80%94+Sa%C3%BAde+para+Todos&dates=20260314T180000Z%2F20260314T200000Z&details=Evento+aberto+%C3%A0+comunidade+para+discutir+melhorias+na+sa%C3%BAde+p%C3%BAblica+goiana.&location=Goi%C3%A2nia%2C+Centro+de+Conven%C3%A7%C3%B5es", passado: false },
-  { id: 5, dia: "07", mes: "MAR", titulo: "Visita ao Hospital Materno-Infantil", hora: "10:00", local: "Goiânia — Hospital Materno-Infantil", desc: "Visita técnica e reunião com equipe médica sobre melhorias no atendimento.", destaque: false, gcal: "#", passado: true },
-  { id: 6, dia: "28", mes: "FEV", titulo: "Palestra — Direitos da Mulher", hora: "19:00", local: "Goiânia — Centro Cultural", desc: "Palestra sobre os avanços e desafios nos direitos das mulheres.", destaque: false, gcal: "#", passado: true },
-];
+import { useGoogleCalendar, type CalendarEvent } from "@/hooks/useGoogleCalendar";
 
 type Tab = "proximos" | "realizados" | "todos";
 
@@ -33,11 +12,23 @@ const Agenda = () => {
   const [busca, setBusca] = useState("");
   const [tab, setTab] = useState<Tab>("proximos");
 
-  const filtrados = eventos.filter((e) => {
-    const matchBusca = e.titulo.toLowerCase().includes(busca.toLowerCase()) || e.local.toLowerCase().includes(busca.toLowerCase());
+  const { events, loading, error } = useGoogleCalendar({ filter: "all" });
+
+  const filtrados = events.filter((e) => {
+    const matchBusca =
+      e.titulo.toLowerCase().includes(busca.toLowerCase()) ||
+      e.local.toLowerCase().includes(busca.toLowerCase()) ||
+      e.desc.toLowerCase().includes(busca.toLowerCase());
     if (tab === "proximos") return matchBusca && !e.passado;
     if (tab === "realizados") return matchBusca && e.passado;
     return matchBusca;
+  });
+
+  // For "proximos" sort ascending, for "realizados" sort descending (most recent first)
+  const sorted = [...filtrados].sort((a, b) => {
+    const dateA = new Date(a.dataISO).getTime();
+    const dateB = new Date(b.dataISO).getTime();
+    return tab === "realizados" ? dateB - dateA : dateA - dateB;
   });
 
   return (
@@ -76,50 +67,77 @@ const Agenda = () => {
             </div>
           </div>
 
-          {/* Events list */}
-          <div className="mt-8 space-y-4">
-            {filtrados.length === 0 && (
-              <p className="text-center text-muted-foreground py-10">Nenhum evento encontrado.</p>
-            )}
-            {filtrados.map((e, i) => (
-              <ScrollReveal key={e.id} delay={i * 0.08}>
-                <div className={`flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-lg ${e.passado ? "opacity-60" : ""}`}>
-                  {/* Date badge */}
-                  <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
-                    <span className="text-xl font-bold leading-none">{e.dia}</span>
-                    <span className="text-xs font-semibold uppercase">{e.mes}</span>
-                  </div>
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2 text-muted-foreground">Carregando eventos...</span>
+            </div>
+          )}
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+          {/* Error */}
+          {error && !loading && (
+            <p className="text-center text-muted-foreground py-10">
+              Não foi possível carregar os eventos. Tente novamente mais tarde.
+            </p>
+          )}
+
+          {/* Events list */}
+          {!loading && !error && (
+            <div className="mt-8 space-y-4">
+              {sorted.length === 0 && (
+                <p className="text-center text-muted-foreground py-10">Nenhum evento encontrado.</p>
+              )}
+              {sorted.map((e, i) => (
+                <ScrollReveal key={e.id} delay={Math.min(i * 0.08, 0.4)}>
+                  <div className={`flex gap-4 rounded-2xl border bg-card p-5 transition-shadow hover:shadow-lg ${e.passado ? "opacity-60" : ""}`}>
+                    {/* Date badge */}
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center h-16 w-16 rounded-xl bg-primary text-primary-foreground">
+                      <span className="text-xl font-bold leading-none">{e.dia}</span>
+                      <span className="text-xs font-semibold uppercase">{e.mes}</span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold">{e.titulo}</h3>
-                      {e.destaque && (
-                        <span className="flex-shrink-0 rounded-full border border-primary/30 bg-accent px-3 py-0.5 text-xs font-semibold text-primary">
-                          Destaque
+                      <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {e.hora}
+                          {e.horaFim && e.horaFim !== e.hora && ` – ${e.horaFim}`}
                         </span>
+                        {e.local && (
+                          <a
+                            href={e.mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 hover:text-primary transition-colors"
+                          >
+                            <MapPin className="h-3.5 w-3.5" />
+                            {e.local}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                      {e.desc && (
+                        <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{e.desc}</p>
+                      )}
+                      {!e.passado && (
+                        <a
+                          href={e.gcal}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
+                        >
+                          <Calendar className="h-3.5 w-3.5" />
+                          Adicionar à minha agenda
+                        </a>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{e.hora}</span>
-                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{e.local}</span>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{e.desc}</p>
-                    {!e.passado && (
-                      <a
-                        href={e.gcal}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors"
-                      >
-                        <Calendar className="h-3.5 w-3.5" />
-                        Adicionar ao Google
-                      </a>
-                    )}
                   </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </Layout>
