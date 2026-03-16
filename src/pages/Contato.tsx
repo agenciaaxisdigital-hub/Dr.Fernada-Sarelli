@@ -52,19 +52,15 @@ const Contato = () => {
     setLoading(true);
     try {
       const cookie_visitante = getVisitorId();
-      const device = detectDevice();
-      const fillTime = getFormFillTime();
 
-      // Wait up to 3 seconds for GPS if still resolving
+      // FIX 5: Wait up to 5s for GPS polling sessionStorage every 500ms
       let geo = getCachedGeo();
-      if (!geo) {
+      if (!geo || geo.geo_layer !== "gps") {
         try {
-          geo = await Promise.race([
-            resolveLocation(),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-          ]);
-        } catch { /* ignore */ }
+          geo = await waitForGPS(5000, 500);
+        } catch { /* use whatever we have */ }
       }
+      if (!geo) geo = await resolveLocation().catch(() => null);
 
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
