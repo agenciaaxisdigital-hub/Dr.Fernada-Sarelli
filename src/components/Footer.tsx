@@ -37,7 +37,7 @@ const Footer = () => (
             <a href="https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
               <Facebook className="h-4 w-4" />
             </a>
-            <a href="https://w.app/drafernandasarelli" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
+            <a href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors">
               <MessageCircle className="h-4 w-4" />
             </a>
           </div>

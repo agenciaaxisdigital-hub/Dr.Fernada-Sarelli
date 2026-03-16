@@ -26,8 +26,8 @@ const canais = [
   {
     icon: MessageCircle,
     label: "Whatsapp",
-    handle: "(62) 98133-6168",
-    url: "https://w.app/drafernandasarelli",
+    handle: "(62) 99323-7397",
+    url: "https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli",
   },
   {
     icon: Facebook,

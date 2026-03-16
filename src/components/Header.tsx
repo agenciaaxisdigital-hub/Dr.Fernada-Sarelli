@@ -15,7 +15,7 @@ const navItems = [
 const socialLinks = [
   { icon: Instagram, label: "Instagram", url: "https://www.instagram.com/drafernandasarelli/" },
   { icon: Facebook, label: "Facebook", url: "https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" },
-  { icon: MessageCircle, label: "WhatsApp", url: "https://w.app/drafernandasarelli" },
+  { icon: MessageCircle, label: "WhatsApp", url: "https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli" },
 ];
 
 const Header = () => {

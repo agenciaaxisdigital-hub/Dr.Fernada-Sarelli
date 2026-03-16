@@ -155,7 +155,7 @@ const Contato = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Telefone</p>
-                      <p className="font-medium">(62) 98133-6168</p>
+                      <p className="font-medium">(62) 99323-7397</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

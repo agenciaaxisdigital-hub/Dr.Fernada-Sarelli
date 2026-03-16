@@ -2,7 +2,7 @@ import { MessageCircle } from "lucide-react";
 
 const WhatsAppFloat = () => (
   <a
-    href="https://w.app/drafernandasarelli"
+    href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Fale pelo WhatsApp"
