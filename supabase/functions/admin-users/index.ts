@@ -104,7 +104,27 @@ Deno.serve(async (req) => {
       return json({ users });
     }
 
-    return json({ error: "Ação inválida. Use: create, delete, list" }, 400);
+    if (action === "reset-password") {
+      if (!user_id || !password) {
+        return json({ error: "user_id e password são obrigatórios" }, 400);
+      }
+
+      if (password.length < 6) {
+        return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 400);
+      }
+
+      const { error: updateError } = await supabase.auth.admin.updateUserById(user_id, {
+        password,
+      });
+
+      if (updateError) {
+        return json({ error: updateError.message }, 400);
+      }
+
+      return json({ success: true });
+    }
+
+    return json({ error: "Ação inválida. Use: create, delete, list, reset-password" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }
