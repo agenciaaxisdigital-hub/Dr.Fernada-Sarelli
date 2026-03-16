@@ -306,6 +306,29 @@ function isPrivateIP(ip: string): boolean {
   return ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.16.") || ip.startsWith("172.17.") || ip.startsWith("172.18.") || ip.startsWith("172.19.") || ip.startsWith("172.2") || ip.startsWith("172.3");
 }
 
+async function runLocationUpdate(
+  supabase: ReturnType<typeof createClient>,
+  table: string,
+  updateFields: Record<string, unknown>,
+  cookie: string,
+  enderecoIp: string,
+  sinceIso: string,
+) {
+  if (table === "mensagens_contato") {
+    return await supabase
+      .from(table)
+      .update(updateFields)
+      .eq("endereco_ip", enderecoIp)
+      .gte("criado_em", sinceIso);
+  }
+
+  return await supabase
+    .from(table)
+    .update(updateFields)
+    .eq("cookie_visitante", cookie)
+    .gte("criado_em", sinceIso);
+}
+
 // AUDIT 3: Server-side geo with parallel calls and merge
 async function serverGeoLookup(ip: string): Promise<Record<string, unknown>> {
   if (!ip || ip === "0.0.0.0" || isPrivateIP(ip)) {
