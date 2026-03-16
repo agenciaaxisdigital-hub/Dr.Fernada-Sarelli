@@ -42,24 +42,15 @@ Deno.serve(async (req) => {
       const cookie = body.cookie_visitante as string;
       const table = body.table as string;
 
-      if (!cookie || !table) {
-        return json({ error: "Missing cookie_visitante or table" }, 400);
+      if (!cookie) {
+        return json({ error: "Missing cookie_visitante" }, 400);
       }
 
-      const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"];
-      const tableColumns: Record<string, string[]> = {
-        acessos_site: locationCols,
-        cliques_whatsapp: locationCols,
-        mensagens_contato: locationCols,
-      };
+      const locationCols = ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude", "precisao_localizacao"];
 
-      const allowedFields = tableColumns[table];
-      if (!allowedFields) {
-        return json({ error: "Invalid table" }, 400);
-      }
-
+      // Build update data from provided fields
       const updateFields: Record<string, unknown> = {};
-      for (const field of allowedFields) {
+      for (const field of locationCols) {
         if (body[field] !== undefined && body[field] !== null) {
           updateFields[field] = body[field];
         }
@@ -69,19 +60,24 @@ Deno.serve(async (req) => {
         return json({ message: "No fields to update" }, 200);
       }
 
-      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      // Update all 3 tables within last 24 hours for this visitor
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const tables = table ? [table] : ["acessos_site", "cliques_whatsapp", "mensagens_contato"];
 
-      const { error } = await supabase
-        .from(table)
-        .update(updateFields)
-        .eq("cookie_visitante", cookie)
-        .gte("criado_em", thirtyMinAgo);
+      const results = await Promise.allSettled(
+        tables.map(t =>
+          supabase.from(t).update(updateFields)
+            .eq("cookie_visitante", cookie)
+            .gte("criado_em", twentyFourHoursAgo)
+        )
+      );
 
-      if (error) {
-        console.error("Update location error:", error.message);
-        return json({ error: error.message }, 500);
+      const errors = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && r.value.error));
+      if (errors.length > 0) {
+        console.error("Update location errors:", JSON.stringify(errors));
       }
 
+      console.log(`[Chama] Update-location for ${cookie}: ${Object.keys(updateFields).join(", ")} across ${tables.join(", ")}`);
       return json({ success: true });
     }
 
@@ -115,6 +111,7 @@ Deno.serve(async (req) => {
         dispositivo: body.dispositivo || null,
         sistema_operacional: body.sistema_operacional || null,
         navegador: body.navegador || null,
+        precisao_localizacao: body.precisao_localizacao || "IP_APROXIMADO",
       };
 
       const { error } = await supabase.from("cliques_whatsapp").insert(clickRow);
@@ -132,7 +129,7 @@ Deno.serve(async (req) => {
 
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const updateData: Record<string, unknown> = {};
-      for (const f of ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude"]) {
+      for (const f of ["endereco_ip", "pais", "estado", "cidade", "bairro", "cep", "rua", "endereco_completo", "zona_eleitoral", "regiao_planejamento", "latitude", "longitude", "precisao_localizacao"]) {
         if (body[f]) updateData[f] = body[f];
       }
 
@@ -185,6 +182,7 @@ Deno.serve(async (req) => {
         latitude: body.latitude || geoFields.latitude || null,
         longitude: body.longitude || geoFields.longitude || null,
         zona_eleitoral: body.zona_eleitoral || geoFields.zona_eleitoral || null,
+        precisao_localizacao: body.precisao_localizacao || "IP_APROXIMADO",
       };
 
       const { data: result, error } = await supabase

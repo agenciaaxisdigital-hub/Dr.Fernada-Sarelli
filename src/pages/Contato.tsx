@@ -20,6 +20,7 @@ import {
   getFormFillTime,
   resetFormTracking,
   updateLocationViaEdge,
+  getGeoMode,
 } from "@/lib/tracking";
 
 const schema = z.object({
@@ -79,6 +80,7 @@ const Contato = () => {
           mensagem: data.mensagem,
           cookie_visitante,
           user_agent: navigator.userAgent,
+          precisao_localizacao: getGeoMode(),
           ...(geo ? {
             cidade: geo.cidade,
             estado: geo.estado,

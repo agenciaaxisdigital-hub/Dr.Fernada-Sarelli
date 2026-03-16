@@ -36,6 +36,14 @@ const BAIRRO_SOURCE_KEY = "chama_bairro_source";
 const UTM_KEY = "chama_utms";
 const SESSION_START_KEY = "chama_session_start";
 const SCROLL_MILESTONES_KEY = "chama_scroll_milestones";
+const GEO_MODE_KEY = "chama_geo_mode";
+const GEO_DENIED_KEY = "chama_geo_denied";
+
+// Location precision modes
+export const PRECISAO = {
+  GPS: "GPS_PRECISO" as const,
+  IP: "IP_APROXIMADO" as const,
+};
 
 // ═══════════════════════════════════════════════════════════
 // RETRY ENGINE — RULE 1: NEVER LOSE A RECORD
@@ -319,16 +327,22 @@ export interface GeoData {
   fuso_horario?: string | null;
   geo_layer?: string;
   zona_eleitoral?: string;
+  precisao_localizacao?: string;
   nominatim_raw?: Record<string, unknown> | null;
 }
 
 let cachedGeoData: GeoData | null = null;
 let gpsResolutionPromise: Promise<GeoData | null> | null = null;
 
-// AUDIT 4: Force GPS on every page load
+// Force GPS on every page load — sets denied flag on error
 export function forceGPS(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    // Skip if already denied this session
+    if (sessionStorage.getItem(GEO_DENIED_KEY) === "true") {
       resolve(null);
       return;
     }
@@ -338,10 +352,15 @@ export function forceGPS(): Promise<GeolocationPosition | null> {
           sessionStorage.setItem(LAT_KEY, String(pos.coords.latitude));
           sessionStorage.setItem(LNG_KEY, String(pos.coords.longitude));
           sessionStorage.setItem(GEO_RESOLVED_KEY, "true");
+          sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.GPS);
         } catch {}
         resolve(pos);
       },
       () => {
+        try {
+          sessionStorage.setItem(GEO_DENIED_KEY, "true");
+          sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.IP);
+        } catch {}
         resolve(null);
       },
       { timeout: 20000, maximumAge: 0, enableHighAccuracy: true }
@@ -538,7 +557,7 @@ export async function resolveLocation(): Promise<GeoData> {
   const ipFallback = ipFallbackResult.status === "fulfilled" ? ipFallbackResult.value : {};
   const tz = geoFromTimezone();
 
-  // AUDIT 3: Merge both IP results
+  // Merge both IP results
   const mergedIp = mergeGeoResults(ipPrimary, ipFallback);
 
   // Merge: GPS wins, then merged IP, then timezone
@@ -547,6 +566,15 @@ export async function resolveLocation(): Promise<GeoData> {
   // Ensure IP is always present even when GPS overrides
   if (!geo.endereco_ip && mergedIp.endereco_ip) {
     geo.endereco_ip = mergedIp.endereco_ip;
+  }
+
+  // Set precisao_localizacao based on whether GPS resolved
+  if (gps && gps.latitude) {
+    geo.precisao_localizacao = PRECISAO.GPS;
+    try { sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.GPS); } catch {}
+  } else {
+    geo.precisao_localizacao = PRECISAO.IP;
+    try { sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.IP); } catch {}
   }
 
   // Ensure zona_eleitoral
@@ -565,6 +593,8 @@ export function startGPSResolution(): Promise<GeoData | null> {
       if (!pos) return null;
       const geo = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
       geo.zona_eleitoral = identifyZone(geo.bairro || "", geo.cidade || "", geo.latitude, geo.longitude);
+      geo.precisao_localizacao = PRECISAO.GPS;
+      try { sessionStorage.setItem(GEO_MODE_KEY, PRECISAO.GPS); } catch {}
       cachedGeoData = geo;
       return geo;
     } catch {
@@ -573,6 +603,13 @@ export function startGPSResolution(): Promise<GeoData | null> {
   })();
 
   return gpsResolutionPromise;
+}
+
+// Get current geo precision mode
+export function getGeoMode(): string {
+  try {
+    return sessionStorage.getItem(GEO_MODE_KEY) || PRECISAO.IP;
+  } catch { return PRECISAO.IP; }
 }
 
 export function isGPSResolved(): boolean {
@@ -812,6 +849,7 @@ export async function trackPageView(pagina: string) {
       dispositivo: device.dispositivo, sistema_operacional: device.sistema_operacional,
       navegador: device.navegador, cookie_visitante, primeira_visita,
       contador_visitas: visitCount, ...utms,
+      precisao_localizacao: PRECISAO.IP, // starts as IP, upgraded when GPS resolves
     };
 
     // Try to get cached geo immediately
@@ -821,6 +859,7 @@ export async function trackPageView(pagina: string) {
       baseData.pais = cachedGeo.pais || null;
       baseData.estado = cachedGeo.estado || null;
       baseData.cidade = cachedGeo.cidade || null;
+      if (cachedGeo.precisao_localizacao) baseData.precisao_localizacao = cachedGeo.precisao_localizacao;
     }
 
     // Fire insert immediately
@@ -845,10 +884,12 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
     const geo = getCachedGeo();
     const tempo_no_site = Math.round((Date.now() - parseInt(sessionStorage.getItem(SESSION_START_KEY) || String(Date.now()), 10)) / 1000);
 
+    const precisao_localizacao = getGeoMode();
     const data: Record<string, unknown> = {
       tipo_clique, pagina_origem, user_agent: navigator.userAgent, cookie_visitante,
       texto_botao: extra?.texto_botao || null, secao_pagina: extra?.secao_pagina || "sem-secao",
       url_destino: extra?.url_destino || null,
+      precisao_localizacao,
     };
     if (geo) {
       data.endereco_ip = geo.endereco_ip || null;

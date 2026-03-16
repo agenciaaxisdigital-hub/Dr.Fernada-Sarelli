@@ -19,6 +19,8 @@ import {
   getNominatimRaw,
   getBairroSource,
   updateLocationViaEdge,
+  getGeoMode,
+  PRECISAO,
   ZONE_MAP,
   type GeoData,
 } from "@/lib/tracking";
@@ -113,6 +115,12 @@ const ValidarCaptura = () => {
 
     // 6. Session
     updateCheck("Sessão", "ok", `Duração: ${getSessionDuration()}s | Scroll: ${getScrollDepth()}%`);
+
+    // 6b. Geo Mode
+    const geoMode = getGeoMode();
+    updateCheck("Precisão Localização", geoMode === PRECISAO.GPS ? "ok" : "warn",
+      `Modo: ${geoMode} ${geoMode === PRECISAO.GPS ? "— GPS preciso ativo" : "— Usando aproximação por IP"}`
+    );
 
     // 7. Queue
     const queue = getFailedQueue();
