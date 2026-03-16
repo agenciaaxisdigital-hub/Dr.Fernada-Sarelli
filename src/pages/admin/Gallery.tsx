@@ -84,6 +84,47 @@ const Gallery = () => {
     loadData();
   }, [loadData]);
 
+  const deleteAlbum = async (albumId: string) => {
+    // Move photos to "sem álbum" before deleting
+    await supabase.from("galeria_fotos").update({ album_id: null } as any).eq("album_id", albumId);
+    const { error } = await supabase.from("albuns" as any).delete().eq("id", albumId);
+    if (error) {
+      toast.error("Não foi possível excluir o álbum.");
+      return;
+    }
+    if (selectedAlbum === albumId) setSelectedAlbum(null);
+    toast.success("Álbum excluído");
+    await loadData();
+  };
+
+  const updateAlbum = async () => {
+    if (!editAlbumId || !editAlbumName.trim()) return;
+    const { error } = await supabase.from("albuns" as any).update({ nome: editAlbumName.trim() } as any).eq("id", editAlbumId);
+    if (error) {
+      toast.error("Não foi possível renomear o álbum.");
+      return;
+    }
+    setEditAlbumOpen(false);
+    setEditAlbumId(null);
+    setEditAlbumName("");
+    toast.success("Álbum renomeado");
+    await loadData();
+  };
+
+  const moveAlbum = async (albumId: string, direction: "left" | "right") => {
+    const idx = albuns.findIndex((a) => a.id === albumId);
+    if (idx < 0) return;
+    const swapIdx = direction === "left" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= albuns.length) return;
+
+    const updates = [
+      supabase.from("albuns" as any).update({ ordem: swapIdx } as any).eq("id", albuns[idx].id),
+      supabase.from("albuns" as any).update({ ordem: idx } as any).eq("id", albuns[swapIdx].id),
+    ];
+    await Promise.all(updates);
+    await loadData();
+  };
+
   const ensureTestAlbums = async () => {
     const { data: existingAlbums, error: existingError } = await supabase
       .from("albuns" as any)
