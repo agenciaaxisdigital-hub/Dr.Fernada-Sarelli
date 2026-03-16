@@ -223,7 +223,7 @@ const Agenda = () => {
                         {group.label}
                       </span>
                       <span className="text-xs text-muted-foreground/60">
-                        ({group.events.length} evento{group.events.length !== 1 ? "s" : ""})
+                        ({(allGroups.find(g => g.key === group.key)?.events.length || group.events.length)} evento{(allGroups.find(g => g.key === group.key)?.events.length || group.events.length) !== 1 ? "s" : ""})
                       </span>
                     </button>
 
