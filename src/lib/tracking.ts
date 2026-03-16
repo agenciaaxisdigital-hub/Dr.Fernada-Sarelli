@@ -200,7 +200,7 @@ export interface DeviceInfo {
 export function detectDevice(): DeviceInfo {
   const fallback = "Não identificado";
   try {
-    const parser = new UAParser(navigator.userAgent);
+    const parser = UAParser(navigator.userAgent);
     const browser = parser.getBrowser();
     const os = parser.getOS();
     const device = parser.getDevice();
