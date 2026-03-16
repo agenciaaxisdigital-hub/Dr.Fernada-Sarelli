@@ -7,9 +7,9 @@ const redes = [
   {
     icon: MessageCircle,
     label: "WhatsApp",
-    handle: "(62) 98133-6168",
+    handle: "(62) 99323-7397",
     desc: "Receba informações direto no seu celular",
-    url: "https://w.app/drafernandasarelli",
+    url: "https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli",
   },
   {
     icon: Facebook,

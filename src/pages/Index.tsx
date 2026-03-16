@@ -34,7 +34,7 @@ const bandeiras = [
 
 
 const redes = [
-  { icon: MessageCircle, label: "WhatsApp", handle: "(62) 98133-6168", url: "https://w.app/drafernandasarelli" },
+  { icon: MessageCircle, label: "WhatsApp", handle: "(62) 99323-7397", url: "https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli" },
   { icon: Facebook, label: "Facebook", handle: "@drafernandaSarelli", url: "https://www.facebook.com/people/Dra-Fernanda-Sarelli/61554974150545/" },
   { icon: Instagram, label: "Instagram", handle: "@drafernandasarelli", url: "https://www.instagram.com/drafernandasarelli/" },
 ];
@@ -124,7 +124,7 @@ const Index = () => {
                     Ver Agenda
                   </Link>
                   <a
-                    href="https://w.app/drafernandasarelli"
+                    href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-full border-2 border-primary-foreground/40 px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
@@ -372,7 +372,7 @@ const Index = () => {
             </div>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <a
-                href="https://w.app/drafernandasarelli"
+                href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
@@ -390,7 +390,7 @@ const Index = () => {
 
           <ScrollReveal delay={0.2}>
             <a
-              href="https://w.app/drafernandasarelli"
+              href="https://wa.me/5562993237397?text=Ol%C3%A1%20Dra.%20Fernanda%20Sarelli"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-10 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-primary p-5 text-primary-foreground transition-transform hover:scale-105"
@@ -398,7 +398,7 @@ const Index = () => {
               <MessageCircle className="h-8 w-8 flex-shrink-0" />
               <div className="text-left">
                 <p className="text-sm">Receba as informações direto em seu celular</p>
-                <p className="text-lg font-bold">(62) 98133-6168</p>
+                <p className="text-lg font-bold">(62) 99323-7397</p>
               </div>
             </a>
           </ScrollReveal>
