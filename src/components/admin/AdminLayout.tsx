@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Image, FileText, Settings, LogOut, Menu, X, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAdmin } from "@/hooks/useAdmin";
+import { useAdmin, painelLogout } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -17,8 +16,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    painelLogout();
     navigate("/admin/login");
   };
 
@@ -36,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden lg:flex lg:w-64 flex-col border-r bg-card">
         <div className="p-6 border-b">
           <h1 className="text-lg font-bold text-primary">Painel Admin</h1>
-          <p className="text-sm font-medium mt-1">{user?.username}</p>
+          <p className="text-sm font-medium mt-1">{user?.nome}</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
@@ -77,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
             <div className="w-64 h-full bg-card border-r p-4 space-y-1" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 pb-4 border-b">
-              <p className="text-sm font-medium">{user?.username}</p>
+              <p className="text-sm font-medium">{user?.nome}</p>
             </div>
             {navItems.map((item) => (
                 <Link

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Key, UserPlus, Trash2, RefreshCw, Copy, Pencil, KeyRound } from "lucide-react";
+import { Key, UserPlus, Trash2, RefreshCw, Copy, Pencil, KeyRound, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdmin } from "@/hooks/useAdmin";
+import { useAdmin, painelLogout } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,28 +13,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
 
-interface AdminUser {
+interface PainelUser {
   id: string;
-  user_id: string;
-  username: string;
+  nome: string;
   cargo: string;
 }
 
 const SettingsPage = () => {
   useAdmin();
+  const navigate = useNavigate();
   const [apiToken, setApiToken] = useState("");
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<PainelUser[]>([]);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Edit dialogs
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [editingUser, setEditingUser] = useState<PainelUser | null>(null);
   const [editUsername, setEditUsername] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
-  const [resetUser, setResetUser] = useState<AdminUser | null>(null);
+  const [resetUser, setResetUser] = useState<PainelUser | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
 
@@ -47,15 +47,12 @@ const SettingsPage = () => {
     if (tokenData) setApiToken((tokenData as any).valor || "");
 
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
+      const { data, error } = await supabase.functions.invoke("painel-auth", {
         body: { action: "list" },
       });
       if (!error && data?.users) setUsers(data.users);
     } catch {
-      const { data: roles } = await supabase.from("roles_usuarios").select("*");
-      if (roles) {
-        setUsers(roles.map((r: any) => ({ id: r.id, user_id: r.user_id, username: r.user_id.substring(0, 8), cargo: r.cargo })));
-      }
+      console.error("Erro ao carregar usuários");
     }
   };
 
@@ -89,13 +86,8 @@ const SettingsPage = () => {
 
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: {
-          action: "create",
-          username: newUsername.trim(),
-          password: newPassword,
-          cargo: "admin",
-        },
+      const { data, error } = await supabase.functions.invoke("painel-auth", {
+        body: { action: "create", nome: newUsername.trim(), senha: newPassword, cargo: "admin" },
       });
 
       if (error) throw error;
@@ -115,9 +107,9 @@ const SettingsPage = () => {
     }
   };
 
-  const removeUser = async (userId: string, username: string) => {
+  const removeUser = async (userId: string, nome: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
+      const { data, error } = await supabase.functions.invoke("painel-auth", {
         body: { action: "delete", user_id: userId },
       });
       if (error) throw error;
@@ -125,7 +117,7 @@ const SettingsPage = () => {
         toast.error(data.error);
         return;
       }
-      toast.success(`Usuário "${username}" removido`);
+      toast.success(`Usuário "${nome}" removido`);
       loadData();
     } catch {
       toast.error("Erro ao remover usuário");
@@ -135,18 +127,14 @@ const SettingsPage = () => {
   const handleEditUsername = async () => {
     if (!editingUser || !editUsername.trim()) return;
     if (editUsername.length < 3) {
-      toast.error("Usuário deve ter pelo menos 3 caracteres");
+      toast.error("Nome deve ter pelo menos 3 caracteres");
       return;
     }
 
     setEditSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: {
-          action: "update-username",
-          user_id: editingUser.user_id,
-          username: editUsername.trim(),
-        },
+      const { data, error } = await supabase.functions.invoke("painel-auth", {
+        body: { action: "update-name", user_id: editingUser.id, nome: editUsername.trim() },
       });
       if (error) throw error;
       if (data?.error) {
@@ -172,12 +160,8 @@ const SettingsPage = () => {
 
     setResetSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: {
-          action: "reset-password",
-          user_id: resetUser.user_id,
-          password: resetPassword,
-        },
+      const { data, error } = await supabase.functions.invoke("painel-auth", {
+        body: { action: "reset-password", user_id: resetUser.id, senha: resetPassword },
       });
       if (error) throw error;
       if (data?.error) {
@@ -194,10 +178,20 @@ const SettingsPage = () => {
     }
   };
 
+  const handleLogout = () => {
+    painelLogout();
+    navigate("/admin/login");
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8 max-w-2xl">
-        <h2 className="text-2xl font-bold">Configurações</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Configurações</h2>
+          <Button variant="outline" onClick={handleLogout} className="rounded-full gap-2">
+            <LogOut className="h-4 w-4" /> Sair
+          </Button>
+        </div>
 
         {/* API Token */}
         <div className="rounded-2xl border bg-card p-6 space-y-4">
@@ -226,19 +220,8 @@ const SettingsPage = () => {
 
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input
-                placeholder="Usuário"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                autoComplete="off"
-              />
-              <Input
-                placeholder="Senha"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-              />
+              <Input placeholder="Nome de usuário" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="off" />
+              <Input placeholder="Senha" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
             </div>
             <Button onClick={createUser} disabled={creating} className="rounded-full">
               <UserPlus className="mr-2 h-4 w-4" /> {creating ? "Criando..." : "Criar Usuário"}
@@ -252,39 +235,17 @@ const SettingsPage = () => {
             {users.map((u) => (
               <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
                 <div>
-                  <p className="text-sm font-medium">{u.username}</p>
+                  <p className="text-sm font-medium">{u.nome}</p>
                   <p className="text-xs text-muted-foreground">{u.cargo}</p>
                 </div>
                 <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setEditingUser(u);
-                      setEditUsername(u.username);
-                    }}
-                    title="Editar nome"
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => { setEditingUser(u); setEditUsername(u.nome); }} title="Editar nome">
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setResetUser(u);
-                      setResetPassword("");
-                    }}
-                    title="Redefinir senha"
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => { setResetUser(u); setResetPassword(""); }} title="Redefinir senha">
                     <KeyRound className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeUser(u.user_id, u.username)}
-                    className="text-destructive hover:bg-destructive/10"
-                    title="Remover"
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => removeUser(u.id, u.nome)} className="text-destructive hover:bg-destructive/10" title="Remover">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -303,12 +264,7 @@ const SettingsPage = () => {
           <div className="space-y-4 pt-2">
             <div>
               <Label>Novo nome</Label>
-              <Input
-                value={editUsername}
-                onChange={(e) => setEditUsername(e.target.value)}
-                className="mt-1"
-                autoComplete="off"
-              />
+              <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="mt-1" autoComplete="off" />
             </div>
             <Button onClick={handleEditUsername} disabled={editSaving} className="w-full rounded-full">
               {editSaving ? "Salvando..." : "Salvar"}
@@ -321,19 +277,12 @@ const SettingsPage = () => {
       <Dialog open={!!resetUser} onOpenChange={(open) => !open && setResetUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Redefinir Senha — {resetUser?.username}</DialogTitle>
+            <DialogTitle>Redefinir Senha — {resetUser?.nome}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
               <Label>Nova senha</Label>
-              <Input
-                type="password"
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                className="mt-1"
-                placeholder="Mínimo 6 caracteres"
-                autoComplete="new-password"
-              />
+              <Input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className="mt-1" placeholder="Mínimo 6 caracteres" autoComplete="new-password" />
             </div>
             <Button onClick={handleResetPassword} disabled={resetSaving} className="w-full rounded-full">
               {resetSaving ? "Salvando..." : "Redefinir Senha"}

@@ -1,62 +1,50 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
-interface AdminUser {
+interface PainelUser {
   id: string;
-  username: string;
+  nome: string;
+  cargo: string;
+}
+
+const STORAGE_KEY = "painel_user";
+
+export function getPainelUser(): PainelUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function setPainelUser(user: PainelUser | null) {
+  if (user) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+export function painelLogout() {
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 export function useAdmin() {
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<PainelUser | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const check = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        setLoading(false);
-        navigate("/admin/login");
-        return;
-      }
-
-      // Use RPC function to check admin status (bypasses RLS)
-      const { data: isAdmin, error } = await supabase.rpc("eh_admin", {
-        _user_id: session.user.id,
-      });
-
-      if (error || !isAdmin) {
-        await supabase.auth.signOut();
-        setLoading(false);
-        navigate("/admin/login");
-        return;
-      }
-
-      const username = session.user.user_metadata?.username || session.user.email?.split("@")[0] || "admin";
-
-      setUser({
-        id: session.user.id,
-        username,
-      });
+    const stored = getPainelUser();
+    if (!stored) {
       setLoading(false);
-    };
-
-    check();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        setUser(null);
-        navigate("/admin/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
+      navigate("/admin/login");
+      return;
+    }
+    setUser(stored);
+    setLoading(false);
   }, [navigate]);
 
   return { user, loading };
