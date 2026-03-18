@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden lg:flex lg:w-64 flex-col border-r bg-card">
         <div className="p-6 border-b">
           <h1 className="text-lg font-bold text-primary">Painel Admin</h1>
-          <p className="text-sm font-medium mt-1">{user?.username}</p>
+          <p className="text-sm font-medium mt-1">{user?.nome}</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
