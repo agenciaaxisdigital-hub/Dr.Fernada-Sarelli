@@ -275,6 +275,7 @@ const Gallery = () => {
         previewUrl: URL.createObjectURL(file),
         focalX: 50,
         focalY: 50,
+        zoom: 100,
       }));
       setPendingUploads(previews);
       setPreviewIndex(0);
