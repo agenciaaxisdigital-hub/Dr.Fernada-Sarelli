@@ -1001,6 +1001,7 @@ const Gallery = () => {
                     src={foto.url_foto}
                     alt={foto.titulo}
                     className={`w-full aspect-square object-cover transition-opacity ${!foto.visivel ? "opacity-50" : ""}`}
+                    style={getFocalStyle(foto.legenda)}
                     loading="lazy"
                   />
                 )}
