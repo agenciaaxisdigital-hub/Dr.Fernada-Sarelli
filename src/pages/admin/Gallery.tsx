@@ -778,7 +778,8 @@ const Gallery = () => {
                     src={editingPhoto.url_foto}
                     focalX={editFocalX}
                     focalY={editFocalY}
-                    onChange={(x, y) => { setEditFocalX(x); setEditFocalY(y); }}
+                    zoom={editZoom}
+                    onChange={(x, y, z) => { setEditFocalX(x); setEditFocalY(y); if (z !== undefined) setEditZoom(z); }}
                   />
                 )}
                 <div className="space-y-2">
