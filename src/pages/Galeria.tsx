@@ -147,7 +147,7 @@ const GaleriaPublica = () => {
 
   // Auto-play video when lightbox opens
   useEffect(() => {
-    if (lightbox?.tipo === "video" && videoRef.current) {
+    if (lightbox && getFotoTipo(lightbox.url_foto) === "video" && videoRef.current) {
       videoRef.current.play().catch(() => {});
     }
   }, [lightbox]);
