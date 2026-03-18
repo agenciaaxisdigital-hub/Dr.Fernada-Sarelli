@@ -181,10 +181,7 @@ const SettingsPage = () => {
             {users.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum usuário cadastrado.</p>}
             {users.map((u) => (
               <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
-                <div>
-                  <p className="text-sm font-medium">{u.nome}</p>
-                  <p className="text-xs text-muted-foreground">{u.cargo}</p>
-                </div>
+                <p className="text-sm font-medium">{u.nome}</p>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" onClick={() => { setEditingUser(u); setEditUsername(u.nome); }} title="Editar nome"><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => { setResetUser(u); setResetPassword(""); }} title="Redefinir senha"><KeyRound className="h-4 w-4" /></Button>
