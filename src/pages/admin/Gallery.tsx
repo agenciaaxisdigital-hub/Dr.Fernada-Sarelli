@@ -304,7 +304,7 @@ const Gallery = () => {
       }
 
       const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
-      const legendaWithFp = encodeFocalPoint(null, focalX, focalY);
+      const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
       const { error: insertError } = await supabase.from("galeria_fotos").insert({
         titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         url_foto: urlData.publicUrl,
