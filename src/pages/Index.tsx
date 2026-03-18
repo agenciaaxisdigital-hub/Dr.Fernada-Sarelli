@@ -46,12 +46,13 @@ interface HomeGalleryItem {
   url_foto: string;
   tipo: string;
   ordem: number;
+  evento: string | null;
 }
 
 const Index = () => {
   const [galeriaItems, setGaleriaItems] = useState<HomeGalleryItem[]>([]);
   const [galeriaAtiva, setGaleriaAtiva] = useState(false);
-  const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video">("todos");
+  const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video" | "eventos">("todos");
   const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
   useEffect(() => {
@@ -83,6 +84,7 @@ const Index = () => {
           url_foto: d.url_foto,
           tipo: d.tipo || "foto",
           ordem: d.ordem ?? 0,
+          evento: d.evento || null,
         })));
         return;
       }
@@ -103,6 +105,7 @@ const Index = () => {
           url_foto: d.url_foto,
           tipo: d.tipo || "foto",
           ordem: d.ordem ?? 0,
+          evento: d.evento || null,
         })));
       }
     };
@@ -314,18 +317,21 @@ const Index = () => {
           {/* Filter tabs */}
           {galeriaItems.length > 0 && (
             <ScrollReveal delay={0.05}>
-              <div className="flex justify-center gap-2 mt-8">
-                {(["todos", "foto", "video"] as const).map((filtro) => {
-                  const labels = { todos: "Todos", foto: "Fotos", video: "Vídeos" };
-                  const count = filtro === "todos"
-                    ? galeriaItems.length
-                    : galeriaItems.filter(i => (i.tipo || "foto") === filtro).length;
+              <div className="flex justify-start sm:justify-center gap-2 mt-8 overflow-x-auto pb-2 px-1 -mx-1 scrollbar-hide">
+                {(["todos", "foto", "video", "eventos"] as const).map((filtro) => {
+                  const labels = { todos: "Todos", foto: "📷 Fotos", video: "🎬 Vídeos", eventos: "📅 Eventos" };
+                  const getCount = (f: typeof filtro) => {
+                    if (f === "todos") return galeriaItems.length;
+                    if (f === "eventos") return galeriaItems.filter(i => !!i.evento).length;
+                    return galeriaItems.filter(i => (i.tipo || "foto") === f).length;
+                  };
+                  const count = getCount(filtro);
                   if (filtro !== "todos" && count === 0) return null;
                   return (
                     <button
                       key={filtro}
                       onClick={() => setGaleriaFiltro(filtro)}
-                      className={`rounded-full px-5 py-2 text-sm font-medium border transition-colors ${
+                      className={`rounded-full px-4 py-2 text-xs sm:text-sm font-medium border transition-colors whitespace-nowrap flex-shrink-0 ${
                         galeriaFiltro === filtro
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-card border-border hover:bg-accent"
@@ -342,20 +348,22 @@ const Index = () => {
           {(() => {
             const filtered = galeriaFiltro === "todos"
               ? galeriaItems
+              : galeriaFiltro === "eventos"
+              ? galeriaItems.filter(i => !!i.evento)
               : galeriaItems.filter(i => (i.tipo || "foto") === galeriaFiltro);
             const display = filtered.slice(0, 6);
 
             return display.length > 0 ? (
-              <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="mt-6 sm:mt-10 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 {display.map((item, i) => {
                   const isVideo = (item.tipo || "foto") === "video";
                   return (
-                    <ScrollReveal key={item.id} delay={i * 0.08}>
+                    <ScrollReveal key={item.id} delay={i * 0.06}>
                       <Link
                         to="/galeria"
-                        className="group block overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-lg"
+                        className="group block overflow-hidden rounded-xl sm:rounded-2xl border bg-card transition-shadow hover:shadow-lg active:scale-[0.98]"
                       >
-                        <div className="aspect-square overflow-hidden relative">
+                        <div className="aspect-[4/3] sm:aspect-square overflow-hidden relative">
                           {isVideo ? (
                             <>
                               <video
@@ -365,9 +373,9 @@ const Index = () => {
                                 preload="metadata"
                                 playsInline
                               />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                                <div className="h-12 w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                  <Play className="h-6 w-6 text-black ml-0.5" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                  <Play className="h-5 w-5 sm:h-6 sm:w-6 text-black ml-0.5" />
                                 </div>
                               </div>
                             </>
@@ -378,6 +386,13 @@ const Index = () => {
                               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                               loading="lazy"
                             />
+                          )}
+                        </div>
+                        {/* Mobile-friendly caption */}
+                        <div className="p-2 sm:p-3">
+                          <p className="text-xs sm:text-sm font-medium truncate">{item.titulo}</p>
+                          {item.evento && (
+                            <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">{item.evento}</p>
                           )}
                         </div>
                       </Link>

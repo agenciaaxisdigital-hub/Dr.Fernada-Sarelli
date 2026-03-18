@@ -68,4 +68,11 @@
   .gradient-header-page {
     background: linear-gradient(180deg, hsl(340 82% 92%) 0%, hsl(0 0% 100%) 100%);
   }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
