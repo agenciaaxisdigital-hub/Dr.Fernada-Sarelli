@@ -25,12 +25,12 @@ const AdminLoginPage = () => {
       if (error) throw error;
 
       // Verify user has admin role
-      const { data: roles } = await supabase
-        .from("roles_usuarios")
-        .select("cargo")
-        .eq("user_id", data.user.id);
+      // Use RPC to check admin role (bypasses RLS)
+      const { data: isAdmin } = await supabase.rpc("eh_admin", {
+        _user_id: data.user.id,
+      });
 
-      if (!roles || roles.length === 0) {
+      if (!isAdmin) {
         await supabase.auth.signOut();
         toast.error("Sem permissão de acesso ao painel.");
         return;
