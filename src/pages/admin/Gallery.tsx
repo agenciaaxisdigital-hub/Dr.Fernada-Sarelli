@@ -97,7 +97,7 @@ const Gallery = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload preview with focal point
-  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number }>>([]);
+  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number; zoom: number }>>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [showUploadPreview, setShowUploadPreview] = useState(false);
 
