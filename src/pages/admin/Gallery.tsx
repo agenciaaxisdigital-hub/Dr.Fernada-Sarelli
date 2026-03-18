@@ -248,20 +248,44 @@ const Gallery = () => {
   };
 
   // === Upload (photos + videos) ===
-  const uploadFiles = async (files: File[]) => {
+  // Stage files for preview (images get focal point picker, videos upload directly)
+  const stageFilesForPreview = (files: File[]) => {
     const mediaFiles = files.filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
     if (mediaFiles.length === 0) {
       toast.error("Nenhum arquivo válido. Selecione fotos ou vídeos.");
       return;
     }
 
+    const videoFiles = mediaFiles.filter(f => f.type.startsWith("video/"));
+    const imageFiles = mediaFiles.filter(f => f.type.startsWith("image/"));
+
+    // Upload videos directly (no focal point needed)
+    if (videoFiles.length > 0) {
+      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50 })));
+    }
+
+    // Show preview for images
+    if (imageFiles.length > 0) {
+      const previews = imageFiles.map(file => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        focalX: 50,
+        focalY: 50,
+      }));
+      setPendingUploads(previews);
+      setPreviewIndex(0);
+      setShowUploadPreview(true);
+    }
+  };
+
+  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number }>) => {
     setUploading(true);
     setUploadProgress(0);
     let successCount = 0;
 
-    for (let i = 0; i < mediaFiles.length; i++) {
-      const file = mediaFiles[i];
-      setUploadProgress(Math.round(((i) / mediaFiles.length) * 100));
+    for (let i = 0; i < items.length; i++) {
+      const { file, focalX, focalY } = items[i];
+      setUploadProgress(Math.round(((i) / items.length) * 100));
 
       const isVideo = isVideoFile(file);
       const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
@@ -275,12 +299,14 @@ const Gallery = () => {
       }
 
       const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
+      const legendaWithFp = encodeFocalPoint(null, focalX, focalY);
       const { error: insertError } = await supabase.from("galeria_fotos").insert({
         titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         url_foto: urlData.publicUrl,
         album_id: selectedAlbum,
         visivel: true,
         tipo: isVideo ? "video" : "foto",
+        legenda: legendaWithFp || null,
       } as any);
 
       if (insertError) {
@@ -299,10 +325,25 @@ const Gallery = () => {
     }
   };
 
+  const confirmUploadPreviews = () => {
+    // Clean up preview URLs
+    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY }));
+    pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    setPendingUploads([]);
+    setShowUploadPreview(false);
+    uploadFilesWithFocalPoints(items);
+  };
+
+  const cancelUploadPreviews = () => {
+    pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    setPendingUploads([]);
+    setShowUploadPreview(false);
+  };
+
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    await uploadFiles(Array.from(e.dataTransfer.files));
+    stageFilesForPreview(Array.from(e.dataTransfer.files));
   };
 
   const addPhoto = async () => {
