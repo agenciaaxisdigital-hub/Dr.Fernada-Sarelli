@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser,
   Pin, Pencil, ArrowLeft, ArrowRight, Check, X, FolderOpen, ImagePlus,
-  Move, ChevronDown, Camera, Images
+  Move, ChevronDown, Camera, Images, Video, Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -39,6 +39,7 @@ interface Foto {
   visivel: boolean;
   ordem: number;
   destaque_home: boolean;
+  tipo: string;
 }
 
 const TEST_ALBUMS = ["Eventos Comunitários", "Ações Sociais", "Campanha"] as const;
@@ -59,6 +60,13 @@ const TEST_PHOTOS = [
 ] as const;
 
 const TEST_IMAGE_URLS: string[] = [...new Set(TEST_PHOTOS.map((photo) => photo.url))];
+
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".avi"];
+const isVideoFile = (file: File) => file.type.startsWith("video/");
+const isVideoUrl = (url: string) => {
+  const lower = url.toLowerCase();
+  return VIDEO_EXTENSIONS.some(ext => lower.includes(ext));
+};
 
 const Gallery = () => {
   const [albuns, setAlbuns] = useState<Album[]>([]);
@@ -148,33 +156,33 @@ const Gallery = () => {
     await loadData();
   };
 
-  // === Photo actions ===
+  // === Photo/Video actions ===
   const deletePhoto = async (id: string) => {
     const { error } = await supabase.from("galeria_fotos").delete().eq("id", id);
     if (error) { toast.error("Não foi possível remover."); return; }
-    toast.success("Foto removida");
+    toast.success("Item removido");
     await loadData();
   };
 
   const togglePhotoVisibility = async (id: string, visivel: boolean) => {
     const { error } = await supabase.from("galeria_fotos").update({ visivel: !visivel }).eq("id", id);
     if (error) { toast.error("Erro ao alterar visibilidade."); return; }
-    toast.success(!visivel ? "Foto visível no site" : "Foto oculta do site");
+    toast.success(!visivel ? "Visível no site" : "Oculto do site");
     await loadData();
   };
 
   const toggleDestaqueHome = async (id: string, atual: boolean) => {
     const { error } = await (supabase.from("galeria_fotos").update({ destaque_home: !atual } as any) as any).eq("id", id);
     if (error) { toast.error("Erro ao alterar destaque."); return; }
-    toast.success(!atual ? "📌 Fixada na página inicial" : "Removida da página inicial");
+    toast.success(!atual ? "📌 Fixado na página inicial" : "Removido da página inicial");
     await loadData();
   };
 
   const movePhotoToAlbum = async (photoId: string, albumId: string | null) => {
     const { error } = await supabase.from("galeria_fotos").update({ album_id: albumId } as any).eq("id", photoId);
-    if (error) { toast.error("Erro ao mover foto."); return; }
+    if (error) { toast.error("Erro ao mover."); return; }
     const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
-    toast.success(`Foto movida para "${albumName}"`);
+    toast.success(`Movido para "${albumName}"`);
     await loadData();
   };
 
@@ -185,7 +193,7 @@ const Gallery = () => {
       .eq("id", editingPhoto.id);
     if (error) { toast.error("Erro ao salvar."); return; }
     setEditingPhoto(null);
-    toast.success("Foto atualizada!");
+    toast.success("Atualizado!");
     await loadData();
   };
 
@@ -205,7 +213,7 @@ const Gallery = () => {
       await supabase.from("galeria_fotos").update({ album_id: albumId } as any).eq("id", id);
     }
     const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
-    toast.success(`${ids.length} foto(s) movida(s) para "${albumName}"`);
+    toast.success(`${ids.length} item(ns) movido(s) para "${albumName}"`);
     setSelectedPhotos(new Set());
     setSelectionMode(false);
     await loadData();
@@ -216,7 +224,7 @@ const Gallery = () => {
     for (const id of ids) {
       await supabase.from("galeria_fotos").delete().eq("id", id);
     }
-    toast.success(`${ids.length} foto(s) removida(s)`);
+    toast.success(`${ids.length} item(ns) removido(s)`);
     setSelectedPhotos(new Set());
     setSelectionMode(false);
     await loadData();
@@ -227,17 +235,17 @@ const Gallery = () => {
     for (const id of ids) {
       await supabase.from("galeria_fotos").update({ visivel: makeVisible }).eq("id", id);
     }
-    toast.success(`${ids.length} foto(s) ${makeVisible ? "visíveis" : "ocultas"}`);
+    toast.success(`${ids.length} item(ns) ${makeVisible ? "visíveis" : "ocultos"}`);
     setSelectedPhotos(new Set());
     setSelectionMode(false);
     await loadData();
   };
 
-  // === Upload ===
+  // === Upload (photos + videos) ===
   const uploadFiles = async (files: File[]) => {
-    const imageFiles = files.filter(f => f.type.startsWith("image/"));
-    if (imageFiles.length === 0) {
-      toast.error("Nenhuma imagem encontrada. Selecione fotos (JPG, PNG, etc.)");
+    const mediaFiles = files.filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
+    if (mediaFiles.length === 0) {
+      toast.error("Nenhum arquivo válido. Selecione fotos ou vídeos.");
       return;
     }
 
@@ -245,12 +253,14 @@ const Gallery = () => {
     setUploadProgress(0);
     let successCount = 0;
 
-    for (let i = 0; i < imageFiles.length; i++) {
-      const file = imageFiles[i];
-      setUploadProgress(Math.round(((i) / imageFiles.length) * 100));
+    for (let i = 0; i < mediaFiles.length; i++) {
+      const file = mediaFiles[i];
+      setUploadProgress(Math.round(((i) / mediaFiles.length) * 100));
 
+      const isVideo = isVideoFile(file);
       const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
-      const path = `galeria/${Date.now()}_${sanitizedName}`;
+      const folder = isVideo ? "videos" : "galeria";
+      const path = `${folder}/${Date.now()}_${sanitizedName}`;
       const { error: uploadError } = await supabase.storage.from("galeria").upload(path, file);
 
       if (uploadError) {
@@ -264,6 +274,7 @@ const Gallery = () => {
         url_foto: urlData.publicUrl,
         album_id: selectedAlbum,
         visivel: true,
+        tipo: isVideo ? "video" : "foto",
       } as any);
 
       if (insertError) {
@@ -277,7 +288,7 @@ const Gallery = () => {
     setUploading(false);
 
     if (successCount > 0) {
-      toast.success(`✅ ${successCount} foto(s) enviada(s) com sucesso!`);
+      toast.success(`✅ ${successCount} arquivo(s) enviado(s) com sucesso!`);
       await loadData();
     }
   };
@@ -290,17 +301,19 @@ const Gallery = () => {
 
   const addPhoto = async () => {
     if (!uploadUrl.trim() || !uploadTitle.trim()) return;
+    const tipo = isVideoUrl(uploadUrl) ? "video" : "foto";
     const { error } = await supabase.from("galeria_fotos").insert({
       titulo: uploadTitle.trim(),
       legenda: uploadCaption.trim() || null,
       url_foto: uploadUrl.trim(),
       album_id: selectedAlbum,
       visivel: true,
+      tipo,
     } as any);
     if (error) { toast.error("Não foi possível adicionar."); return; }
     setUploadUrl(""); setUploadTitle(""); setUploadCaption("");
     setUploadOpen(false);
-    toast.success("Foto adicionada!");
+    toast.success(`${tipo === "video" ? "Vídeo" : "Foto"} adicionado!`);
     await loadData();
   };
 
@@ -341,6 +354,7 @@ const Gallery = () => {
       album_id: albumMap.get(TEST_ALBUMS[i % TEST_ALBUMS.length]) || null,
       visivel: true,
       ordem: i,
+      tipo: "foto",
     }));
     const { error } = await supabase.from("galeria_fotos").insert(payload as any);
     if (error) { toast.error("Erro ao criar fotos de teste."); return; }
@@ -363,6 +377,9 @@ const Gallery = () => {
   const hasTestPhotos = fotos.some(f => TEST_IMAGE_URLS.includes(f.url_foto));
   const selectedAlbumName = selectedAlbum ? albuns.find(a => a.id === selectedAlbum)?.nome : null;
 
+  const photoCount = fotos.filter(f => (f.tipo || "foto") === "foto").length;
+  const videoCount = fotos.filter(f => f.tipo === "video").length;
+
   return (
     <AdminLayout>
       <div className="space-y-5 pb-8">
@@ -371,10 +388,10 @@ const Gallery = () => {
           <div>
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <Images className="h-6 w-6 text-primary" />
-              Galeria de Fotos
+              Galeria de Fotos e Vídeos
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {fotos.length} foto(s) · {albuns.length} pasta(s)
+              {photoCount} foto(s) · {videoCount} vídeo(s) · {albuns.length} pasta(s)
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -385,11 +402,11 @@ const Gallery = () => {
           </div>
         </div>
 
-        {/* ===== UPLOAD AREA - big and obvious ===== */}
+        {/* ===== UPLOAD AREA ===== */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           className="hidden"
           onChange={async (e) => {
@@ -419,7 +436,7 @@ const Gallery = () => {
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
-              <p className="text-sm text-muted-foreground">Enviando fotos... {uploadProgress}%</p>
+              <p className="text-sm text-muted-foreground">Enviando arquivos... {uploadProgress}%</p>
             </div>
           ) : (
             <>
@@ -427,17 +444,20 @@ const Gallery = () => {
                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
                   <Camera className="h-7 w-7 text-primary" />
                 </div>
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Video className="h-7 w-7 text-primary" />
+                </div>
               </div>
               <p className="text-base sm:text-lg font-semibold">
-                Toque aqui para enviar fotos
+                Toque aqui para enviar fotos ou vídeos
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                ou arraste as imagens para cá
+                ou arraste os arquivos para cá · JPG, PNG, MP4, WebM
               </p>
               {selectedAlbumName && (
                 <Badge variant="secondary" className="mt-3">
                   <FolderOpen className="h-3 w-3 mr-1" />
-                  Serão salvas em: {selectedAlbumName}
+                  Serão salvos em: {selectedAlbumName}
                 </Badge>
               )}
             </>
@@ -456,16 +476,21 @@ const Gallery = () => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Adicionar foto por link</DialogTitle>
-                <DialogDescription>Cole o endereço de uma foto da internet</DialogDescription>
+                <DialogTitle>Adicionar por link</DialogTitle>
+                <DialogDescription>Cole o endereço de uma foto ou vídeo da internet</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
-                <Input placeholder="https://exemplo.com/foto.jpg" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
-                <Input placeholder="Nome da foto" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
+                <Input placeholder="https://exemplo.com/foto.jpg ou video.mp4" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
+                <Input placeholder="Nome" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
                 <Input placeholder="Descrição (opcional)" value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)} />
+                {uploadUrl && isVideoUrl(uploadUrl) && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Video className="h-3 w-3" /> Será salvo como vídeo
+                  </Badge>
+                )}
               </div>
               <DialogFooter>
-                <Button onClick={addPhoto} className="rounded-full w-full">Adicionar foto</Button>
+                <Button onClick={addPhoto} className="rounded-full w-full">Adicionar</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -481,7 +506,7 @@ const Gallery = () => {
             }}
           >
             <Check className="h-3.5 w-3.5" />
-            {selectionMode ? `${selectedPhotos.size} selecionada(s)` : "Selecionar várias"}
+            {selectionMode ? `${selectedPhotos.size} selecionado(s)` : "Selecionar vários"}
           </Button>
 
           {/* Test buttons */}
@@ -500,10 +525,9 @@ const Gallery = () => {
         {/* ===== BULK ACTIONS BAR ===== */}
         {selectionMode && selectedPhotos.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-4 py-3">
-            <span className="text-sm font-medium text-primary">{selectedPhotos.size} selecionada(s)</span>
+            <span className="text-sm font-medium text-primary">{selectedPhotos.size} selecionado(s)</span>
             <div className="flex-1" />
 
-            {/* Move to album */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1">
@@ -539,7 +563,7 @@ const Gallery = () => {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Apagar {selectedPhotos.size} foto(s)?</AlertDialogTitle>
+                  <AlertDialogTitle>Apagar {selectedPhotos.size} item(ns)?</AlertDialogTitle>
                   <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -624,7 +648,7 @@ const Gallery = () => {
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Excluir pasta "{album.nome}"?</AlertDialogTitle>
-                            <AlertDialogDescription>As fotos serão mantidas, apenas a pasta será removida.</AlertDialogDescription>
+                            <AlertDialogDescription>As fotos e vídeos serão mantidos, apenas a pasta será removida.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -649,7 +673,7 @@ const Gallery = () => {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Criar nova pasta</DialogTitle>
-                  <DialogDescription>Dê um nome para organizar suas fotos</DialogDescription>
+                  <DialogDescription>Dê um nome para organizar suas fotos e vídeos</DialogDescription>
                 </DialogHeader>
                 <Input
                   placeholder="Ex: Eventos de Março"
@@ -682,21 +706,29 @@ const Gallery = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog editar foto */}
+        {/* Dialog editar foto/vídeo */}
         <Dialog open={!!editingPhoto} onOpenChange={(open) => { if (!open) setEditingPhoto(null); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Editar foto</DialogTitle>
+              <DialogTitle>Editar {editingPhoto?.tipo === "video" ? "vídeo" : "foto"}</DialogTitle>
             </DialogHeader>
             {editingPhoto && (
               <div className="space-y-4">
-                <img
-                  src={editingPhoto.url_foto}
-                  alt={editingPhoto.titulo}
-                  className="w-full aspect-video object-cover rounded-xl"
-                />
+                {editingPhoto.tipo === "video" ? (
+                  <video
+                    src={editingPhoto.url_foto}
+                    className="w-full aspect-video rounded-xl bg-black"
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={editingPhoto.url_foto}
+                    alt={editingPhoto.titulo}
+                    className="w-full aspect-video object-cover rounded-xl"
+                  />
+                )}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Nome da foto</label>
+                  <label className="text-sm font-medium">Nome</label>
                   <Input value={editPhotoTitle} onChange={(e) => setEditPhotoTitle(e.target.value)} />
                 </div>
                 <div className="space-y-2">
@@ -711,10 +743,11 @@ const Gallery = () => {
           </DialogContent>
         </Dialog>
 
-        {/* ===== PHOTO GRID ===== */}
+        {/* ===== MEDIA GRID ===== */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredFotos.map((foto) => {
             const isSelected = selectedPhotos.has(foto.id);
+            const isVideo = foto.tipo === "video";
             return (
               <div
                 key={foto.id}
@@ -734,6 +767,11 @@ const Gallery = () => {
 
                 {/* Status badges */}
                 <div className="absolute top-2 right-2 z-10 flex gap-1">
+                  {isVideo && (
+                    <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                      <Play className="h-2.5 w-2.5" /> Vídeo
+                    </span>
+                  )}
                   {foto.destaque_home && (
                     <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                       <Pin className="h-2.5 w-2.5" /> Home
@@ -741,18 +779,34 @@ const Gallery = () => {
                   )}
                   {!foto.visivel && (
                     <span className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                      <EyeOff className="h-2.5 w-2.5" /> Oculta
+                      <EyeOff className="h-2.5 w-2.5" /> Oculto
                     </span>
                   )}
                 </div>
 
-                {/* Image */}
-                <img
-                  src={foto.url_foto}
-                  alt={foto.titulo}
-                  className={`w-full aspect-square object-cover transition-opacity ${!foto.visivel ? "opacity-50" : ""}`}
-                  loading="lazy"
-                />
+                {/* Media preview */}
+                {isVideo ? (
+                  <div className="relative w-full aspect-square bg-black flex items-center justify-center">
+                    <video
+                      src={foto.url_foto}
+                      className={`w-full h-full object-cover ${!foto.visivel ? "opacity-50" : ""}`}
+                      muted
+                      preload="metadata"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-full bg-black/60 flex items-center justify-center">
+                        <Play className="h-6 w-6 text-white ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={foto.url_foto}
+                    alt={foto.titulo}
+                    className={`w-full aspect-square object-cover transition-opacity ${!foto.visivel ? "opacity-50" : ""}`}
+                    loading="lazy"
+                  />
+                )}
 
                 {/* Info + actions */}
                 <div className="p-2.5 space-y-2">
@@ -761,10 +815,8 @@ const Gallery = () => {
                     {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{foto.legenda}</p>}
                   </div>
 
-                  {/* Action buttons - always visible */}
                   {!selectionMode && (
                     <div className="flex items-center gap-1 flex-wrap">
-                      {/* Edit */}
                       <button
                         onClick={() => { setEditingPhoto(foto); setEditPhotoTitle(foto.titulo); setEditPhotoCaption(foto.legenda || ""); }}
                         className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
@@ -773,7 +825,6 @@ const Gallery = () => {
                         <Pencil className="h-3 w-3" /> Editar
                       </button>
 
-                      {/* Move to album */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -801,7 +852,6 @@ const Gallery = () => {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {/* Toggle visibility */}
                       <button
                         onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
                         className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
@@ -812,7 +862,6 @@ const Gallery = () => {
                         {foto.visivel ? <Eye className="h-3.5 w-3.5 text-primary" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
                       </button>
 
-                      {/* Pin to home */}
                       <button
                         onClick={() => toggleDestaqueHome(foto.id, !!foto.destaque_home)}
                         className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
@@ -823,20 +872,19 @@ const Gallery = () => {
                         <Pin className="h-3.5 w-3.5" />
                       </button>
 
-                      {/* Delete */}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button
                             className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto"
-                            title="Apagar foto"
+                            title="Apagar"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Apagar esta foto?</AlertDialogTitle>
-                            <AlertDialogDescription>"{foto.titulo}" será removida permanentemente.</AlertDialogDescription>
+                            <AlertDialogTitle>Apagar este {isVideo ? "vídeo" : "foto"}?</AlertDialogTitle>
+                            <AlertDialogDescription>"{foto.titulo}" será removido permanentemente.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -855,14 +903,19 @@ const Gallery = () => {
         {/* Empty state */}
         {filteredFotos.length === 0 && (
           <div className="text-center py-16 space-y-3">
-            <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
-              <Camera className="h-8 w-8 text-muted-foreground" />
+            <div className="flex justify-center gap-3">
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+                <Camera className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+                <Video className="h-8 w-8 text-muted-foreground" />
+              </div>
             </div>
             <p className="text-muted-foreground font-medium">
-              {selectedAlbum ? "Nenhuma foto nesta pasta" : "Nenhuma foto na galeria"}
+              {selectedAlbum ? "Nenhum item nesta pasta" : "Nenhum item na galeria"}
             </p>
             <p className="text-sm text-muted-foreground">
-              Toque no botão acima para enviar suas primeiras fotos
+              Toque no botão acima para enviar suas primeiras fotos ou vídeos
             </p>
           </div>
         )}
