@@ -815,9 +815,10 @@ const Gallery = () => {
                   src={pendingUploads[previewIndex].previewUrl}
                   focalX={pendingUploads[previewIndex].focalX}
                   focalY={pendingUploads[previewIndex].focalY}
-                  onChange={(x, y) => {
+                  zoom={pendingUploads[previewIndex].zoom}
+                  onChange={(x, y, z) => {
                     setPendingUploads(prev => prev.map((p, i) =>
-                      i === previewIndex ? { ...p, focalX: x, focalY: y } : p
+                      i === previewIndex ? { ...p, focalX: x, focalY: y, zoom: z ?? p.zoom } : p
                     ));
                   }}
                 />
