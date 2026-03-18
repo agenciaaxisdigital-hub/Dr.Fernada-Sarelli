@@ -456,8 +456,8 @@ const Gallery = () => {
           accept="image/*,video/*"
           multiple
           className="hidden"
-          onChange={async (e) => {
-            await uploadFiles(Array.from(e.target.files || []));
+          onChange={(e) => {
+            stageFilesForPreview(Array.from(e.target.files || []));
             if (e.target) e.target.value = "";
           }}
         />
