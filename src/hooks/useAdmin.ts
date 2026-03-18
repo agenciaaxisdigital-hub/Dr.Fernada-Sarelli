@@ -24,12 +24,12 @@ export function useAdmin() {
         return;
       }
 
-      const { count, error } = await supabase
-        .from("roles_usuarios")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", session.user.id);
+      // Use RPC function to check admin status (bypasses RLS)
+      const { data: isAdmin, error } = await supabase.rpc("eh_admin", {
+        _user_id: session.user.id,
+      });
 
-      if (error || !count) {
+      if (error || !isAdmin) {
         await supabase.auth.signOut();
         setLoading(false);
         navigate("/admin/login");
