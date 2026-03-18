@@ -228,7 +228,7 @@ const GaleriaPublica = () => {
           {/* Photo/Video grid */}
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {filteredFotos.map((foto, i) => {
-              const isVideo = (foto.tipo || "foto") === "video";
+              const isVideo = getFotoTipo(foto.url_foto) === "video";
               return (
                 <ScrollReveal key={foto.id} delay={Math.min(i * 0.05, 0.3)}>
                   <div
