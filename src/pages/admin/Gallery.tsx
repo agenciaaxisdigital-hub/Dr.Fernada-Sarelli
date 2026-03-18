@@ -310,7 +310,6 @@ const Gallery = () => {
         url_foto: urlData.publicUrl,
         album_id: selectedAlbum,
         visivel: true,
-        tipo: isVideo ? "video" : "foto",
         legenda: legendaWithFp || null,
       } as any);
 
