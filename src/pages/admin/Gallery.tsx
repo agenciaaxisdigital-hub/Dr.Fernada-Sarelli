@@ -947,7 +947,7 @@ const Gallery = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredFotos.map((foto) => {
             const isSelected = selectedPhotos.has(foto.id);
-            const isVideo = foto.tipo === "video";
+            const isVideo = getFotoTipo(foto.url_foto) === "video";
             return (
               <div
                 key={foto.id}
