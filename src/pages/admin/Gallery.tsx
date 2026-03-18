@@ -283,7 +283,7 @@ const Gallery = () => {
     }
   };
 
-  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number }>) => {
+  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number; zoom: number }>) => {
     setUploading(true);
     setUploadProgress(0);
     let successCount = 0;
