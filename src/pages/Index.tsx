@@ -69,27 +69,41 @@ const Index = () => {
       // Get items marked as destaque_home
       const { data: destaquesData } = await (supabase
         .from("galeria_fotos")
-        .select("id, titulo, legenda, url_foto, tipo, ordem") as any)
+        .select("*") as any)
         .eq("visivel", true)
         .eq("destaque_home", true)
         .order("ordem")
         .limit(12);
 
       if (destaquesData && destaquesData.length > 0) {
-        setGaleriaItems(destaquesData as HomeGalleryItem[]);
+        setGaleriaItems((destaquesData as any[]).map(d => ({
+          id: d.id,
+          titulo: d.titulo,
+          legenda: d.legenda,
+          url_foto: d.url_foto,
+          tipo: d.tipo || "foto",
+          ordem: d.ordem ?? 0,
+        })));
         return;
       }
 
       // Fallback: get first 12 visible
       const { data: fotosData } = await supabase
         .from("galeria_fotos")
-        .select("id, titulo, legenda, url_foto, tipo, ordem")
+        .select("*")
         .eq("visivel", true)
         .order("ordem")
         .limit(12);
 
       if (fotosData) {
-        setGaleriaItems(fotosData as unknown as HomeGalleryItem[]);
+        setGaleriaItems((fotosData as any[]).map(d => ({
+          id: d.id,
+          titulo: d.titulo,
+          legenda: d.legenda,
+          url_foto: d.url_foto,
+          tipo: d.tipo || "foto",
+          ordem: d.ordem ?? 0,
+        })));
       }
     };
 
