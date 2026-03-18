@@ -39,11 +39,13 @@ const redes = [
   { icon: Instagram, label: "Instagram", handle: "@drafernandasarelli", url: "https://www.instagram.com/drafernandasarelli/" },
 ];
 
-interface HomeGalleryPhoto {
+interface HomeGalleryItem {
   id: string;
   titulo: string;
   legenda: string | null;
   url_foto: string;
+  tipo: string;
+  ordem: number;
 }
 
 const Index = () => {
