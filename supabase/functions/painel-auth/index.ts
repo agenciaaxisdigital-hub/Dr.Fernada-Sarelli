@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         .eq("nome", nome.trim())
         .single();
 
-      if (error || !user) return json({ error: "Usuário ou senha inválidos" }, 401);
+      if (error || !user) return json({ error: "Usuário ou senha inválidos" });
 
       const [salt, storedHash] = user.senha_hash.split(":");
       const valid = await verifyPassword(senha, storedHash, salt);
