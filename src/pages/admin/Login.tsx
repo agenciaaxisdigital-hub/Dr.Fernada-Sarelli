@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Eye, EyeOff, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { setPainelUser } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,24 +19,17 @@ const AdminLoginPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Map username to internal email format
-      const email = `${username.toLowerCase().replace(/[^a-z0-9_]/g, "")}@admin.painel`;
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-
-      // Verify user has admin role
-      // Use RPC to check admin role (bypasses RLS)
-      const { data: isAdmin } = await supabase.rpc("eh_admin", {
-        _user_id: data.user.id,
+      const { data, error } = await supabase.functions.invoke("painel-auth", {
+        body: { action: "login", nome: username.trim(), senha: password },
       });
 
-      if (!isAdmin) {
-        await supabase.auth.signOut();
-        toast.error("Sem permissão de acesso ao painel.");
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
         return;
       }
 
+      setPainelUser(data.user);
       navigate("/admin/galeria");
     } catch {
       toast.error("Usuário ou senha inválidos.");
