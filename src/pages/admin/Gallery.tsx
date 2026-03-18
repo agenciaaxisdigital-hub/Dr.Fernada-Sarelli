@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser,
   Pin, Pencil, ArrowLeft, ArrowRight, Check, X, FolderOpen, ImagePlus,
-  Move, ChevronDown, Camera, Images, Video, Play
+  Move, ChevronDown, Camera, Images, Video, Play, Crosshair
 } from "lucide-react";
+import FocalPointPicker, { encodeFocalPoint, decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
