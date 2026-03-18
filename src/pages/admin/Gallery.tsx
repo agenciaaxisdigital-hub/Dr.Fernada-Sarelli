@@ -40,8 +40,10 @@ interface Foto {
   visivel: boolean;
   ordem: number;
   destaque_home: boolean;
-  tipo: string;
 }
+
+// Derive tipo from URL since column doesn't exist in DB
+const getFotoTipo = (url: string): string => isVideoUrl(url) ? "video" : "foto";
 
 const TEST_ALBUMS = ["Eventos Comunitários", "Ações Sociais", "Campanha"] as const;
 
