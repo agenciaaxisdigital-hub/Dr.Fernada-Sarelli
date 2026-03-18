@@ -40,8 +40,10 @@ interface Foto {
   visivel: boolean;
   ordem: number;
   destaque_home: boolean;
-  tipo: string;
 }
+
+// Derive tipo from URL since column doesn't exist in DB
+const getFotoTipo = (url: string): string => isVideoUrl(url) ? "video" : "foto";
 
 const TEST_ALBUMS = ["Eventos Comunitários", "Ações Sociais", "Campanha"] as const;
 
@@ -310,7 +312,6 @@ const Gallery = () => {
         url_foto: urlData.publicUrl,
         album_id: selectedAlbum,
         visivel: true,
-        tipo: isVideo ? "video" : "foto",
         legenda: legendaWithFp || null,
       } as any);
 
@@ -360,7 +361,6 @@ const Gallery = () => {
       url_foto: uploadUrl.trim(),
       album_id: selectedAlbum,
       visivel: true,
-      tipo,
     } as any);
     if (error) { toast.error("Não foi possível adicionar."); return; }
     setUploadUrl(""); setUploadTitle(""); setUploadCaption("");
@@ -406,7 +406,6 @@ const Gallery = () => {
       album_id: albumMap.get(TEST_ALBUMS[i % TEST_ALBUMS.length]) || null,
       visivel: true,
       ordem: i,
-      tipo: "foto",
     }));
     const { error } = await supabase.from("galeria_fotos").insert(payload as any);
     if (error) { toast.error("Erro ao criar fotos de teste."); return; }
@@ -429,8 +428,8 @@ const Gallery = () => {
   const hasTestPhotos = fotos.some(f => TEST_IMAGE_URLS.includes(f.url_foto));
   const selectedAlbumName = selectedAlbum ? albuns.find(a => a.id === selectedAlbum)?.nome : null;
 
-  const photoCount = fotos.filter(f => (f.tipo || "foto") === "foto").length;
-  const videoCount = fotos.filter(f => f.tipo === "video").length;
+  const photoCount = fotos.filter(f => getFotoTipo(f.url_foto) === "foto").length;
+  const videoCount = fotos.filter(f => getFotoTipo(f.url_foto) === "video").length;
 
   return (
     <AdminLayout>
@@ -762,12 +761,12 @@ const Gallery = () => {
         <Dialog open={!!editingPhoto} onOpenChange={(open) => { if (!open) setEditingPhoto(null); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Editar {editingPhoto?.tipo === "video" ? "vídeo" : "foto"}</DialogTitle>
+              <DialogTitle>Editar {editingPhoto && getFotoTipo(editingPhoto.url_foto) === "video" ? "vídeo" : "foto"}</DialogTitle>
               <DialogDescription>Ajuste o nome, descrição e posicionamento da imagem</DialogDescription>
             </DialogHeader>
             {editingPhoto && (
               <div className="space-y-4">
-                {editingPhoto.tipo === "video" ? (
+                {getFotoTipo(editingPhoto.url_foto) === "video" ? (
                   <video
                     src={editingPhoto.url_foto}
                     className="w-full aspect-video rounded-xl bg-muted"
@@ -888,7 +887,7 @@ const Gallery = () => {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                 {destaques.map((item, idx) => {
-                  const isVideo = item.tipo === "video";
+                  const isVideo = getFotoTipo(item.url_foto) === "video";
                   return (
                     <div key={item.id} className="shrink-0 w-32 rounded-xl border-2 border-primary/30 bg-card overflow-hidden relative">
                       {/* Position number */}
@@ -948,7 +947,7 @@ const Gallery = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredFotos.map((foto) => {
             const isSelected = selectedPhotos.has(foto.id);
-            const isVideo = foto.tipo === "video";
+            const isVideo = getFotoTipo(foto.url_foto) === "video";
             return (
               <div
                 key={foto.id}

@@ -15,8 +15,11 @@ interface Foto {
   legenda: string | null;
   url_foto: string;
   album_id: string | null;
-  tipo: string;
 }
+
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".avi"];
+const isVideoUrl = (url: string) => VIDEO_EXTENSIONS.some(ext => url.toLowerCase().includes(ext));
+const getFotoTipo = (url: string) => isVideoUrl(url) ? "video" : "foto";
 
 // Helper to get or create visitor cookie
 const getVisitorCookie = (): string => {
@@ -99,7 +102,7 @@ const GaleriaPublica = () => {
 
   // Track video duration when lightbox closes or video pauses
   const trackVideoDuration = useCallback(() => {
-    if (videoRef.current && lightbox && (lightbox.tipo || "foto") === "video" && videoStartTime.current > 0) {
+    if (videoRef.current && lightbox && getFotoTipo(lightbox.url_foto) === "video" && videoStartTime.current > 0) {
       const duration = (Date.now() - videoStartTime.current) / 1000;
       if (duration >= 1) {
         trackGalleryEvent(lightbox.id, "duracao_video", Math.round(duration));
@@ -144,7 +147,7 @@ const GaleriaPublica = () => {
 
   // Auto-play video when lightbox opens
   useEffect(() => {
-    if (lightbox?.tipo === "video" && videoRef.current) {
+    if (lightbox && getFotoTipo(lightbox.url_foto) === "video" && videoRef.current) {
       videoRef.current.play().catch(() => {});
     }
   }, [lightbox]);
@@ -225,7 +228,7 @@ const GaleriaPublica = () => {
           {/* Photo/Video grid */}
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {filteredFotos.map((foto, i) => {
-              const isVideo = (foto.tipo || "foto") === "video";
+              const isVideo = getFotoTipo(foto.url_foto) === "video";
               return (
                 <ScrollReveal key={foto.id} delay={Math.min(i * 0.05, 0.3)}>
                   <div
@@ -292,7 +295,7 @@ const GaleriaPublica = () => {
             className="relative max-w-4xl w-full max-h-[90vh] rounded-2xl overflow-hidden bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {(lightbox.tipo || "foto") === "video" ? (
+            {getFotoTipo(lightbox.url_foto) === "video" ? (
               <video
                 ref={videoRef}
                 src={lightbox.url_foto}
@@ -313,7 +316,7 @@ const GaleriaPublica = () => {
             )}
             <div className="p-4">
               <div className="flex items-center gap-2">
-                {(lightbox.tipo || "foto") === "video" && (
+                {getFotoTipo(lightbox.url_foto) === "video" && (
                   <span className="text-xs font-semibold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded">
                     Vídeo
                   </span>
