@@ -93,6 +93,11 @@ const Gallery = () => {
   const [selectionMode, setSelectionMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Upload preview with focal point
+  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number }>>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [showUploadPreview, setShowUploadPreview] = useState(false);
+
   const loadData = useCallback(async () => {
     const [{ data: albumData, error: albumError }, { data: fotoData, error: fotoError }, { data: configData, error: configError }] = await Promise.all([
       supabase.from("albuns" as any).select("*").order("ordem"),
