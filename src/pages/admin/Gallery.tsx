@@ -404,7 +404,6 @@ const Gallery = () => {
       album_id: albumMap.get(TEST_ALBUMS[i % TEST_ALBUMS.length]) || null,
       visivel: true,
       ordem: i,
-      tipo: "foto",
     }));
     const { error } = await supabase.from("galeria_fotos").insert(payload as any);
     if (error) { toast.error("Erro ao criar fotos de teste."); return; }
