@@ -102,7 +102,7 @@ const GaleriaPublica = () => {
 
   // Track video duration when lightbox closes or video pauses
   const trackVideoDuration = useCallback(() => {
-    if (videoRef.current && lightbox && (lightbox.tipo || "foto") === "video" && videoStartTime.current > 0) {
+    if (videoRef.current && lightbox && getFotoTipo(lightbox.url_foto) === "video" && videoStartTime.current > 0) {
       const duration = (Date.now() - videoStartTime.current) / 1000;
       if (duration >= 1) {
         trackGalleryEvent(lightbox.id, "duracao_video", Math.round(duration));
