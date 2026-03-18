@@ -105,15 +105,15 @@ Deno.serve(async (req) => {
         .select("id, nome, cargo, criado_em")
         .order("criado_em", { ascending: true });
 
-      if (error) return json({ error: error.message }, 500);
+      if (error) return json({ error: error.message });
       return json({ users: users || [] });
     }
 
     // ── CREATE ──
     if (action === "create") {
-      if (!nome || !senha) return json({ error: "Nome e senha são obrigatórios" }, 400);
-      if (nome.trim().length < 3) return json({ error: "Nome deve ter pelo menos 3 caracteres" }, 400);
-      if (senha.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 400);
+      if (!nome || !senha) return json({ error: "Nome e senha são obrigatórios" });
+      if (nome.trim().length < 3) return json({ error: "Nome deve ter pelo menos 3 caracteres" });
+      if (senha.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" });
 
       const { hash, salt } = await hashPassword(senha);
       const senhaHash = `${salt}:${hash}`;
@@ -126,9 +126,9 @@ Deno.serve(async (req) => {
 
       if (error) {
         if (error.message.includes("unique") || error.message.includes("duplicate")) {
-          return json({ error: "Usuário já existe" }, 409);
+          return json({ error: "Usuário já existe" });
         }
-        return json({ error: error.message }, 400);
+        return json({ error: error.message });
       }
 
       return json({ success: true, user: newUser });
@@ -136,21 +136,21 @@ Deno.serve(async (req) => {
 
     // ── DELETE ──
     if (action === "delete") {
-      if (!user_id) return json({ error: "user_id é obrigatório" }, 400);
+      if (!user_id) return json({ error: "user_id é obrigatório" });
 
       const { error } = await supabase
         .from("usuarios_painel")
         .delete()
         .eq("id", user_id);
 
-      if (error) return json({ error: error.message }, 400);
+      if (error) return json({ error: error.message });
       return json({ success: true });
     }
 
     // ── UPDATE NAME ──
     if (action === "update-name") {
-      if (!user_id || !nome) return json({ error: "user_id e nome são obrigatórios" }, 400);
-      if (nome.trim().length < 3) return json({ error: "Nome deve ter pelo menos 3 caracteres" }, 400);
+      if (!user_id || !nome) return json({ error: "user_id e nome são obrigatórios" });
+      if (nome.trim().length < 3) return json({ error: "Nome deve ter pelo menos 3 caracteres" });
 
       const { error } = await supabase
         .from("usuarios_painel")
@@ -159,9 +159,9 @@ Deno.serve(async (req) => {
 
       if (error) {
         if (error.message.includes("unique") || error.message.includes("duplicate")) {
-          return json({ error: "Nome já está em uso" }, 409);
+          return json({ error: "Nome já está em uso" });
         }
-        return json({ error: error.message }, 400);
+        return json({ error: error.message });
       }
 
       return json({ success: true });
@@ -169,8 +169,8 @@ Deno.serve(async (req) => {
 
     // ── RESET PASSWORD ──
     if (action === "reset-password") {
-      if (!user_id || !senha) return json({ error: "user_id e senha são obrigatórios" }, 400);
-      if (senha.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" }, 400);
+      if (!user_id || !senha) return json({ error: "user_id e senha são obrigatórios" });
+      if (senha.length < 6) return json({ error: "Senha deve ter pelo menos 6 caracteres" });
 
       const { hash, salt } = await hashPassword(senha);
       const senhaHash = `${salt}:${hash}`;
@@ -180,12 +180,12 @@ Deno.serve(async (req) => {
         .update({ senha_hash: senhaHash })
         .eq("id", user_id);
 
-      if (error) return json({ error: error.message }, 400);
+      if (error) return json({ error: error.message });
       return json({ success: true });
     }
 
-    return json({ error: "Ação inválida. Use: login, list, create, delete, update-name, reset-password, setup" }, 400);
+    return json({ error: "Ação inválida" });
   } catch (err) {
-    return json({ error: (err as Error).message }, 500);
+    return json({ error: (err as Error).message });
   }
 });
