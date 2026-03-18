@@ -124,7 +124,31 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
-    return json({ error: "Ação inválida. Use: create, delete, list, reset-password" }, 400);
+    if (action === "update-username") {
+      if (!user_id || !username) {
+        return json({ error: "user_id e username são obrigatórios" }, 400);
+      }
+
+      if (username.length < 3 || username.length > 30) {
+        return json({ error: "Username deve ter entre 3 e 30 caracteres" }, 400);
+      }
+
+      const newEmail = `${username.toLowerCase().replace(/[^a-z0-9_]/g, "")}@admin.painel`;
+
+      const { error: updateError } = await supabase.auth.admin.updateUserById(user_id, {
+        email: newEmail,
+        email_confirm: true,
+        user_metadata: { username },
+      });
+
+      if (updateError) {
+        return json({ error: updateError.message }, 400);
+      }
+
+      return json({ success: true });
+    }
+
+    return json({ error: "Ação inválida. Use: create, delete, list, reset-password, update-username" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }

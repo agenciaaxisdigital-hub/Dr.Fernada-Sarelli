@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
-import { Key, UserPlus, Trash2, RefreshCw, Copy } from "lucide-react";
+import { Key, UserPlus, Trash2, RefreshCw, Copy, Pencil, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface AdminUser {
   id: string;
@@ -21,6 +28,15 @@ const SettingsPage = () => {
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
+
+  // Edit dialogs
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  const [resetUser, setResetUser] = useState<AdminUser | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -116,6 +132,68 @@ const SettingsPage = () => {
     }
   };
 
+  const handleEditUsername = async () => {
+    if (!editingUser || !editUsername.trim()) return;
+    if (editUsername.length < 3) {
+      toast.error("Usuário deve ter pelo menos 3 caracteres");
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: {
+          action: "update-username",
+          user_id: editingUser.user_id,
+          username: editUsername.trim(),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success("Nome atualizado!");
+      setEditingUser(null);
+      loadData();
+    } catch {
+      toast.error("Erro ao atualizar nome");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUser || !resetPassword.trim()) return;
+    if (resetPassword.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
+    setResetSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: {
+          action: "reset-password",
+          user_id: resetUser.user_id,
+          password: resetPassword,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success("Senha redefinida!");
+      setResetUser(null);
+      setResetPassword("");
+    } catch {
+      toast.error("Erro ao redefinir senha");
+    } finally {
+      setResetSaving(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8 max-w-2xl">
@@ -173,15 +251,96 @@ const SettingsPage = () => {
             )}
             {users.map((u) => (
               <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
-                <p className="text-sm font-medium">{u.username}</p>
-                <Button variant="ghost" size="icon" onClick={() => removeUser(u.user_id, u.username)} className="text-destructive hover:bg-destructive/10">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div>
+                  <p className="text-sm font-medium">{u.username}</p>
+                  <p className="text-xs text-muted-foreground">{u.cargo}</p>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setEditingUser(u);
+                      setEditUsername(u.username);
+                    }}
+                    title="Editar nome"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setResetUser(u);
+                      setResetPassword("");
+                    }}
+                    title="Redefinir senha"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeUser(u.user_id, u.username)}
+                    className="text-destructive hover:bg-destructive/10"
+                    title="Remover"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Edit Username Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Nome de Usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Novo nome</Label>
+              <Input
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                className="mt-1"
+                autoComplete="off"
+              />
+            </div>
+            <Button onClick={handleEditUsername} disabled={editSaving} className="w-full rounded-full">
+              {editSaving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetUser} onOpenChange={(open) => !open && setResetUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir Senha — {resetUser?.username}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Nova senha</Label>
+              <Input
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                className="mt-1"
+                placeholder="Mínimo 6 caracteres"
+                autoComplete="new-password"
+              />
+            </div>
+            <Button onClick={handleResetPassword} disabled={resetSaving} className="w-full rounded-full">
+              {resetSaving ? "Salvando..." : "Redefinir Senha"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
