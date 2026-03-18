@@ -196,8 +196,9 @@ const Gallery = () => {
 
   const updatePhoto = async () => {
     if (!editingPhoto) return;
+    const legendaWithFp = encodeFocalPoint(editPhotoCaption.trim() || null, editFocalX, editFocalY);
     const { error } = await supabase.from("galeria_fotos")
-      .update({ titulo: editPhotoTitle.trim(), legenda: editPhotoCaption.trim() || null } as any)
+      .update({ titulo: editPhotoTitle.trim(), legenda: legendaWithFp || null } as any)
       .eq("id", editingPhoto.id);
     if (error) { toast.error("Erro ao salvar."); return; }
     setEditingPhoto(null);
