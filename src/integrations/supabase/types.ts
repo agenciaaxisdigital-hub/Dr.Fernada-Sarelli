@@ -424,6 +424,30 @@ export type Database = {
         }
         Relationships: []
       }
+      usuarios_painel: {
+        Row: {
+          cargo: string
+          criado_em: string
+          id: string
+          nome: string
+          senha_hash: string
+        }
+        Insert: {
+          cargo?: string
+          criado_em?: string
+          id?: string
+          nome: string
+          senha_hash: string
+        }
+        Update: {
+          cargo?: string
+          criado_em?: string
+          id?: string
+          nome?: string
+          senha_hash?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
