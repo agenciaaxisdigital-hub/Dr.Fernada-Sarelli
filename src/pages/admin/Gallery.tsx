@@ -359,7 +359,6 @@ const Gallery = () => {
       url_foto: uploadUrl.trim(),
       album_id: selectedAlbum,
       visivel: true,
-      tipo,
     } as any);
     if (error) { toast.error("Não foi possível adicionar."); return; }
     setUploadUrl(""); setUploadTitle(""); setUploadCaption("");
