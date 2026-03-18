@@ -89,6 +89,8 @@ const Gallery = () => {
   const [editingPhoto, setEditingPhoto] = useState<Foto | null>(null);
   const [editPhotoTitle, setEditPhotoTitle] = useState("");
   const [editPhotoCaption, setEditPhotoCaption] = useState("");
+  const [editFocalX, setEditFocalX] = useState(50);
+  const [editFocalY, setEditFocalY] = useState(50);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
