@@ -1019,12 +1019,13 @@ const Gallery = () => {
                     <div className="flex items-center gap-1 flex-wrap">
                       <button
                         onClick={() => { 
-                          const { cleanLegenda, focalX, focalY } = decodeFocalPoint(foto.legenda);
+                          const { cleanLegenda, focalX, focalY, zoom } = decodeFocalPoint(foto.legenda);
                           setEditingPhoto(foto); 
                           setEditPhotoTitle(foto.titulo); 
                           setEditPhotoCaption(cleanLegenda); 
                           setEditFocalX(focalX);
                           setEditFocalY(focalY);
+                          setEditZoom(zoom);
                         }}
                         className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
                         title="Editar"
