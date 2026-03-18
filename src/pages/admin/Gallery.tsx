@@ -761,7 +761,7 @@ const Gallery = () => {
         <Dialog open={!!editingPhoto} onOpenChange={(open) => { if (!open) setEditingPhoto(null); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Editar {editingPhoto?.tipo === "video" ? "vídeo" : "foto"}</DialogTitle>
+              <DialogTitle>Editar {editingPhoto && getFotoTipo(editingPhoto.url_foto) === "video" ? "vídeo" : "foto"}</DialogTitle>
               <DialogDescription>Ajuste o nome, descrição e posicionamento da imagem</DialogDescription>
             </DialogHeader>
             {editingPhoto && (
