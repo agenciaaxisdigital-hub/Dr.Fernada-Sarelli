@@ -51,7 +51,7 @@ interface HomeGalleryItem {
 const Index = () => {
   const [galeriaItems, setGaleriaItems] = useState<HomeGalleryItem[]>([]);
   const [galeriaAtiva, setGaleriaAtiva] = useState(false);
-  const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video">("todos");
+  const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video" | "eventos">("todos");
   const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
   useEffect(() => {
