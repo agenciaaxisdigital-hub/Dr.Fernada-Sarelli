@@ -351,10 +351,10 @@ const Index = () => {
               : galeriaFiltro === "eventos"
               ? galeriaItems.filter(i => !!i.evento)
               : galeriaItems.filter(i => (i.tipo || "foto") === galeriaFiltro);
-            const display = filtered.slice(0, 6);
+            const display = filtered.slice(0, 9);
 
             return display.length > 0 ? (
-              <div className="mt-6 sm:mt-10 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+              <div className="mt-6 sm:mt-10 grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 {display.map((item, i) => {
                   const isVideo = (item.tipo || "foto") === "video";
                   return (
