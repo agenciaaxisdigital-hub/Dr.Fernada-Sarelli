@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
