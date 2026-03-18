@@ -295,7 +295,7 @@ const GaleriaPublica = () => {
             className="relative max-w-4xl w-full max-h-[90vh] rounded-2xl overflow-hidden bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {(lightbox.tipo || "foto") === "video" ? (
+            {getFotoTipo(lightbox.url_foto) === "video" ? (
               <video
                 ref={videoRef}
                 src={lightbox.url_foto}
