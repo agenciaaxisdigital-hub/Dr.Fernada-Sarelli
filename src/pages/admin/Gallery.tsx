@@ -289,7 +289,7 @@ const Gallery = () => {
     let successCount = 0;
 
     for (let i = 0; i < items.length; i++) {
-      const { file, focalX, focalY } = items[i];
+      const { file, focalX, focalY, zoom } = items[i];
       setUploadProgress(Math.round(((i) / items.length) * 100));
 
       const isVideo = isVideoFile(file);
