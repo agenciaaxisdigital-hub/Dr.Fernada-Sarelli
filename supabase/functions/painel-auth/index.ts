@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
       const [salt, storedHash] = user.senha_hash.split(":");
       const valid = await verifyPassword(senha, storedHash, salt);
-      if (!valid) return json({ error: "Usuário ou senha inválidos" }, 401);
+      if (!valid) return json({ error: "Usuário ou senha inválidos" });
 
       // Generate session token
       const tokenData = new TextEncoder().encode(user.id + Date.now().toString() + crypto.randomUUID());
