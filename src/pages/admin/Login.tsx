@@ -20,14 +20,16 @@ const AdminLoginPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "login", nome: username.trim(), senha: password },
+      const res = await fetch(PAINEL_AUTH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action: "login", nome: username.trim(), senha: password }),
       });
+      const data = await res.json();
 
-      if (error) {
-        toast.error("Erro de conexão. Tente novamente.");
-        return;
-      }
       if (data?.error) {
         toast.error(data.error);
         return;
@@ -35,8 +37,8 @@ const AdminLoginPage = () => {
 
       setPainelUser(data.user);
       navigate("/admin/galeria");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao fazer login.");
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
