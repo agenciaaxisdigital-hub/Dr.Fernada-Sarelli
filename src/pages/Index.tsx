@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
@@ -382,8 +383,9 @@ const Index = () => {
                           ) : (
                             <img
                               src={item.url_foto}
-                              alt={item.legenda || item.titulo}
+                              alt={item.legenda ? decodeFocalPoint(item.legenda).cleanLegenda || item.titulo : item.titulo}
                               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              style={getFocalStyle(item.legenda)}
                               loading="lazy"
                             />
                           )}

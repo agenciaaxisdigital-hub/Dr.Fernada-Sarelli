@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Plus, Trash2, Eye, EyeOff, Upload, FolderPlus, Sparkles, Eraser,
   Pin, Pencil, ArrowLeft, ArrowRight, Check, X, FolderOpen, ImagePlus,
-  Move, ChevronDown, Camera, Images, Video, Play
+  Move, ChevronDown, Camera, Images, Video, Play, Crosshair
 } from "lucide-react";
+import FocalPointPicker, { encodeFocalPoint, decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -88,9 +89,16 @@ const Gallery = () => {
   const [editingPhoto, setEditingPhoto] = useState<Foto | null>(null);
   const [editPhotoTitle, setEditPhotoTitle] = useState("");
   const [editPhotoCaption, setEditPhotoCaption] = useState("");
+  const [editFocalX, setEditFocalX] = useState(50);
+  const [editFocalY, setEditFocalY] = useState(50);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload preview with focal point
+  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number }>>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [showUploadPreview, setShowUploadPreview] = useState(false);
 
   const loadData = useCallback(async () => {
     const [{ data: albumData, error: albumError }, { data: fotoData, error: fotoError }, { data: configData, error: configError }] = await Promise.all([
@@ -188,8 +196,9 @@ const Gallery = () => {
 
   const updatePhoto = async () => {
     if (!editingPhoto) return;
+    const legendaWithFp = encodeFocalPoint(editPhotoCaption.trim() || null, editFocalX, editFocalY);
     const { error } = await supabase.from("galeria_fotos")
-      .update({ titulo: editPhotoTitle.trim(), legenda: editPhotoCaption.trim() || null } as any)
+      .update({ titulo: editPhotoTitle.trim(), legenda: legendaWithFp || null } as any)
       .eq("id", editingPhoto.id);
     if (error) { toast.error("Erro ao salvar."); return; }
     setEditingPhoto(null);
@@ -242,20 +251,44 @@ const Gallery = () => {
   };
 
   // === Upload (photos + videos) ===
-  const uploadFiles = async (files: File[]) => {
+  // Stage files for preview (images get focal point picker, videos upload directly)
+  const stageFilesForPreview = (files: File[]) => {
     const mediaFiles = files.filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
     if (mediaFiles.length === 0) {
       toast.error("Nenhum arquivo válido. Selecione fotos ou vídeos.");
       return;
     }
 
+    const videoFiles = mediaFiles.filter(f => f.type.startsWith("video/"));
+    const imageFiles = mediaFiles.filter(f => f.type.startsWith("image/"));
+
+    // Upload videos directly (no focal point needed)
+    if (videoFiles.length > 0) {
+      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50 })));
+    }
+
+    // Show preview for images
+    if (imageFiles.length > 0) {
+      const previews = imageFiles.map(file => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        focalX: 50,
+        focalY: 50,
+      }));
+      setPendingUploads(previews);
+      setPreviewIndex(0);
+      setShowUploadPreview(true);
+    }
+  };
+
+  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number }>) => {
     setUploading(true);
     setUploadProgress(0);
     let successCount = 0;
 
-    for (let i = 0; i < mediaFiles.length; i++) {
-      const file = mediaFiles[i];
-      setUploadProgress(Math.round(((i) / mediaFiles.length) * 100));
+    for (let i = 0; i < items.length; i++) {
+      const { file, focalX, focalY } = items[i];
+      setUploadProgress(Math.round(((i) / items.length) * 100));
 
       const isVideo = isVideoFile(file);
       const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
@@ -269,12 +302,14 @@ const Gallery = () => {
       }
 
       const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
+      const legendaWithFp = encodeFocalPoint(null, focalX, focalY);
       const { error: insertError } = await supabase.from("galeria_fotos").insert({
         titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         url_foto: urlData.publicUrl,
         album_id: selectedAlbum,
         visivel: true,
         tipo: isVideo ? "video" : "foto",
+        legenda: legendaWithFp || null,
       } as any);
 
       if (insertError) {
@@ -293,10 +328,25 @@ const Gallery = () => {
     }
   };
 
+  const confirmUploadPreviews = () => {
+    // Clean up preview URLs
+    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY }));
+    pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    setPendingUploads([]);
+    setShowUploadPreview(false);
+    uploadFilesWithFocalPoints(items);
+  };
+
+  const cancelUploadPreviews = () => {
+    pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    setPendingUploads([]);
+    setShowUploadPreview(false);
+  };
+
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    await uploadFiles(Array.from(e.dataTransfer.files));
+    stageFilesForPreview(Array.from(e.dataTransfer.files));
   };
 
   const addPhoto = async () => {
@@ -409,8 +459,8 @@ const Gallery = () => {
           accept="image/*,video/*"
           multiple
           className="hidden"
-          onChange={async (e) => {
-            await uploadFiles(Array.from(e.target.files || []));
+          onChange={(e) => {
+            stageFilesForPreview(Array.from(e.target.files || []));
             if (e.target) e.target.value = "";
           }}
         />
@@ -708,23 +758,25 @@ const Gallery = () => {
 
         {/* Dialog editar foto/vídeo */}
         <Dialog open={!!editingPhoto} onOpenChange={(open) => { if (!open) setEditingPhoto(null); }}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar {editingPhoto?.tipo === "video" ? "vídeo" : "foto"}</DialogTitle>
+              <DialogDescription>Ajuste o nome, descrição e posicionamento da imagem</DialogDescription>
             </DialogHeader>
             {editingPhoto && (
               <div className="space-y-4">
                 {editingPhoto.tipo === "video" ? (
                   <video
                     src={editingPhoto.url_foto}
-                    className="w-full aspect-video rounded-xl bg-black"
+                    className="w-full aspect-video rounded-xl bg-muted"
                     controls
                   />
                 ) : (
-                  <img
+                  <FocalPointPicker
                     src={editingPhoto.url_foto}
-                    alt={editingPhoto.titulo}
-                    className="w-full aspect-video object-cover rounded-xl"
+                    focalX={editFocalX}
+                    focalY={editFocalY}
+                    onChange={(x, y) => { setEditFocalX(x); setEditFocalY(y); }}
                   />
                 )}
                 <div className="space-y-2">
@@ -739,6 +791,68 @@ const Gallery = () => {
             )}
             <DialogFooter>
               <Button onClick={updatePhoto} className="rounded-full w-full">Salvar alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog prévia de upload com ponto focal */}
+        <Dialog open={showUploadPreview} onOpenChange={(open) => { if (!open) cancelUploadPreviews(); }}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Posicionar foto {previewIndex + 1} de {pendingUploads.length}
+              </DialogTitle>
+              <DialogDescription>
+                Toque na imagem para definir o ponto focal — a parte que não será cortada no quadrado
+              </DialogDescription>
+            </DialogHeader>
+            {pendingUploads[previewIndex] && (
+              <div className="space-y-4">
+                <FocalPointPicker
+                  src={pendingUploads[previewIndex].previewUrl}
+                  focalX={pendingUploads[previewIndex].focalX}
+                  focalY={pendingUploads[previewIndex].focalY}
+                  onChange={(x, y) => {
+                    setPendingUploads(prev => prev.map((p, i) =>
+                      i === previewIndex ? { ...p, focalX: x, focalY: y } : p
+                    ));
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  {pendingUploads[previewIndex].file.name}
+                </p>
+              </div>
+            )}
+            <DialogFooter className="flex gap-2 sm:gap-2">
+              {pendingUploads.length > 1 && (
+                <div className="flex gap-2 mr-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={previewIndex === 0}
+                    onClick={() => setPreviewIndex(i => i - 1)}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={previewIndex === pendingUploads.length - 1}
+                    onClick={() => setPreviewIndex(i => i + 1)}
+                  >
+                    Próxima <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+              <Button variant="ghost" onClick={cancelUploadPreviews} className="rounded-full">
+                Cancelar
+              </Button>
+              <Button onClick={confirmUploadPreviews} className="rounded-full">
+                <Upload className="h-4 w-4 mr-1" />
+                Enviar {pendingUploads.length > 1 ? `${pendingUploads.length} fotos` : "foto"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -887,6 +1001,7 @@ const Gallery = () => {
                     src={foto.url_foto}
                     alt={foto.titulo}
                     className={`w-full aspect-square object-cover transition-opacity ${!foto.visivel ? "opacity-50" : ""}`}
+                    style={getFocalStyle(foto.legenda)}
                     loading="lazy"
                   />
                 )}
@@ -895,13 +1010,20 @@ const Gallery = () => {
                 <div className="p-2.5 space-y-2">
                   <div>
                     <p className="text-xs font-semibold truncate">{foto.titulo}</p>
-                    {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{foto.legenda}</p>}
+                    {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{decodeFocalPoint(foto.legenda).cleanLegenda}</p>}
                   </div>
 
                   {!selectionMode && (
                     <div className="flex items-center gap-1 flex-wrap">
                       <button
-                        onClick={() => { setEditingPhoto(foto); setEditPhotoTitle(foto.titulo); setEditPhotoCaption(foto.legenda || ""); }}
+                        onClick={() => { 
+                          const { cleanLegenda, focalX, focalY } = decodeFocalPoint(foto.legenda);
+                          setEditingPhoto(foto); 
+                          setEditPhotoTitle(foto.titulo); 
+                          setEditPhotoCaption(cleanLegenda); 
+                          setEditFocalX(focalX);
+                          setEditFocalY(focalY);
+                        }}
                         className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
                         title="Editar"
                       >
