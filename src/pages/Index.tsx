@@ -290,38 +290,93 @@ const Index = () => {
           <ScrollReveal>
             <div className="text-center">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">📸 Registro das atividades</p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Galeria de Fotos</h2>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Galeria de Fotos e Vídeos</h2>
               <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
                 Acompanhe os eventos, ações sociais e encontros comunitários
               </p>
             </div>
           </ScrollReveal>
 
-          {galeriaFotos.length > 0 ? (
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-              {galeriaFotos.slice(0, 6).map((foto, i) => (
-                <ScrollReveal key={foto.id} delay={i * 0.08}>
-                  <Link
-                    to="/galeria"
-                    className="group block overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-lg"
-                  >
-                    <div className="aspect-square overflow-hidden">
-                      <img
-                        src={foto.url_foto}
-                        alt={foto.legenda || foto.titulo}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    </div>
-                  </Link>
-                </ScrollReveal>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-10 text-center py-10">
-              <p className="text-muted-foreground">Em breve novas fotos serão publicadas aqui.</p>
-            </div>
+          {/* Filter tabs */}
+          {galeriaItems.length > 0 && (
+            <ScrollReveal delay={0.05}>
+              <div className="flex justify-center gap-2 mt-8">
+                {(["todos", "foto", "video"] as const).map((filtro) => {
+                  const labels = { todos: "Todos", foto: "Fotos", video: "Vídeos" };
+                  const count = filtro === "todos"
+                    ? galeriaItems.length
+                    : galeriaItems.filter(i => (i.tipo || "foto") === filtro).length;
+                  if (filtro !== "todos" && count === 0) return null;
+                  return (
+                    <button
+                      key={filtro}
+                      onClick={() => setGaleriaFiltro(filtro)}
+                      className={`rounded-full px-5 py-2 text-sm font-medium border transition-colors ${
+                        galeriaFiltro === filtro
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border hover:bg-accent"
+                      }`}
+                    >
+                      {labels[filtro]} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </ScrollReveal>
           )}
+
+          {(() => {
+            const filtered = galeriaFiltro === "todos"
+              ? galeriaItems
+              : galeriaItems.filter(i => (i.tipo || "foto") === galeriaFiltro);
+            const display = filtered.slice(0, 6);
+
+            return display.length > 0 ? (
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+                {display.map((item, i) => {
+                  const isVideo = (item.tipo || "foto") === "video";
+                  return (
+                    <ScrollReveal key={item.id} delay={i * 0.08}>
+                      <Link
+                        to="/galeria"
+                        className="group block overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-lg"
+                      >
+                        <div className="aspect-square overflow-hidden relative">
+                          {isVideo ? (
+                            <>
+                              <video
+                                src={item.url_foto}
+                                className="h-full w-full object-cover"
+                                muted
+                                preload="metadata"
+                                playsInline
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                                <div className="h-12 w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                  <Play className="h-6 w-6 text-black ml-0.5" />
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={item.url_foto}
+                              alt={item.legenda || item.titulo}
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          )}
+                        </div>
+                      </Link>
+                    </ScrollReveal>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-10 text-center py-10">
+                <p className="text-muted-foreground">Em breve novos conteúdos serão publicados aqui.</p>
+              </div>
+            );
+          })()}
 
           <div className="mt-8 text-center">
             <Link
