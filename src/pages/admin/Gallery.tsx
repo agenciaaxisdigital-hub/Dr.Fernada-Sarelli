@@ -91,12 +91,13 @@ const Gallery = () => {
   const [editPhotoCaption, setEditPhotoCaption] = useState("");
   const [editFocalX, setEditFocalX] = useState(50);
   const [editFocalY, setEditFocalY] = useState(50);
+  const [editZoom, setEditZoom] = useState(100);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload preview with focal point
-  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number }>>([]);
+  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number; zoom: number }>>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [showUploadPreview, setShowUploadPreview] = useState(false);
 
@@ -196,7 +197,7 @@ const Gallery = () => {
 
   const updatePhoto = async () => {
     if (!editingPhoto) return;
-    const legendaWithFp = encodeFocalPoint(editPhotoCaption.trim() || null, editFocalX, editFocalY);
+    const legendaWithFp = encodeFocalPoint(editPhotoCaption.trim() || null, editFocalX, editFocalY, editZoom);
     const { error } = await supabase.from("galeria_fotos")
       .update({ titulo: editPhotoTitle.trim(), legenda: legendaWithFp || null } as any)
       .eq("id", editingPhoto.id);
@@ -264,7 +265,7 @@ const Gallery = () => {
 
     // Upload videos directly (no focal point needed)
     if (videoFiles.length > 0) {
-      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50 })));
+      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50, zoom: 100 })));
     }
 
     // Show preview for images
@@ -274,6 +275,7 @@ const Gallery = () => {
         previewUrl: URL.createObjectURL(file),
         focalX: 50,
         focalY: 50,
+        zoom: 100,
       }));
       setPendingUploads(previews);
       setPreviewIndex(0);
@@ -281,13 +283,13 @@ const Gallery = () => {
     }
   };
 
-  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number }>) => {
+  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number; zoom: number }>) => {
     setUploading(true);
     setUploadProgress(0);
     let successCount = 0;
 
     for (let i = 0; i < items.length; i++) {
-      const { file, focalX, focalY } = items[i];
+      const { file, focalX, focalY, zoom } = items[i];
       setUploadProgress(Math.round(((i) / items.length) * 100));
 
       const isVideo = isVideoFile(file);
@@ -302,7 +304,7 @@ const Gallery = () => {
       }
 
       const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
-      const legendaWithFp = encodeFocalPoint(null, focalX, focalY);
+      const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
       const { error: insertError } = await supabase.from("galeria_fotos").insert({
         titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         url_foto: urlData.publicUrl,
@@ -330,7 +332,7 @@ const Gallery = () => {
 
   const confirmUploadPreviews = () => {
     // Clean up preview URLs
-    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY }));
+    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY, zoom: p.zoom }));
     pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
     setPendingUploads([]);
     setShowUploadPreview(false);
@@ -776,7 +778,8 @@ const Gallery = () => {
                     src={editingPhoto.url_foto}
                     focalX={editFocalX}
                     focalY={editFocalY}
-                    onChange={(x, y) => { setEditFocalX(x); setEditFocalY(y); }}
+                    zoom={editZoom}
+                    onChange={(x, y, z) => { setEditFocalX(x); setEditFocalY(y); if (z !== undefined) setEditZoom(z); }}
                   />
                 )}
                 <div className="space-y-2">
@@ -812,9 +815,10 @@ const Gallery = () => {
                   src={pendingUploads[previewIndex].previewUrl}
                   focalX={pendingUploads[previewIndex].focalX}
                   focalY={pendingUploads[previewIndex].focalY}
-                  onChange={(x, y) => {
+                  zoom={pendingUploads[previewIndex].zoom}
+                  onChange={(x, y, z) => {
                     setPendingUploads(prev => prev.map((p, i) =>
-                      i === previewIndex ? { ...p, focalX: x, focalY: y } : p
+                      i === previewIndex ? { ...p, focalX: x, focalY: y, zoom: z ?? p.zoom } : p
                     ));
                   }}
                 />
@@ -1017,12 +1021,13 @@ const Gallery = () => {
                     <div className="flex items-center gap-1 flex-wrap">
                       <button
                         onClick={() => { 
-                          const { cleanLegenda, focalX, focalY } = decodeFocalPoint(foto.legenda);
+                          const { cleanLegenda, focalX, focalY, zoom } = decodeFocalPoint(foto.legenda);
                           setEditingPhoto(foto); 
                           setEditPhotoTitle(foto.titulo); 
                           setEditPhotoCaption(cleanLegenda); 
                           setEditFocalX(focalX);
                           setEditFocalY(focalY);
+                          setEditZoom(zoom);
                         }}
                         className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
                         title="Editar"

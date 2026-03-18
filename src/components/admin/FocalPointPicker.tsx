@@ -1,19 +1,22 @@
 import { useState, useRef, useCallback } from "react";
-import { Move } from "lucide-react";
+import { Move, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 
 interface FocalPointPickerProps {
   src: string;
   focalX?: number; // 0-100
   focalY?: number; // 0-100
-  onChange: (x: number, y: number) => void;
+  zoom?: number;   // 100-300 (100 = normal)
+  onChange: (x: number, y: number, zoom?: number) => void;
 }
 
 /**
- * Allows user to click/drag on an image to set the focal point.
- * The focal point determines how the image is cropped in square frames.
- * A crosshair shows the selected point and a preview square shows the crop result.
+ * Allows user to click/drag on an image to set the focal point + zoom.
+ * Works in all directions (left, right, up, down).
+ * The preview shows exact crop result with zoom applied.
  */
-const FocalPointPicker = ({ src, focalX = 50, focalY = 50, onChange }: FocalPointPickerProps) => {
+const FocalPointPicker = ({ src, focalX = 50, focalY = 50, zoom = 100, onChange }: FocalPointPickerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -23,8 +26,8 @@ const FocalPointPicker = ({ src, focalX = 50, focalY = 50, onChange }: FocalPoin
     const rect = el.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
-    onChange(Math.round(x), Math.round(y));
-  }, [onChange]);
+    onChange(Math.round(x), Math.round(y), zoom);
+  }, [onChange, zoom]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -42,12 +45,32 @@ const FocalPointPicker = ({ src, focalX = 50, focalY = 50, onChange }: FocalPoin
     setDragging(false);
   };
 
+  const handleZoomChange = (value: number[]) => {
+    onChange(focalX, focalY, value[0]);
+  };
+
+  const handleReset = () => {
+    onChange(50, 50, 100);
+  };
+
+  const scale = zoom / 100;
+
   return (
     <div className="space-y-3">
       {/* Label */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Move className="h-4 w-4" />
-        <span>Toque na foto para posicionar o ponto focal</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Move className="h-4 w-4" />
+          <span>Toque e arraste para posicionar</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs gap-1 text-muted-foreground"
+          onClick={handleReset}
+        >
+          <RotateCcw className="h-3 w-3" /> Resetar
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -91,45 +114,72 @@ const FocalPointPicker = ({ src, focalX = 50, focalY = 50, onChange }: FocalPoin
               src={src}
               alt="Prévia"
               className="w-full h-full object-cover"
-              style={{ objectPosition: `${focalX}% ${focalY}%` }}
+              style={{
+                objectPosition: `${focalX}% ${focalY}%`,
+                transform: `scale(${scale})`,
+                transformOrigin: `${focalX}% ${focalY}%`,
+              }}
             />
           </div>
         </div>
       </div>
 
-      {/* Position indicator */}
-      <p className="text-xs text-center text-muted-foreground">
-        Ponto focal: {focalX}%, {focalY}%
-      </p>
+      {/* Zoom slider */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <ZoomOut className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <Slider
+            value={[zoom]}
+            onValueChange={handleZoomChange}
+            min={100}
+            max={300}
+            step={5}
+            className="flex-1"
+          />
+          <ZoomIn className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        </div>
+        <p className="text-xs text-center text-muted-foreground">
+          Zoom: {zoom}% · Posição: {focalX}%, {focalY}%
+        </p>
+      </div>
     </div>
   );
 };
 
 export default FocalPointPicker;
 
-// Helpers to encode/decode focal point in legenda field
-export const FOCAL_POINT_REGEX = /\[fp:(\d+),(\d+)\]$/;
+// Helpers to encode/decode focal point + zoom in legenda field
+export const FOCAL_POINT_REGEX = /\[fp:(\d+),(\d+)(?:,(\d+))?\]$/;
 
-export function encodeFocalPoint(legenda: string | null, x: number, y: number): string {
+export function encodeFocalPoint(legenda: string | null, x: number, y: number, zoom: number = 100): string {
   const clean = (legenda || "").replace(FOCAL_POINT_REGEX, "").trim();
-  // Don't store default center position
-  if (x === 50 && y === 50) return clean;
-  return clean ? `${clean} [fp:${x},${y}]` : `[fp:${x},${y}]`;
+  // Don't store default values
+  if (x === 50 && y === 50 && zoom === 100) return clean;
+  const zoomPart = zoom !== 100 ? `,${zoom}` : "";
+  return clean ? `${clean} [fp:${x},${y}${zoomPart}]` : `[fp:${x},${y}${zoomPart}]`;
 }
 
-export function decodeFocalPoint(legenda: string | null): { cleanLegenda: string; focalX: number; focalY: number } {
-  if (!legenda) return { cleanLegenda: "", focalX: 50, focalY: 50 };
+export function decodeFocalPoint(legenda: string | null): { cleanLegenda: string; focalX: number; focalY: number; zoom: number } {
+  if (!legenda) return { cleanLegenda: "", focalX: 50, focalY: 50, zoom: 100 };
   const match = legenda.match(FOCAL_POINT_REGEX);
-  if (!match) return { cleanLegenda: legenda, focalX: 50, focalY: 50 };
+  if (!match) return { cleanLegenda: legenda, focalX: 50, focalY: 50, zoom: 100 };
   return {
     cleanLegenda: legenda.replace(FOCAL_POINT_REGEX, "").trim(),
     focalX: parseInt(match[1], 10),
     focalY: parseInt(match[2], 10),
+    zoom: match[3] ? parseInt(match[3], 10) : 100,
   };
 }
 
 export function getFocalStyle(legenda: string | null): React.CSSProperties {
-  const { focalX, focalY } = decodeFocalPoint(legenda);
-  if (focalX === 50 && focalY === 50) return {};
-  return { objectPosition: `${focalX}% ${focalY}%` };
+  const { focalX, focalY, zoom } = decodeFocalPoint(legenda);
+  const style: React.CSSProperties = {};
+  if (focalX !== 50 || focalY !== 50) {
+    style.objectPosition = `${focalX}% ${focalY}%`;
+  }
+  if (zoom !== 100) {
+    style.transform = `scale(${zoom / 100})`;
+    style.transformOrigin = `${focalX}% ${focalY}%`;
+  }
+  return style;
 }
