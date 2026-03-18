@@ -23,7 +23,10 @@ const AdminLoginPage = () => {
         body: { action: "login", nome: username.trim(), senha: password },
       });
 
-      if (error) throw error;
+      if (error) {
+        toast.error("Erro de conexão. Tente novamente.");
+        return;
+      }
       if (data?.error) {
         toast.error(data.error);
         return;
@@ -31,8 +34,8 @@ const AdminLoginPage = () => {
 
       setPainelUser(data.user);
       navigate("/admin/galeria");
-    } catch {
-      toast.error("Usuário ou senha inválidos.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao fazer login.");
     } finally {
       setLoading(false);
     }
