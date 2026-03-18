@@ -85,7 +85,7 @@ const Index = () => {
           titulo: d.titulo,
           legenda: d.legenda,
           url_foto: d.url_foto,
-          tipo: d.tipo || "foto",
+          tipo: getItemTipo(d.url_foto),
           ordem: d.ordem ?? 0,
           evento: d.evento || null,
         })));
