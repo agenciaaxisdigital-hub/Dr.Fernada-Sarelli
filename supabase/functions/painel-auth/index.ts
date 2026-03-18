@@ -1,22 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// We need direct postgres access for table creation
-async function ensureTable(supabaseUrl: string, serviceKey: string) {
-  // Try to query the table - if it fails, we need to create it
-  const res = await fetch(`${supabaseUrl}/rest/v1/usuarios_painel?select=id&limit=1`, {
-    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-  });
-  if (res.status === 404 || res.status === 406) {
-    // Table doesn't exist - create via SQL
-    const sqlRes = await fetch(`${supabaseUrl}/rest/v1/rpc/`, {
-      method: "POST",
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
-      body: "{}",
-    });
-    // We'll handle table creation through the postgres connection in the function
-    console.log("Table usuarios_painel may not exist yet. Run the setup migration.");
-  }
-}
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -55,6 +38,38 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, nome, senha, user_id } = body;
 
+    // ── SETUP (create table if needed) ──
+    if (action === "setup") {
+      const dbUrl = Deno.env.get("SUPABASE_DB_URL");
+      if (!dbUrl) return json({ error: "SUPABASE_DB_URL not configured" }, 500);
+
+      // Use dynamic import for postgres
+      const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.4/mod.js");
+      const sql = postgres(dbUrl);
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS public.usuarios_painel (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          nome text NOT NULL UNIQUE,
+          senha_hash text NOT NULL,
+          cargo text NOT NULL DEFAULT 'admin',
+          criado_em timestamptz NOT NULL DEFAULT now()
+        )
+      `;
+      await sql`ALTER TABLE public.usuarios_painel ENABLE ROW LEVEL SECURITY`;
+      
+      // Check if default admin exists
+      const existing = await sql`SELECT id FROM public.usuarios_painel LIMIT 1`;
+      if (existing.length === 0) {
+        // Create default admin
+        const { hash, salt } = await hashPassword("admin123");
+        await sql`INSERT INTO public.usuarios_painel (nome, senha_hash, cargo) VALUES ('admin', ${salt + ':' + hash}, 'super_admin')`;
+      }
+
+      await sql.end();
+      return json({ success: true, message: "Tabela criada com sucesso" });
+    }
+
     // ── LOGIN ──
     if (action === "login") {
       if (!nome || !senha) return json({ error: "Nome e senha são obrigatórios" }, 400);
@@ -67,12 +82,11 @@ Deno.serve(async (req) => {
 
       if (error || !user) return json({ error: "Usuário ou senha inválidos" }, 401);
 
-      // senha_hash format: "salt:hash"
       const [salt, storedHash] = user.senha_hash.split(":");
       const valid = await verifyPassword(senha, storedHash, salt);
       if (!valid) return json({ error: "Usuário ou senha inválidos" }, 401);
 
-      // Generate a simple session token
+      // Generate session token
       const tokenData = new TextEncoder().encode(user.id + Date.now().toString() + crypto.randomUUID());
       const tokenHash = await crypto.subtle.digest("SHA-256", tokenData);
       const token = Array.from(new Uint8Array(tokenHash)).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -170,7 +184,7 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
-    return json({ error: "Ação inválida. Use: login, list, create, delete, update-name, reset-password" }, 400);
+    return json({ error: "Ação inválida. Use: login, list, create, delete, update-name, reset-password, setup" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }
