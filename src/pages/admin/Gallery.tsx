@@ -428,8 +428,8 @@ const Gallery = () => {
   const hasTestPhotos = fotos.some(f => TEST_IMAGE_URLS.includes(f.url_foto));
   const selectedAlbumName = selectedAlbum ? albuns.find(a => a.id === selectedAlbum)?.nome : null;
 
-  const photoCount = fotos.filter(f => (f.tipo || "foto") === "foto").length;
-  const videoCount = fotos.filter(f => f.tipo === "video").length;
+  const photoCount = fotos.filter(f => getFotoTipo(f.url_foto) === "foto").length;
+  const videoCount = fotos.filter(f => getFotoTipo(f.url_foto) === "video").length;
 
   return (
     <AdminLayout>
