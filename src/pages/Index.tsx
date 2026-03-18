@@ -46,6 +46,7 @@ interface HomeGalleryItem {
   url_foto: string;
   tipo: string;
   ordem: number;
+  evento: string | null;
 }
 
 const Index = () => {
