@@ -16,8 +16,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    painelLogout();
     navigate("/admin/login");
   };
 
