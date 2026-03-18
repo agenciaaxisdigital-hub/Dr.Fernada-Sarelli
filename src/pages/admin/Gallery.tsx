@@ -265,7 +265,7 @@ const Gallery = () => {
 
     // Upload videos directly (no focal point needed)
     if (videoFiles.length > 0) {
-      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50 })));
+      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50, zoom: 100 })));
     }
 
     // Show preview for images
