@@ -86,7 +86,7 @@ const SettingsPage = () => {
 
     setCreating(true);
     try {
-      const data = await painelApi({ action: "create", nome: newUsername.trim(), senha: newPassword, cargo: "admin" });
+      const data = await painelApi({ action: "create", nome: newUsername.trim(), senha: newPassword });
       if (data?.error) { toast.error(data.error); return; }
       toast.success(`Usuário "${newUsername}" criado!`);
       setNewUsername(""); setNewPassword("");

@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       if (!valid) return json({ error: "Usuário ou senha inválidos" });
 
       // Generate session token
-      const tokenData = new TextEncoder().encode(user.id + Date.now().toString() + crypto.randomUUID());
+      const tokenData = new TextEncoder().encode(user.id + Date.now() + crypto.randomUUID());
       const tokenHash = await crypto.subtle.digest("SHA-256", tokenData);
       const token = Array.from(new Uint8Array(tokenHash)).map(b => b.toString(16).padStart(2, "0")).join("");
 
