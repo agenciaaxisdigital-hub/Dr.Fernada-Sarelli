@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { Image as ImageIcon, Play, X, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { Image as ImageIcon, Play, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -18,6 +18,48 @@ interface Foto {
   tipo: string;
 }
 
+// Helper to get or create visitor cookie
+const getVisitorCookie = (): string => {
+  const key = "chama_visitor";
+  let cookie = localStorage.getItem(key);
+  if (!cookie) {
+    cookie = crypto.randomUUID();
+    localStorage.setItem(key, cookie);
+  }
+  return cookie;
+};
+
+const getDeviceInfo = () => {
+  const ua = navigator.userAgent;
+  let dispositivo = "desktop";
+  if (/Mobi|Android/i.test(ua)) dispositivo = "mobile";
+  else if (/Tablet|iPad/i.test(ua)) dispositivo = "tablet";
+
+  let navegador = "outro";
+  if (/Chrome/i.test(ua) && !/Edge/i.test(ua)) navegador = "Chrome";
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) navegador = "Safari";
+  else if (/Firefox/i.test(ua)) navegador = "Firefox";
+  else if (/Edge/i.test(ua)) navegador = "Edge";
+
+  return { dispositivo, navegador };
+};
+
+const trackGalleryEvent = async (
+  fotoId: string,
+  tipoEvento: "visualizacao" | "play_video" | "duracao_video",
+  valor?: number
+) => {
+  const { dispositivo, navegador } = getDeviceInfo();
+  await supabase.from("galeria_analytics" as any).insert({
+    foto_id: fotoId,
+    tipo_evento: tipoEvento,
+    valor: valor ?? null,
+    cookie_visitante: getVisitorCookie(),
+    dispositivo,
+    navegador,
+  } as any);
+};
+
 const GaleriaPublica = () => {
   const [albuns, setAlbuns] = useState<Album[]>([]);
   const [fotos, setFotos] = useState<Foto[]>([]);
@@ -25,6 +67,8 @@ const GaleriaPublica = () => {
   const [galeriaAtiva, setGaleriaAtiva] = useState<boolean | null>(null);
   const [lightbox, setLightbox] = useState<Foto | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoStartTime = useRef<number>(0);
+  const trackedPlayRef = useRef<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -52,6 +96,51 @@ const GaleriaPublica = () => {
     };
     load();
   }, []);
+
+  // Track video duration when lightbox closes or video pauses
+  const trackVideoDuration = useCallback(() => {
+    if (videoRef.current && lightbox && (lightbox.tipo || "foto") === "video" && videoStartTime.current > 0) {
+      const duration = (Date.now() - videoStartTime.current) / 1000;
+      if (duration >= 1) {
+        trackGalleryEvent(lightbox.id, "duracao_video", Math.round(duration));
+      }
+      videoStartTime.current = 0;
+    }
+  }, [lightbox]);
+
+  // Open lightbox and track view
+  const openLightbox = useCallback((foto: Foto) => {
+    setLightbox(foto);
+    trackGalleryEvent(foto.id, "visualizacao");
+    trackedPlayRef.current = null;
+    videoStartTime.current = 0;
+  }, []);
+
+  // Close lightbox and track video duration if applicable
+  const closeLightbox = useCallback(() => {
+    trackVideoDuration();
+    setLightbox(null);
+  }, [trackVideoDuration]);
+
+  // Handle video play event
+  const handleVideoPlay = useCallback(() => {
+    if (lightbox && trackedPlayRef.current !== lightbox.id) {
+      trackGalleryEvent(lightbox.id, "play_video");
+      trackedPlayRef.current = lightbox.id;
+    }
+    videoStartTime.current = Date.now();
+  }, [lightbox]);
+
+  // Handle video pause - track partial duration
+  const handleVideoPause = useCallback(() => {
+    if (lightbox && videoStartTime.current > 0) {
+      const duration = (Date.now() - videoStartTime.current) / 1000;
+      if (duration >= 1) {
+        trackGalleryEvent(lightbox.id, "duracao_video", Math.round(duration));
+      }
+      videoStartTime.current = 0;
+    }
+  }, [lightbox]);
 
   // Auto-play video when lightbox opens
   useEffect(() => {
@@ -141,7 +230,7 @@ const GaleriaPublica = () => {
                 <ScrollReveal key={foto.id} delay={Math.min(i * 0.05, 0.3)}>
                   <div
                     className="break-inside-avoid rounded-2xl overflow-hidden border bg-card group cursor-pointer"
-                    onClick={() => setLightbox(foto)}
+                    onClick={() => openLightbox(foto)}
                   >
                     {isVideo ? (
                       <div className="relative">
@@ -193,11 +282,11 @@ const GaleriaPublica = () => {
         </div>
       </section>
 
-      {/* Lightbox - supports both photos and videos */}
+      {/* Lightbox */}
       {lightbox && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 backdrop-blur-sm p-4"
-          onClick={() => setLightbox(null)}
+          onClick={closeLightbox}
         >
           <div
             className="relative max-w-4xl w-full max-h-[90vh] rounded-2xl overflow-hidden bg-card shadow-2xl"
@@ -212,6 +301,8 @@ const GaleriaPublica = () => {
                 autoPlay
                 playsInline
                 controlsList="nodownload"
+                onPlay={handleVideoPlay}
+                onPause={handleVideoPause}
               />
             ) : (
               <img
@@ -234,7 +325,7 @@ const GaleriaPublica = () => {
               )}
             </div>
             <button
-              onClick={() => setLightbox(null)}
+              onClick={closeLightbox}
               className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-card/80 text-foreground hover:bg-card transition-colors"
               aria-label="Fechar"
             >
