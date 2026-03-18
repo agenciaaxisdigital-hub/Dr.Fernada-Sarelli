@@ -15,8 +15,11 @@ interface Foto {
   legenda: string | null;
   url_foto: string;
   album_id: string | null;
-  tipo: string;
 }
+
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".avi"];
+const isVideoUrl = (url: string) => VIDEO_EXTENSIONS.some(ext => url.toLowerCase().includes(ext));
+const getFotoTipo = (url: string) => isVideoUrl(url) ? "video" : "foto";
 
 // Helper to get or create visitor cookie
 const getVisitorCookie = (): string => {
