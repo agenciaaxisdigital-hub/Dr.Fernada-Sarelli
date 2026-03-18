@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
     // ── LOGIN ──
     if (action === "login") {
-      if (!nome || !senha) return json({ error: "Nome e senha são obrigatórios" }, 400);
+      if (!nome || !senha) return json({ error: "Nome e senha são obrigatórios" });
 
       const { data: user, error } = await supabase
         .from("usuarios_painel")
