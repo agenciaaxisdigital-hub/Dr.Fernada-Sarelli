@@ -1010,7 +1010,7 @@ const Gallery = () => {
                 <div className="p-2.5 space-y-2">
                   <div>
                     <p className="text-xs font-semibold truncate">{foto.titulo}</p>
-                    {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{foto.legenda}</p>}
+                    {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{decodeFocalPoint(foto.legenda).cleanLegenda}</p>}
                   </div>
 
                   {!selectionMode && (

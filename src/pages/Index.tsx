@@ -383,8 +383,9 @@ const Index = () => {
                           ) : (
                             <img
                               src={item.url_foto}
-                              alt={item.legenda || item.titulo}
+                              alt={item.legenda ? decodeFocalPoint(item.legenda).cleanLegenda || item.titulo : item.titulo}
                               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              style={getFocalStyle(item.legenda)}
                               loading="lazy"
                             />
                           )}
