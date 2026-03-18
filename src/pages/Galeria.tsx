@@ -316,7 +316,7 @@ const GaleriaPublica = () => {
             )}
             <div className="p-4">
               <div className="flex items-center gap-2">
-                {(lightbox.tipo || "foto") === "video" && (
+                {getFotoTipo(lightbox.url_foto) === "video" && (
                   <span className="text-xs font-semibold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded">
                     Vídeo
                   </span>
