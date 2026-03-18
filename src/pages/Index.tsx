@@ -49,13 +49,13 @@ interface HomeGalleryItem {
 }
 
 const Index = () => {
-  const [galeriaFotos, setGaleriaFotos] = useState<HomeGalleryPhoto[]>([]);
+  const [galeriaItems, setGaleriaItems] = useState<HomeGalleryItem[]>([]);
   const [galeriaAtiva, setGaleriaAtiva] = useState(false);
+  const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video">("todos");
   const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
   useEffect(() => {
     const loadGaleria = async () => {
-      // Verifica se galeria está ativa
       const { data: configData } = await supabase
         .from("configuracoes" as any)
         .select("valor")
@@ -66,30 +66,30 @@ const Index = () => {
       setGaleriaAtiva(ativa);
       if (!ativa) return;
 
-      // Primeiro tenta fotos marcadas como destaque_home
+      // Get items marked as destaque_home
       const { data: destaquesData } = await (supabase
         .from("galeria_fotos")
-        .select("id, titulo, legenda, url_foto") as any)
+        .select("id, titulo, legenda, url_foto, tipo, ordem") as any)
         .eq("visivel", true)
         .eq("destaque_home", true)
         .order("ordem")
-        .limit(6);
+        .limit(12);
 
       if (destaquesData && destaquesData.length > 0) {
-        setGaleriaFotos(destaquesData as HomeGalleryPhoto[]);
+        setGaleriaItems(destaquesData as HomeGalleryItem[]);
         return;
       }
 
-      // Fallback: pega as 6 primeiras visíveis
+      // Fallback: get first 12 visible
       const { data: fotosData } = await supabase
         .from("galeria_fotos")
-        .select("id, titulo, legenda, url_foto")
+        .select("id, titulo, legenda, url_foto, tipo, ordem")
         .eq("visivel", true)
         .order("ordem")
-        .limit(6);
+        .limit(12);
 
       if (fotosData) {
-        setGaleriaFotos(fotosData as HomeGalleryPhoto[]);
+        setGaleriaItems(fotosData as unknown as HomeGalleryItem[]);
       }
     };
 
