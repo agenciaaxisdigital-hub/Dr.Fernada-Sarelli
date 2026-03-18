@@ -91,6 +91,7 @@ const Gallery = () => {
   const [editPhotoCaption, setEditPhotoCaption] = useState("");
   const [editFocalX, setEditFocalX] = useState(50);
   const [editFocalY, setEditFocalY] = useState(50);
+  const [editZoom, setEditZoom] = useState(100);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
