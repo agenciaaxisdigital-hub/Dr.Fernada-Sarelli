@@ -332,7 +332,7 @@ const Gallery = () => {
 
   const confirmUploadPreviews = () => {
     // Clean up preview URLs
-    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY }));
+    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY, zoom: p.zoom }));
     pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
     setPendingUploads([]);
     setShowUploadPreview(false);
