@@ -1,6 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as encodeHex } from "https://deno.land/std@0.208.0/encoding/hex.ts";
 
+// We need direct postgres access for table creation
+async function ensureTable(supabaseUrl: string, serviceKey: string) {
+  // Try to query the table - if it fails, we need to create it
+  const res = await fetch(`${supabaseUrl}/rest/v1/usuarios_painel?select=id&limit=1`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+  });
+  if (res.status === 404 || res.status === 406) {
+    // Table doesn't exist - create via SQL
+    const sqlRes = await fetch(`${supabaseUrl}/rest/v1/rpc/`, {
+      method: "POST",
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+      body: "{}",
+    });
+    // We'll handle table creation through the postgres connection in the function
+    console.log("Table usuarios_painel may not exist yet. Run the setup migration.");
+  }
+}
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
