@@ -105,6 +105,7 @@ const Index = () => {
           url_foto: d.url_foto,
           tipo: d.tipo || "foto",
           ordem: d.ordem ?? 0,
+          evento: d.evento || null,
         })));
       }
     };
