@@ -758,23 +758,25 @@ const Gallery = () => {
 
         {/* Dialog editar foto/vídeo */}
         <Dialog open={!!editingPhoto} onOpenChange={(open) => { if (!open) setEditingPhoto(null); }}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar {editingPhoto?.tipo === "video" ? "vídeo" : "foto"}</DialogTitle>
+              <DialogDescription>Ajuste o nome, descrição e posicionamento da imagem</DialogDescription>
             </DialogHeader>
             {editingPhoto && (
               <div className="space-y-4">
                 {editingPhoto.tipo === "video" ? (
                   <video
                     src={editingPhoto.url_foto}
-                    className="w-full aspect-video rounded-xl bg-black"
+                    className="w-full aspect-video rounded-xl bg-muted"
                     controls
                   />
                 ) : (
-                  <img
+                  <FocalPointPicker
                     src={editingPhoto.url_foto}
-                    alt={editingPhoto.titulo}
-                    className="w-full aspect-video object-cover rounded-xl"
+                    focalX={editFocalX}
+                    focalY={editFocalY}
+                    onChange={(x, y) => { setEditFocalX(x); setEditFocalY(y); }}
                   />
                 )}
                 <div className="space-y-2">
@@ -789,6 +791,68 @@ const Gallery = () => {
             )}
             <DialogFooter>
               <Button onClick={updatePhoto} className="rounded-full w-full">Salvar alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog prévia de upload com ponto focal */}
+        <Dialog open={showUploadPreview} onOpenChange={(open) => { if (!open) cancelUploadPreviews(); }}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Posicionar foto {previewIndex + 1} de {pendingUploads.length}
+              </DialogTitle>
+              <DialogDescription>
+                Toque na imagem para definir o ponto focal — a parte que não será cortada no quadrado
+              </DialogDescription>
+            </DialogHeader>
+            {pendingUploads[previewIndex] && (
+              <div className="space-y-4">
+                <FocalPointPicker
+                  src={pendingUploads[previewIndex].previewUrl}
+                  focalX={pendingUploads[previewIndex].focalX}
+                  focalY={pendingUploads[previewIndex].focalY}
+                  onChange={(x, y) => {
+                    setPendingUploads(prev => prev.map((p, i) =>
+                      i === previewIndex ? { ...p, focalX: x, focalY: y } : p
+                    ));
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  {pendingUploads[previewIndex].file.name}
+                </p>
+              </div>
+            )}
+            <DialogFooter className="flex gap-2 sm:gap-2">
+              {pendingUploads.length > 1 && (
+                <div className="flex gap-2 mr-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={previewIndex === 0}
+                    onClick={() => setPreviewIndex(i => i - 1)}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    disabled={previewIndex === pendingUploads.length - 1}
+                    onClick={() => setPreviewIndex(i => i + 1)}
+                  >
+                    Próxima <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+              <Button variant="ghost" onClick={cancelUploadPreviews} className="rounded-full">
+                Cancelar
+              </Button>
+              <Button onClick={confirmUploadPreviews} className="rounded-full">
+                <Upload className="h-4 w-4 mr-1" />
+                Enviar {pendingUploads.length > 1 ? `${pendingUploads.length} fotos` : "foto"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
