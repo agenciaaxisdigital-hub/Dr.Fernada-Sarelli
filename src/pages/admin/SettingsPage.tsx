@@ -15,6 +15,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 
+const PAINEL_AUTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-auth`;
+
+async function painelApi(body: Record<string, unknown>) {
+  const res = await fetch(PAINEL_AUTH_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
 interface PainelUser {
   id: string;
   nome: string;
@@ -38,19 +52,15 @@ const SettingsPage = () => {
   const [resetPassword, setResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     const { data: tokenData } = await supabase.from("configuracoes" as any).select("valor").eq("chave", "api_token").single();
     if (tokenData) setApiToken((tokenData as any).valor || "");
 
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "list" },
-      });
-      if (!error && data?.users) setUsers(data.users);
+      const data = await painelApi({ action: "list" });
+      if (data?.users) setUsers(data.users);
     } catch {
       console.error("Erro ao carregar usuários");
     }
@@ -71,117 +81,60 @@ const SettingsPage = () => {
   };
 
   const createUser = async () => {
-    if (!newUsername.trim() || !newPassword.trim()) {
-      toast.error("Preencha usuário e senha");
-      return;
-    }
-    if (newUsername.length < 3) {
-      toast.error("Usuário deve ter pelo menos 3 caracteres");
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error("Senha deve ter pelo menos 6 caracteres");
-      return;
-    }
+    if (!newUsername.trim() || !newPassword.trim()) { toast.error("Preencha usuário e senha"); return; }
+    if (newUsername.length < 3) { toast.error("Usuário deve ter pelo menos 3 caracteres"); return; }
+    if (newPassword.length < 6) { toast.error("Senha deve ter pelo menos 6 caracteres"); return; }
 
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "create", nome: newUsername.trim(), senha: newPassword, cargo: "admin" },
-      });
-
-      if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      toast.success(`Usuário "${newUsername}" criado com sucesso!`);
-      setNewUsername("");
-      setNewPassword("");
+      const data = await painelApi({ action: "create", nome: newUsername.trim(), senha: newPassword, cargo: "admin" });
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success(`Usuário "${newUsername}" criado!`);
+      setNewUsername(""); setNewPassword("");
       loadData();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao criar usuário");
-    } finally {
-      setCreating(false);
-    }
+    } catch { toast.error("Erro ao criar usuário"); }
+    finally { setCreating(false); }
   };
 
   const removeUser = async (userId: string, nome: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "delete", user_id: userId },
-      });
-      if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
+      const data = await painelApi({ action: "delete", user_id: userId });
+      if (data?.error) { toast.error(data.error); return; }
       toast.success(`Usuário "${nome}" removido`);
       loadData();
-    } catch {
-      toast.error("Erro ao remover usuário");
-    }
+    } catch { toast.error("Erro ao remover usuário"); }
   };
 
   const handleEditUsername = async () => {
     if (!editingUser || !editUsername.trim()) return;
-    if (editUsername.length < 3) {
-      toast.error("Nome deve ter pelo menos 3 caracteres");
-      return;
-    }
+    if (editUsername.length < 3) { toast.error("Nome deve ter pelo menos 3 caracteres"); return; }
 
     setEditSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "update-name", user_id: editingUser.id, nome: editUsername.trim() },
-      });
-      if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
+      const data = await painelApi({ action: "update-name", user_id: editingUser.id, nome: editUsername.trim() });
+      if (data?.error) { toast.error(data.error); return; }
       toast.success("Nome atualizado!");
       setEditingUser(null);
       loadData();
-    } catch {
-      toast.error("Erro ao atualizar nome");
-    } finally {
-      setEditSaving(false);
-    }
+    } catch { toast.error("Erro ao atualizar nome"); }
+    finally { setEditSaving(false); }
   };
 
   const handleResetPassword = async () => {
     if (!resetUser || !resetPassword.trim()) return;
-    if (resetPassword.length < 6) {
-      toast.error("Senha deve ter pelo menos 6 caracteres");
-      return;
-    }
+    if (resetPassword.length < 6) { toast.error("Senha deve ter pelo menos 6 caracteres"); return; }
 
     setResetSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "reset-password", user_id: resetUser.id, senha: resetPassword },
-      });
-      if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
+      const data = await painelApi({ action: "reset-password", user_id: resetUser.id, senha: resetPassword });
+      if (data?.error) { toast.error(data.error); return; }
       toast.success("Senha redefinida!");
-      setResetUser(null);
-      setResetPassword("");
-    } catch {
-      toast.error("Erro ao redefinir senha");
-    } finally {
-      setResetSaving(false);
-    }
+      setResetUser(null); setResetPassword("");
+    } catch { toast.error("Erro ao redefinir senha"); }
+    finally { setResetSaving(false); }
   };
 
-  const handleLogout = () => {
-    painelLogout();
-    navigate("/admin/login");
-  };
+  const handleLogout = () => { painelLogout(); navigate("/admin/login"); };
 
   return (
     <AdminLayout>
@@ -201,12 +154,8 @@ const SettingsPage = () => {
           </div>
           <div className="flex gap-2">
             <Input value={apiToken} readOnly className="font-mono text-xs" />
-            <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiToken)}>
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={regenerateToken}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiToken)}><Copy className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={regenerateToken}><RefreshCw className="h-4 w-4" /></Button>
           </div>
           <p className="text-xs text-muted-foreground">Use como Bearer Token no header Authorization das requisições à API.</p>
         </div>
@@ -229,9 +178,7 @@ const SettingsPage = () => {
           </div>
 
           <div className="space-y-2 pt-4 border-t">
-            {users.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhum usuário cadastrado.</p>
-            )}
+            {users.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum usuário cadastrado.</p>}
             {users.map((u) => (
               <div key={u.id} className="flex items-center justify-between rounded-xl bg-secondary p-3">
                 <div>
@@ -239,15 +186,9 @@ const SettingsPage = () => {
                   <p className="text-xs text-muted-foreground">{u.cargo}</p>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => { setEditingUser(u); setEditUsername(u.nome); }} title="Editar nome">
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => { setResetUser(u); setResetPassword(""); }} title="Redefinir senha">
-                    <KeyRound className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => removeUser(u.id, u.nome)} className="text-destructive hover:bg-destructive/10" title="Remover">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => { setEditingUser(u); setEditUsername(u.nome); }} title="Editar nome"><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => { setResetUser(u); setResetPassword(""); }} title="Redefinir senha"><KeyRound className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => removeUser(u.id, u.nome)} className="text-destructive hover:bg-destructive/10" title="Remover"><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             ))}
@@ -255,38 +196,22 @@ const SettingsPage = () => {
         </div>
       </div>
 
-      {/* Edit Username Dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Nome de Usuário</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Editar Nome de Usuário</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
-            <div>
-              <Label>Novo nome</Label>
-              <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="mt-1" autoComplete="off" />
-            </div>
-            <Button onClick={handleEditUsername} disabled={editSaving} className="w-full rounded-full">
-              {editSaving ? "Salvando..." : "Salvar"}
-            </Button>
+            <div><Label>Novo nome</Label><Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="mt-1" autoComplete="off" /></div>
+            <Button onClick={handleEditUsername} disabled={editSaving} className="w-full rounded-full">{editSaving ? "Salvando..." : "Salvar"}</Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Reset Password Dialog */}
       <Dialog open={!!resetUser} onOpenChange={(open) => !open && setResetUser(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Redefinir Senha — {resetUser?.nome}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Redefinir Senha — {resetUser?.nome}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
-            <div>
-              <Label>Nova senha</Label>
-              <Input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className="mt-1" placeholder="Mínimo 6 caracteres" autoComplete="new-password" />
-            </div>
-            <Button onClick={handleResetPassword} disabled={resetSaving} className="w-full rounded-full">
-              {resetSaving ? "Salvando..." : "Redefinir Senha"}
-            </Button>
+            <div><Label>Nova senha</Label><Input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className="mt-1" placeholder="Mínimo 6 caracteres" autoComplete="new-password" /></div>
+            <Button onClick={handleResetPassword} disabled={resetSaving} className="w-full rounded-full">{resetSaving ? "Salvando..." : "Redefinir Senha"}</Button>
           </div>
         </DialogContent>
       </Dialog>

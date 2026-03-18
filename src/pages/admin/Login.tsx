@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Eye, EyeOff, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { setPainelUser } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+
+const PAINEL_AUTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-auth`;
 
 const AdminLoginPage = () => {
   const [username, setUsername] = useState("");
@@ -19,14 +20,16 @@ const AdminLoginPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("painel-auth", {
-        body: { action: "login", nome: username.trim(), senha: password },
+      const res = await fetch(PAINEL_AUTH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action: "login", nome: username.trim(), senha: password }),
       });
+      const data = await res.json();
 
-      if (error) {
-        toast.error("Erro de conexão. Tente novamente.");
-        return;
-      }
       if (data?.error) {
         toast.error(data.error);
         return;
@@ -34,8 +37,8 @@ const AdminLoginPage = () => {
 
       setPainelUser(data.user);
       navigate("/admin/galeria");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao fazer login.");
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
