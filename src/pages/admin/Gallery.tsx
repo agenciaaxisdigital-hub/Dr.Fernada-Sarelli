@@ -766,7 +766,7 @@ const Gallery = () => {
             </DialogHeader>
             {editingPhoto && (
               <div className="space-y-4">
-                {editingPhoto.tipo === "video" ? (
+                {getFotoTipo(editingPhoto.url_foto) === "video" ? (
                   <video
                     src={editingPhoto.url_foto}
                     className="w-full aspect-video rounded-xl bg-muted"
