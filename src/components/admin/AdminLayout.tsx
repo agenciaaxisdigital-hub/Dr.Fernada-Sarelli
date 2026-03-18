@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
             <div className="w-64 h-full bg-card border-r p-4 space-y-1" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 pb-4 border-b">
-              <p className="text-sm font-medium">{user?.username}</p>
+              <p className="text-sm font-medium">{user?.nome}</p>
             </div>
             {navItems.map((item) => (
                 <Link
