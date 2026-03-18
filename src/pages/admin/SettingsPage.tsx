@@ -32,7 +32,6 @@ async function painelApi(body: Record<string, unknown>) {
 interface PainelUser {
   id: string;
   nome: string;
-  cargo: string;
 }
 
 const SettingsPage = () => {
