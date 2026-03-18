@@ -887,7 +887,7 @@ const Gallery = () => {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                 {destaques.map((item, idx) => {
-                  const isVideo = item.tipo === "video";
+                  const isVideo = getFotoTipo(item.url_foto) === "video";
                   return (
                     <div key={item.id} className="shrink-0 w-32 rounded-xl border-2 border-primary/30 bg-card overflow-hidden relative">
                       {/* Position number */}
