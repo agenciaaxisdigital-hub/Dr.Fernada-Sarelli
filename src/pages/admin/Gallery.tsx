@@ -162,27 +162,32 @@ const Gallery = () => {
 
   // === Album actions ===
   const createAlbum = async () => {
-    if (!newAlbumName.trim()) return;
+    if (!newAlbumName.trim() || !ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "create-album", nome: newAlbumName.trim() });
       setNewAlbumName("");
       setNewAlbumOpen(false);
       toast.success("📁 Pasta criada!");
       await loadData();
-    } catch { toast.error("Não foi possível criar a pasta."); }
+    } catch (error) {
+      handleActionError(error, "Não foi possível criar a pasta.");
+    }
   };
 
   const deleteAlbum = async (albumId: string) => {
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "delete-album", id: albumId });
       if (selectedAlbum === albumId) setSelectedAlbum(null);
       toast.success("Pasta excluída");
       await loadData();
-    } catch { toast.error("Não foi possível excluir a pasta."); }
+    } catch (error) {
+      handleActionError(error, "Não foi possível excluir a pasta.");
+    }
   };
 
   const updateAlbum = async () => {
-    if (!editAlbumId || !editAlbumName.trim()) return;
+    if (!editAlbumId || !editAlbumName.trim() || !ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "update-album", id: editAlbumId, nome: editAlbumName.trim() });
       setEditAlbumOpen(false);
@@ -190,12 +195,14 @@ const Gallery = () => {
       setEditAlbumName("");
       toast.success("Pasta renomeada");
       await loadData();
-    } catch { toast.error("Não foi possível renomear."); }
+    } catch (error) {
+      handleActionError(error, "Não foi possível renomear.");
+    }
   };
 
   const moveAlbum = async (albumId: string, direction: "left" | "right") => {
     const idx = albuns.findIndex((a) => a.id === albumId);
-    if (idx < 0) return;
+    if (idx < 0 || !ensureWriteEnabled()) return;
     const swapIdx = direction === "left" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= albuns.length) return;
     try {
@@ -204,52 +211,68 @@ const Gallery = () => {
         { id: albuns[swapIdx].id, ordem: idx },
       ]});
       await loadData();
-    } catch { toast.error("Erro ao reordenar."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao reordenar.");
+    }
   };
 
   // === Photo/Video actions ===
   const deletePhoto = async (id: string) => {
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "delete-photo", id });
       toast.success("Item removido");
       await loadData();
-    } catch { toast.error("Não foi possível remover."); }
+    } catch (error) {
+      handleActionError(error, "Não foi possível remover.");
+    }
   };
 
   const togglePhotoVisibility = async (id: string, visivel: boolean) => {
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "update-photo", id, updates: { visivel: !visivel } });
       toast.success(!visivel ? "Visível no site" : "Oculto do site");
       await loadData();
-    } catch { toast.error("Erro ao alterar visibilidade."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao alterar visibilidade.");
+    }
   };
 
   const toggleDestaqueHome = async (id: string, atual: boolean) => {
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "update-photo", id, updates: { destaque_home: !atual } });
       toast.success(!atual ? "📌 Fixado na página inicial" : "Removido da página inicial");
       await loadData();
-    } catch { toast.error("Erro ao alterar destaque."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao alterar destaque.");
+    }
   };
 
   const movePhotoToAlbum = async (photoId: string, albumId: string | null) => {
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "move-photo", id: photoId, album_id: albumId });
       const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
       toast.success(`Movido para "${albumName}"`);
       await loadData();
-    } catch { toast.error("Erro ao mover."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao mover.");
+    }
   };
 
   const updatePhoto = async () => {
-    if (!editingPhoto) return;
+    if (!editingPhoto || !ensureWriteEnabled()) return;
     const legendaWithFp = encodeFocalPoint(editPhotoCaption.trim() || null, editFocalX, editFocalY, editZoom);
     try {
       await galleryAdmin({ action: "update-photo", id: editingPhoto.id, updates: { titulo: editPhotoTitle.trim(), legenda: legendaWithFp || null } });
       setEditingPhoto(null);
       toast.success("Atualizado!");
       await loadData();
-    } catch { toast.error("Erro ao salvar."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao salvar.");
+    }
   };
 
   // === Bulk actions ===
@@ -264,6 +287,7 @@ const Gallery = () => {
 
   const bulkMoveToAlbum = async (albumId: string | null) => {
     const ids = Array.from(selectedPhotos);
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "bulk-update", ids, updates: { album_id: albumId } });
       const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
@@ -271,33 +295,40 @@ const Gallery = () => {
       setSelectedPhotos(new Set());
       setSelectionMode(false);
       await loadData();
-    } catch { toast.error("Erro ao mover itens."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao mover itens.");
+    }
   };
 
   const bulkDelete = async () => {
     const ids = Array.from(selectedPhotos);
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "bulk-delete", ids });
       toast.success(`${ids.length} item(ns) removido(s)`);
       setSelectedPhotos(new Set());
       setSelectionMode(false);
       await loadData();
-    } catch { toast.error("Erro ao remover itens."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao remover itens.");
+    }
   };
 
   const bulkToggleVisibility = async (makeVisible: boolean) => {
     const ids = Array.from(selectedPhotos);
+    if (!ensureWriteEnabled()) return;
     try {
       await galleryAdmin({ action: "bulk-update", ids, updates: { visivel: makeVisible } });
       toast.success(`${ids.length} item(ns) ${makeVisible ? "visíveis" : "ocultos"}`);
       setSelectedPhotos(new Set());
       setSelectionMode(false);
       await loadData();
-    } catch { toast.error("Erro ao alterar visibilidade."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao alterar visibilidade.");
+    }
   };
 
   // === Upload (photos + videos) ===
-  // Stage files for preview (images get focal point picker, videos upload directly)
   const stageFilesForPreview = (files: File[]) => {
     const mediaFiles = files.filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
     if (mediaFiles.length === 0) {
@@ -308,12 +339,10 @@ const Gallery = () => {
     const videoFiles = mediaFiles.filter(f => f.type.startsWith("video/"));
     const imageFiles = mediaFiles.filter(f => f.type.startsWith("image/"));
 
-    // Upload videos directly (no focal point needed)
     if (videoFiles.length > 0) {
       uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50, zoom: 100 })));
     }
 
-    // Show preview for images
     if (imageFiles.length > 0) {
       const previews = imageFiles.map(file => ({
         file,
@@ -329,13 +358,14 @@ const Gallery = () => {
   };
 
   const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number; zoom: number }>) => {
+    if (!ensureWriteEnabled()) return;
     setUploading(true);
     setUploadProgress(0);
     let successCount = 0;
 
     for (let i = 0; i < items.length; i++) {
       const { file, focalX, focalY, zoom } = items[i];
-      setUploadProgress(Math.round(((i) / items.length) * 100));
+      setUploadProgress(Math.round((i / items.length) * 100));
 
       const isVideo = isVideoFile(file);
       const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
@@ -359,11 +389,9 @@ const Gallery = () => {
           legenda: legendaWithFp || null,
         }});
         successCount += 1;
-      } catch {
-        toast.error(`Erro ao salvar "${file.name}"`);
-        continue;
+      } catch (error) {
+        handleActionError(error, `Erro ao salvar "${file.name}"`);
       }
-      successCount += 1;
     }
 
     setUploadProgress(100);
@@ -376,7 +404,6 @@ const Gallery = () => {
   };
 
   const confirmUploadPreviews = () => {
-    // Clean up preview URLs
     const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY, zoom: p.zoom }));
     pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
     setPendingUploads([]);
@@ -397,7 +424,7 @@ const Gallery = () => {
   };
 
   const addPhoto = async () => {
-    if (!uploadUrl.trim() || !uploadTitle.trim()) return;
+    if (!uploadUrl.trim() || !uploadTitle.trim() || !ensureWriteEnabled()) return;
     const tipo = isVideoUrl(uploadUrl) ? "video" : "foto";
     try {
       await galleryAdmin({ action: "insert-photo", photo: {
@@ -407,23 +434,31 @@ const Gallery = () => {
         album_id: selectedAlbum,
         visivel: true,
       }});
-      setUploadUrl(""); setUploadTitle(""); setUploadCaption("");
+      setUploadUrl("");
+      setUploadTitle("");
+      setUploadCaption("");
       setUploadOpen(false);
       toast.success(`${tipo === "video" ? "Vídeo" : "Foto"} adicionado!`);
       await loadData();
-    } catch { toast.error("Não foi possível adicionar."); }
+    } catch (error) {
+      handleActionError(error, "Não foi possível adicionar.");
+    }
   };
 
   // === Test data ===
   const ensureTestAlbums = async () => {
-    // Read existing albums (reads still use direct client)
     const { data: existingAlbums, error: existingError } = await supabase
       .from("albuns" as any).select("id, nome").in("nome", [...TEST_ALBUMS]);
     if (existingError) { toast.error("Erro ao preparar álbuns de teste."); return null; }
     const existingNames = new Set(((existingAlbums as unknown as Album[] | null) || []).map(a => a.nome));
     const missing = TEST_ALBUMS.filter(name => !existingNames.has(name));
     for (const name of missing) {
-      try { await galleryAdmin({ action: "create-album", nome: name }); } catch { /* skip */ }
+      try {
+        await galleryAdmin({ action: "create-album", nome: name });
+      } catch (error) {
+        handleActionError(error, "Não foi possível preparar os álbuns de teste.");
+        return null;
+      }
     }
     const { data, error } = await supabase.from("albuns" as any).select("id, nome").in("nome", [...TEST_ALBUMS]).order("ordem");
     if (error) return null;
@@ -431,18 +466,20 @@ const Gallery = () => {
   };
 
   const clearTestPhotos = async (silent = false) => {
+    if (!ensureWriteEnabled()) return false;
     try {
       await galleryAdmin({ action: "delete-test-photos", urls: TEST_IMAGE_URLS });
       if (!silent) toast.success("Fotos de teste removidas");
       await loadData();
       return true;
-    } catch {
-      if (!silent) toast.error("Erro ao limpar teste.");
+    } catch (error) {
+      if (!silent) handleActionError(error, "Erro ao limpar teste.");
       return false;
     }
   };
 
   const populateTestPhotos = async () => {
+    if (!ensureWriteEnabled()) return;
     const testAlbums = await ensureTestAlbums();
     if (!testAlbums || testAlbums.length === 0) return;
     const cleared = await clearTestPhotos(true);
@@ -460,16 +497,21 @@ const Gallery = () => {
       await galleryAdmin({ action: "insert-photos", photos: payload });
       toast.success("Fotos de teste adicionadas!");
       await loadData();
-    } catch { toast.error("Erro ao criar fotos de teste."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao criar fotos de teste.");
+    }
   };
 
   const toggleGaleria = async () => {
+    if (!ensureWriteEnabled()) return;
     const newVal = !galeriaAtiva;
     try {
       await galleryAdmin({ action: "update-config", chave: "galeria_ativa", valor: newVal ? "true" : "false" });
       setGaleriaAtiva(newVal);
       toast.success(newVal ? "Galeria ativada no site" : "Galeria desativada no site");
-    } catch { toast.error("Erro ao atualizar."); }
+    } catch (error) {
+      handleActionError(error, "Erro ao atualizar.");
+    }
   };
 
   const filteredFotos = selectedAlbum ? fotos.filter(f => f.album_id === selectedAlbum) : fotos;
