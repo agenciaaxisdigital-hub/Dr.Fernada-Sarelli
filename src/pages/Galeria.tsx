@@ -232,14 +232,14 @@ const GaleriaPublica = () => {
               return (
                 <ScrollReveal key={foto.id} delay={Math.min(i * 0.05, 0.3)}>
                   <div
-                    className="break-inside-avoid rounded-2xl overflow-hidden border bg-card group cursor-pointer"
+                    className="rounded-2xl overflow-hidden border bg-card group cursor-pointer h-full flex flex-col"
                     onClick={() => openLightbox(foto)}
                   >
                     {isVideo ? (
-                      <div className="relative">
+                      <div className="relative w-full aspect-[3/4] bg-muted">
                         <video
                           src={foto.url_foto}
-                          className="w-full object-cover"
+                          className="w-full h-full object-contain"
                           muted
                           preload="metadata"
                           playsInline
@@ -251,24 +251,26 @@ const GaleriaPublica = () => {
                         </div>
                       </div>
                     ) : (
-                      <img
-                        src={foto.url_foto}
-                        alt={foto.titulo}
-                        className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
+                      <div className="w-full aspect-[3/4] bg-muted overflow-hidden">
+                        <img
+                          src={foto.url_foto}
+                          alt={foto.titulo}
+                          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      </div>
                     )}
-                    <div className="p-3">
+                    <div className="p-3 mt-auto">
                       <div className="flex items-center gap-2">
                         {isVideo && (
                           <span className="text-[10px] font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                             Vídeo
                           </span>
                         )}
-                        <p className="text-sm font-medium">{foto.titulo}</p>
+                        <p className="text-sm font-medium truncate">{foto.titulo}</p>
                       </div>
                       {foto.legenda && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{foto.legenda}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{foto.legenda}</p>
                       )}
                     </div>
                   </div>
