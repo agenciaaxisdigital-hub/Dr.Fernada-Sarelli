@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { SUPABASE_PROJECT_ID, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 
 export interface CalendarEvent {
   id: string;
