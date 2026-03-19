@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 import { Link } from "react-router-dom";
-import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play, X } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { supabase } from "@/lib/supabaseDb";
 import Layout from "@/components/Layout";
@@ -56,7 +56,34 @@ const Index = () => {
   const [galeriaItems, setGaleriaItems] = useState<HomeGalleryItem[]>([]);
   const [galeriaAtiva, setGaleriaAtiva] = useState(false);
   const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video" | "eventos">("todos");
+  const [lightbox, setLightbox] = useState<HomeGalleryItem | null>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
+
+  const openLightbox = useCallback((item: HomeGalleryItem) => {
+    setImgLoaded(false);
+    setLightbox(item);
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    if (videoRef.current) { videoRef.current.pause(); videoRef.current.src = ""; }
+    setLightbox(null);
+    setImgLoaded(false);
+  }, []);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [lightbox, closeLightbox]);
+
+  useEffect(() => {
+    if (lightbox) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [lightbox]);
 
   useEffect(() => {
     const loadGaleria = async () => {
@@ -362,46 +389,45 @@ const Index = () => {
                 {display.map((item, i) => {
                   const isVideo = (item.tipo || "foto") === "video";
                   return (
-                    <ScrollReveal key={item.id} delay={i * 0.06}>
-                      <Link
-                        to="/galeria"
-                        className="group block overflow-hidden rounded-xl sm:rounded-2xl border bg-card transition-shadow hover:shadow-lg active:scale-[0.98]"
-                      >
-                        <div className="aspect-[4/3] sm:aspect-square overflow-hidden relative">
-                          {isVideo ? (
-                            <>
-                              <video
-                                src={item.url_foto}
-                                className="h-full w-full object-cover"
-                                muted
-                                preload="metadata"
-                                playsInline
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <Play className="h-5 w-5 sm:h-6 sm:w-6 text-black ml-0.5" />
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <img
+                    <button
+                      key={item.id}
+                      onClick={() => openLightbox(item)}
+                      className="group text-left block overflow-hidden rounded-xl sm:rounded-2xl border bg-card transition-shadow hover:shadow-lg active:scale-[0.98] w-full"
+                    >
+                      <div className="aspect-[4/3] sm:aspect-square overflow-hidden relative">
+                        {isVideo ? (
+                          <>
+                            <video
                               src={item.url_foto}
-                              alt={item.legenda ? decodeFocalPoint(item.legenda).cleanLegenda || item.titulo : item.titulo}
-                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              style={getFocalStyle(item.legenda)}
-                              loading="lazy"
+                              className="h-full w-full object-cover"
+                              muted
+                              preload="none"
+                              playsInline
                             />
-                          )}
-                        </div>
-                        {/* Mobile-friendly caption */}
-                        <div className="p-2 sm:p-3">
-                          <p className="text-xs sm:text-sm font-medium truncate">{item.titulo}</p>
-                          {item.evento && (
-                            <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">{item.evento}</p>
-                          )}
-                        </div>
-                      </Link>
-                    </ScrollReveal>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <Play className="h-5 w-5 sm:h-6 sm:w-6 text-black ml-0.5" />
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <img
+                            src={item.url_foto}
+                            alt={item.legenda ? decodeFocalPoint(item.legenda).cleanLegenda || item.titulo : item.titulo}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            style={getFocalStyle(item.legenda)}
+                            loading={i < 4 ? "eager" : "lazy"}
+                            decoding="async"
+                          />
+                        )}
+                      </div>
+                      <div className="p-2 sm:p-3">
+                        <p className="text-xs sm:text-sm font-medium truncate">{item.titulo}</p>
+                        {item.evento && (
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">{item.evento}</p>
+                        )}
+                      </div>
+                    </button>
                   );
                 })}
               </div>
@@ -509,6 +535,64 @@ const Index = () => {
           </ScrollReveal>
         </div>
       </section>
+      {/* Lightbox para galeria fixada na home */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-6"
+          onClick={closeLightbox}
+        >
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div
+            className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-xl overflow-hidden bg-card shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(lightbox.tipo || "foto") === "video" ? (
+              <video
+                ref={videoRef}
+                src={lightbox.url_foto}
+                className="w-full max-h-[78vh] bg-black"
+                controls
+                autoPlay
+                muted={false}
+                playsInline
+                controlsList="nodownload"
+              />
+            ) : (
+              <div className="relative w-full max-h-[78vh] flex items-center justify-center bg-black min-h-[200px]">
+                {!imgLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+                  </div>
+                )}
+                <img
+                  src={lightbox.url_foto}
+                  alt={lightbox.titulo}
+                  className="max-w-full max-h-[78vh] object-contain"
+                  style={{ display: imgLoaded ? "block" : "none" }}
+                  onLoad={() => setImgLoaded(true)}
+                />
+              </div>
+            )}
+            <div className="p-4 shrink-0">
+              <p className="font-semibold">{lightbox.titulo}</p>
+              {lightbox.evento && (
+                <p className="text-sm text-muted-foreground mt-0.5">{lightbox.evento}</p>
+              )}
+              {lightbox.legenda && (() => {
+                const { cleanLegenda } = decodeFocalPoint(lightbox.legenda);
+                return cleanLegenda ? <p className="text-sm text-muted-foreground mt-1">{cleanLegenda}</p> : null;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
