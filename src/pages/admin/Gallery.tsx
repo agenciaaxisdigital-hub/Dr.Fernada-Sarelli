@@ -982,9 +982,9 @@ const Gallery = () => {
                       )}
                       {/* Thumbnail */}
                       {isVideo ? (
-                        <video src={item.url_foto} className="w-full aspect-square object-cover" muted preload="metadata" />
+                        <video src={item.url_foto} className="w-full aspect-[3/4] object-contain bg-muted" muted preload="metadata" />
                       ) : (
-                        <img src={item.url_foto} alt={item.titulo} className="w-full aspect-square object-cover" />
+                        <img src={item.url_foto} alt={item.titulo} className="w-full aspect-[3/4] object-contain bg-muted" />
                       )}
                       {/* Reorder + unpin controls */}
                       <div className="flex items-center justify-between p-1.5 gap-0.5">
