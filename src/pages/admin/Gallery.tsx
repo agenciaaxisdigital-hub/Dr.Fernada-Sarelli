@@ -585,41 +585,37 @@ const Gallery = () => {
 
         {/* ===== BULK ACTIONS BAR ===== */}
         {selectionMode && selectedPhotos.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-4 py-3">
-            <span className="text-sm font-medium text-primary">{selectedPhotos.size} selecionado(s)</span>
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2.5">
+            <span className="text-xs font-medium text-primary">{selectedPhotos.size} sel.</span>
             <div className="flex-1" />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1">
-                  <Move className="h-3 w-3" /> Mover para
+                <Button size="sm" variant="outline" className="rounded-full text-[11px] h-7 gap-1 px-2">
+                  <Move className="h-3 w-3" /> Mover
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel className="text-xs">Mover para pasta</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs">Mover para</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => bulkMoveToAlbum(null)}>
-                  📂 Sem pasta
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkMoveToAlbum(null)}>📂 Sem pasta</DropdownMenuItem>
                 {albuns.map(a => (
-                  <DropdownMenuItem key={a.id} onClick={() => bulkMoveToAlbum(a.id)}>
-                    📁 {a.nome}
-                  </DropdownMenuItem>
+                  <DropdownMenuItem key={a.id} onClick={() => bulkMoveToAlbum(a.id)}>📁 {a.nome}</DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1" onClick={() => bulkToggleVisibility(true)}>
-              <Eye className="h-3 w-3" /> Mostrar
+            <Button size="sm" variant="outline" className="rounded-full text-[11px] h-7 gap-1 px-2" onClick={() => bulkToggleVisibility(true)}>
+              <Eye className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1" onClick={() => bulkToggleVisibility(false)}>
-              <EyeOff className="h-3 w-3" /> Ocultar
+            <Button size="sm" variant="outline" className="rounded-full text-[11px] h-7 gap-1 px-2" onClick={() => bulkToggleVisibility(false)}>
+              <EyeOff className="h-3 w-3" />
             </Button>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive" className="rounded-full text-xs h-8 gap-1">
-                  <Trash2 className="h-3 w-3" /> Apagar
+                <Button size="sm" variant="destructive" className="rounded-full text-[11px] h-7 gap-1 px-2">
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -629,12 +625,12 @@ const Gallery = () => {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={bulkDelete}>Apagar tudo</AlertDialogAction>
+                  <AlertDialogAction onClick={bulkDelete}>Apagar</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
 
-            <Button size="sm" variant="ghost" className="rounded-full text-xs h-8" onClick={() => { setSelectedPhotos(new Set()); setSelectionMode(false); }}>
+            <Button size="sm" variant="ghost" className="rounded-full h-7 w-7 p-0" onClick={() => { setSelectedPhotos(new Set()); setSelectionMode(false); }}>
               <X className="h-3 w-3" />
             </Button>
           </div>
