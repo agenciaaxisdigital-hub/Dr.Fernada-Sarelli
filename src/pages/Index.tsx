@@ -201,6 +201,9 @@ const Index = () => {
                       src={PHOTO_URL}
                       alt="Dra. Fernanda Sarelli"
                       className="h-full w-full object-cover"
+                      fetchPriority="high"
+                      loading="eager"
+                      decoding="async"
                     />
                   </div>
                 </div>
