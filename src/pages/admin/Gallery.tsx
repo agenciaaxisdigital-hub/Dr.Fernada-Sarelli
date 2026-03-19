@@ -1016,14 +1016,14 @@ const Gallery = () => {
                 )}
 
                 {/* Info + actions */}
-                <div className="p-2.5 space-y-2">
+                <div className="p-2 space-y-1.5">
                   <div>
-                    <p className="text-xs font-semibold truncate">{foto.titulo}</p>
-                    {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{decodeFocalPoint(foto.legenda).cleanLegenda}</p>}
+                    <p className="text-[11px] font-semibold truncate">{foto.titulo}</p>
+                    {foto.legenda && <p className="text-[10px] text-muted-foreground truncate">{decodeFocalPoint(foto.legenda).cleanLegenda}</p>}
                   </div>
 
                   {!selectionMode && (
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => { 
                           const { cleanLegenda, focalX, focalY, zoom } = decodeFocalPoint(foto.legenda);
@@ -1034,19 +1034,15 @@ const Gallery = () => {
                           setEditFocalY(focalY);
                           setEditZoom(zoom);
                         }}
-                        className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
-                        title="Editar"
+                        className="flex h-7 items-center gap-1 px-1.5 rounded-lg text-[10px] font-medium bg-accent hover:bg-accent/80 transition-colors"
                       >
-                        <Pencil className="h-3 w-3" /> Editar
+                        <Pencil className="h-3 w-3" />
                       </button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button
-                            className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
-                            title="Mover para pasta"
-                          >
-                            <Move className="h-3 w-3" /> Mover
+                          <button className="flex h-7 items-center gap-1 px-1.5 rounded-lg text-[10px] font-medium bg-accent hover:bg-accent/80 transition-colors">
+                            <Move className="h-3 w-3" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -1069,37 +1065,32 @@ const Gallery = () => {
 
                       <button
                         onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
                           foto.visivel ? "bg-accent hover:bg-accent/80" : "bg-muted"
                         }`}
-                        title={foto.visivel ? "Ocultar do site" : "Mostrar no site"}
                       >
-                        {foto.visivel ? <Eye className="h-3.5 w-3.5 text-primary" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                        {foto.visivel ? <Eye className="h-3 w-3 text-primary" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
                       </button>
 
                       <button
                         onClick={() => toggleDestaqueHome(foto.id, !!foto.destaque_home)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
                           foto.destaque_home ? "bg-primary text-primary-foreground" : "bg-accent hover:bg-accent/80"
                         }`}
-                        title={foto.destaque_home ? "Remover da home" : "Fixar na home"}
                       >
-                        <Pin className="h-3.5 w-3.5" />
+                        <Pin className="h-3 w-3" />
                       </button>
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto"
-                            title="Apagar"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
+                          <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto">
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Apagar este {isVideo ? "vídeo" : "foto"}?</AlertDialogTitle>
-                            <AlertDialogDescription>"{foto.titulo}" será removido permanentemente.</AlertDialogDescription>
+                            <AlertDialogTitle>Apagar?</AlertDialogTitle>
+                            <AlertDialogDescription>"{foto.titulo}" será removido.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
