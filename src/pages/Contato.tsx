@@ -78,6 +78,7 @@ const Contato = () => {
           telefone: data.telefone,
           email: data.email || null,
           mensagem: data.mensagem,
+          dominio_origem: window.location.hostname,
           cookie_visitante,
           user_agent: navigator.userAgent,
           precisao_localizacao: getGeoMode(),
