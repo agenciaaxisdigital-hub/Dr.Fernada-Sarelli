@@ -314,16 +314,17 @@ const Gallery = () => {
       }
 
       const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
-      const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
-      const { error: insertError } = await supabase.from("galeria_fotos").insert({
-        titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
-        url_foto: urlData.publicUrl,
-        album_id: selectedAlbum,
-        visivel: true,
-        legenda: legendaWithFp || null,
-      } as any);
-
-      if (insertError) {
+      try {
+        const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
+        await galleryAdmin({ action: "insert-photo", photo: {
+          titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
+          url_foto: urlData.publicUrl,
+          album_id: selectedAlbum,
+          visivel: true,
+          legenda: legendaWithFp || null,
+        }});
+        successCount += 1;
+      } catch {
         toast.error(`Erro ao salvar "${file.name}"`);
         continue;
       }
