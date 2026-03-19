@@ -96,11 +96,11 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
         if (options.limit) params.set("limit", String(options.limit));
 
         const query = params.toString();
-        const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}t=${Date.now()}`;
+        const url = `https://${CLOUD_PROJECT_ID}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}t=${Date.now()}`;
 
         const res = await fetch(url, {
           headers: {
-            "apikey": SUPABASE_ANON_KEY,
+            "apikey": CLOUD_ANON_KEY,
           },
         });
 
