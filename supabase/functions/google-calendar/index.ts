@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
     const limitParam = url.searchParams.get('limit');
     const filterParam = url.searchParams.get('filter');
 
-    console.log('Fetching iCal feed from:', CALENDAR_ICAL_URL);
+    console.log('[google-calendar] Fetching iCal feed...');
     const response = await fetch(CALENDAR_ICAL_URL, {
       headers: { 'Accept': 'text/calendar' },
     });
@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
     }
 
     const icsText = await response.text();
+    console.log('[google-calendar] iCal text length:', icsText.length);
     let events = parseICalFeed(icsText);
 
     const filter = filterParam || 'all';
@@ -196,14 +197,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Returning ${events.length} events (filter: ${filter})`);
+    console.log(`[google-calendar] Returning ${events.length} events (filter: ${filter})`);
 
     return new Response(
       JSON.stringify({ success: true, events, generatedAt: Date.now() }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store, max-age=0' } }
     );
   } catch (error) {
-    console.error('Error fetching calendar:', error);
+    console.error('[google-calendar] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ success: false, error: errorMessage, events: [] }),
