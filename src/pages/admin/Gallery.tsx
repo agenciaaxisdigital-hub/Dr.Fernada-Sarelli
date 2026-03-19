@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import FocalPointPicker, { encodeFocalPoint, decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 import { supabase } from "@/lib/supabaseDb";
+import { galleryAdmin } from "@/lib/galleryAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
