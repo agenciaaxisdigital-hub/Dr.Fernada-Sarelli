@@ -172,7 +172,7 @@ const Index = () => {
 
               <ScrollReveal delay={0.2}>
                 <p className="mt-4 text-primary-foreground/80 leading-relaxed max-w-md">
-                  Pré-candidata a Deputada Estadual por Goiás, com compromisso real com a defesa da mulher e da criança.
+                  Pré-candidata a Deputada Estadual por Goiás, com compromisso real com a defesa da mulher e da família.
                 </p>
               </ScrollReveal>
 
