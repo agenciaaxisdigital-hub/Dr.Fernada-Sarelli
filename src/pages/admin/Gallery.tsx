@@ -524,6 +524,13 @@ const Gallery = () => {
   return (
     <AdminLayout>
       <div className="space-y-4 pb-4">
+        {writeEnabled === false && writeErrorMessage && (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3">
+            <p className="text-sm font-medium text-destructive">Painel em modo leitura</p>
+            <p className="mt-1 text-xs text-muted-foreground">{writeErrorMessage}</p>
+          </div>
+        )}
+
         {/* ===== HEADER ===== */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
