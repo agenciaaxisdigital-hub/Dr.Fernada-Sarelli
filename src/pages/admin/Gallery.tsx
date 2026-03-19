@@ -1247,12 +1247,12 @@ const Gallery = () => {
                       src={foto.url_foto}
                       className={`w-full h-full object-contain ${!foto.visivel ? "opacity-50" : ""}`}
                       muted
-                      preload="none"
+                      preload={decodeThumbnail(foto.legenda) ? "none" : "metadata"}
                       poster={decodeThumbnail(foto.legenda) || undefined}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="h-12 w-12 rounded-full bg-black/60 flex items-center justify-center">
-                        <Play className="h-6 w-6 text-white ml-0.5" />
+                      <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-[0_0_0_3px_rgba(255,255,255,0.4)]">
+                        <Play className="h-6 w-6 text-white ml-0.5" fill="white" />
                       </div>
                     </div>
                   </div>

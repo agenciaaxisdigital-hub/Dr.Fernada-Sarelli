@@ -257,13 +257,13 @@ const GaleriaPublica = () => {
                         src={foto.url_foto}
                         className="w-full h-full object-cover"
                         muted
-                        preload="none"
+                        preload={decodeThumbnail(foto.legenda) ? "none" : "metadata"}
                         playsInline
                         poster={decodeThumbnail(foto.legenda) || undefined}
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <div className="h-14 w-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play className="h-7 w-7 text-black ml-0.5" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="h-14 w-14 rounded-full bg-primary flex items-center justify-center shadow-[0_0_0_4px_rgba(255,255,255,0.35)] group-hover:scale-110 group-hover:shadow-[0_0_0_6px_rgba(255,255,255,0.45)] transition-all duration-200">
+                          <Play className="h-6 w-6 text-white ml-0.5" fill="white" />
                         </div>
                       </div>
                     </div>
