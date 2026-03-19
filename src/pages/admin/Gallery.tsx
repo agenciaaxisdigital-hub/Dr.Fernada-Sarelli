@@ -174,44 +174,47 @@ const Gallery = () => {
 
   // === Photo/Video actions ===
   const deletePhoto = async (id: string) => {
-    const { error } = await supabase.from("galeria_fotos").delete().eq("id", id);
-    if (error) { toast.error("Não foi possível remover."); return; }
-    toast.success("Item removido");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "delete-photo", id });
+      toast.success("Item removido");
+      await loadData();
+    } catch { toast.error("Não foi possível remover."); }
   };
 
   const togglePhotoVisibility = async (id: string, visivel: boolean) => {
-    const { error } = await supabase.from("galeria_fotos").update({ visivel: !visivel }).eq("id", id);
-    if (error) { toast.error("Erro ao alterar visibilidade."); return; }
-    toast.success(!visivel ? "Visível no site" : "Oculto do site");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "update-photo", id, updates: { visivel: !visivel } });
+      toast.success(!visivel ? "Visível no site" : "Oculto do site");
+      await loadData();
+    } catch { toast.error("Erro ao alterar visibilidade."); }
   };
 
   const toggleDestaqueHome = async (id: string, atual: boolean) => {
-    const { error } = await (supabase.from("galeria_fotos").update({ destaque_home: !atual } as any) as any).eq("id", id);
-    if (error) { toast.error("Erro ao alterar destaque."); return; }
-    toast.success(!atual ? "📌 Fixado na página inicial" : "Removido da página inicial");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "update-photo", id, updates: { destaque_home: !atual } });
+      toast.success(!atual ? "📌 Fixado na página inicial" : "Removido da página inicial");
+      await loadData();
+    } catch { toast.error("Erro ao alterar destaque."); }
   };
 
   const movePhotoToAlbum = async (photoId: string, albumId: string | null) => {
-    const { error } = await supabase.from("galeria_fotos").update({ album_id: albumId } as any).eq("id", photoId);
-    if (error) { toast.error("Erro ao mover."); return; }
-    const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
-    toast.success(`Movido para "${albumName}"`);
-    await loadData();
+    try {
+      await galleryAdmin({ action: "move-photo", id: photoId, album_id: albumId });
+      const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
+      toast.success(`Movido para "${albumName}"`);
+      await loadData();
+    } catch { toast.error("Erro ao mover."); }
   };
 
   const updatePhoto = async () => {
     if (!editingPhoto) return;
     const legendaWithFp = encodeFocalPoint(editPhotoCaption.trim() || null, editFocalX, editFocalY, editZoom);
-    const { error } = await supabase.from("galeria_fotos")
-      .update({ titulo: editPhotoTitle.trim(), legenda: legendaWithFp || null } as any)
-      .eq("id", editingPhoto.id);
-    if (error) { toast.error("Erro ao salvar."); return; }
-    setEditingPhoto(null);
-    toast.success("Atualizado!");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "update-photo", id: editingPhoto.id, updates: { titulo: editPhotoTitle.trim(), legenda: legendaWithFp || null } });
+      setEditingPhoto(null);
+      toast.success("Atualizado!");
+      await loadData();
+    } catch { toast.error("Erro ao salvar."); }
   };
 
   // === Bulk actions ===
@@ -226,36 +229,36 @@ const Gallery = () => {
 
   const bulkMoveToAlbum = async (albumId: string | null) => {
     const ids = Array.from(selectedPhotos);
-    for (const id of ids) {
-      await supabase.from("galeria_fotos").update({ album_id: albumId } as any).eq("id", id);
-    }
-    const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
-    toast.success(`${ids.length} item(ns) movido(s) para "${albumName}"`);
-    setSelectedPhotos(new Set());
-    setSelectionMode(false);
-    await loadData();
+    try {
+      await galleryAdmin({ action: "bulk-update", ids, updates: { album_id: albumId } });
+      const albumName = albumId ? albuns.find(a => a.id === albumId)?.nome : "Sem pasta";
+      toast.success(`${ids.length} item(ns) movido(s) para "${albumName}"`);
+      setSelectedPhotos(new Set());
+      setSelectionMode(false);
+      await loadData();
+    } catch { toast.error("Erro ao mover itens."); }
   };
 
   const bulkDelete = async () => {
     const ids = Array.from(selectedPhotos);
-    for (const id of ids) {
-      await supabase.from("galeria_fotos").delete().eq("id", id);
-    }
-    toast.success(`${ids.length} item(ns) removido(s)`);
-    setSelectedPhotos(new Set());
-    setSelectionMode(false);
-    await loadData();
+    try {
+      await galleryAdmin({ action: "bulk-delete", ids });
+      toast.success(`${ids.length} item(ns) removido(s)`);
+      setSelectedPhotos(new Set());
+      setSelectionMode(false);
+      await loadData();
+    } catch { toast.error("Erro ao remover itens."); }
   };
 
   const bulkToggleVisibility = async (makeVisible: boolean) => {
     const ids = Array.from(selectedPhotos);
-    for (const id of ids) {
-      await supabase.from("galeria_fotos").update({ visivel: makeVisible }).eq("id", id);
-    }
-    toast.success(`${ids.length} item(ns) ${makeVisible ? "visíveis" : "ocultos"}`);
-    setSelectedPhotos(new Set());
-    setSelectionMode(false);
-    await loadData();
+    try {
+      await galleryAdmin({ action: "bulk-update", ids, updates: { visivel: makeVisible } });
+      toast.success(`${ids.length} item(ns) ${makeVisible ? "visíveis" : "ocultos"}`);
+      setSelectedPhotos(new Set());
+      setSelectionMode(false);
+      await loadData();
+    } catch { toast.error("Erro ao alterar visibilidade."); }
   };
 
   // === Upload (photos + videos) ===
