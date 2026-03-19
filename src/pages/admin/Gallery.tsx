@@ -163,11 +163,13 @@ const Gallery = () => {
     if (idx < 0) return;
     const swapIdx = direction === "left" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= albuns.length) return;
-    await Promise.all([
-      supabase.from("albuns" as any).update({ ordem: swapIdx } as any).eq("id", albuns[idx].id),
-      supabase.from("albuns" as any).update({ ordem: idx } as any).eq("id", albuns[swapIdx].id),
-    ]);
-    await loadData();
+    try {
+      await galleryAdmin({ action: "reorder-albums", updates: [
+        { id: albuns[idx].id, ordem: swapIdx },
+        { id: albuns[swapIdx].id, ordem: idx },
+      ]});
+      await loadData();
+    } catch { toast.error("Erro ao reordenar."); }
   };
 
   // === Photo/Video actions ===
