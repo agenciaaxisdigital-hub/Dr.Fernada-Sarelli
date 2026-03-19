@@ -27,9 +27,7 @@ Deno.serve(async (req) => {
       // ── DELETE photo ──
       case "delete-photo": {
         const { id } = body;
-        console.log(`[gallery-admin] Deleting photo ${id} from ${EXT_URL}`);
-        const { data, error, count } = await ext.from("galeria_fotos").delete().eq("id", id).select();
-        console.log(`[gallery-admin] Delete result:`, { data, error, count });
+        const { data, error } = await ext.from("galeria_fotos").delete().eq("id", id).select();
         if (error) throw error;
         if (!data || data.length === 0) throw new Error("Item não encontrado ou já removido");
         return json({ success: true, deleted: data.length });
