@@ -21,6 +21,13 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // Validate service role key for write operations
+    const isWriteAction = action !== "debug";
+    if (isWriteAction && !EXT_SERVICE_KEY?.startsWith("eyJ")) {
+      return json({ success: false, error: "Service role key inválida. Atualize EXT_SUPABASE_SERVICE_ROLE_KEY com a chave JWT (começa com 'eyJ...')." }, 403);
+    }
+
     const ext = getExtClient();
 
     switch (action) {
