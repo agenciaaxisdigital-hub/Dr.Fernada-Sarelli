@@ -775,23 +775,17 @@ const Gallery = () => {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-destructive hover:text-destructive-foreground border transition-colors" title="Excluir pasta">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir pasta "{album.nome}"?</AlertDialogTitle>
-                            <AlertDialogDescription>As fotos e vídeos serão mantidos, apenas a pasta será removida.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteAlbum(album.id)}>Excluir</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Excluir a pasta \"${album.nome}\"? As fotos e vídeos serão mantidos.`)) {
+                            void deleteAlbum(album.id);
+                          }
+                        }}
+                        className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-destructive hover:text-destructive-foreground border transition-colors"
+                        title="Excluir pasta"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   )}
                 </div>
