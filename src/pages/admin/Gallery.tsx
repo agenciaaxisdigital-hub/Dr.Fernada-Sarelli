@@ -1154,23 +1154,16 @@ const Gallery = () => {
                         <Pin className="h-3 w-3" />
                       </button>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Apagar?</AlertDialogTitle>
-                            <AlertDialogDescription>"{foto.titulo}" será removido.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deletePhoto(foto.id)}>Apagar</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <button
+                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto"
+                        onClick={() => {
+                          if (window.confirm(`Apagar \"${foto.titulo}\"?`)) {
+                            void deletePhoto(foto.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
                   )}
                 </div>
