@@ -24,13 +24,6 @@ Deno.serve(async (req) => {
     const ext = getExtClient();
 
     switch (action) {
-      // ── DEBUG: test connection ──
-      case "test": {
-        const { data, error } = await ext.from("galeria_fotos").select("id, titulo").limit(3);
-        console.log(`[gallery-admin] Test query:`, { data, error, url: EXT_URL, keyPrefix: EXT_SERVICE_KEY?.slice(0, 20) });
-        return json({ success: true, data, error, url: EXT_URL });
-      }
-
       // ── DELETE photo ──
       case "delete-photo": {
         const { id } = body;
