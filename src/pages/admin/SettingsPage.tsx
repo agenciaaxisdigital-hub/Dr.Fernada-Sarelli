@@ -138,42 +138,39 @@ const SettingsPage = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-8 max-w-2xl">
+      <div className="space-y-6 max-w-xl">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Configurações</h2>
-          <Button variant="outline" onClick={handleLogout} className="rounded-full gap-2">
-            <LogOut className="h-4 w-4" /> Sair
-          </Button>
+          <h2 className="text-lg sm:text-xl font-bold">Configurações</h2>
         </div>
 
         {/* API Token */}
-        <div className="rounded-2xl border bg-card p-6 space-y-4">
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Token da API</h3>
+            <Key className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Token da API</h3>
           </div>
-          <div className="flex gap-2">
-            <Input value={apiToken} readOnly className="font-mono text-xs" />
-            <Button variant="outline" size="icon" onClick={() => copyToClipboard(apiToken)}><Copy className="h-4 w-4" /></Button>
-            <Button variant="outline" size="icon" onClick={regenerateToken}><RefreshCw className="h-4 w-4" /></Button>
+          <div className="flex gap-1.5">
+            <Input value={apiToken} readOnly className="font-mono text-[10px] h-9" />
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => copyToClipboard(apiToken)}><Copy className="h-3.5 w-3.5" /></Button>
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={regenerateToken}><RefreshCw className="h-3.5 w-3.5" /></Button>
           </div>
-          <p className="text-xs text-muted-foreground">Use como Bearer Token no header Authorization das requisições à API.</p>
+          <p className="text-[10px] text-muted-foreground">Use como Bearer Token no header Authorization.</p>
         </div>
 
         {/* User Management */}
-        <div className="rounded-2xl border bg-card p-6 space-y-4">
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Gerenciar Usuários</h3>
+            <UserPlus className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Gerenciar Usuários</h3>
           </div>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input placeholder="Nome de usuário" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="off" />
-              <Input placeholder="Senha" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-2">
+              <Input placeholder="Nome de usuário" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="off" className="h-9 text-sm" />
+              <Input placeholder="Senha" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" className="h-9 text-sm" />
             </div>
-            <Button onClick={createUser} disabled={creating} className="rounded-full">
-              <UserPlus className="mr-2 h-4 w-4" /> {creating ? "Criando..." : "Criar Usuário"}
+            <Button onClick={createUser} disabled={creating} className="rounded-full w-full h-9 text-sm">
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" /> {creating ? "Criando..." : "Criar Usuário"}
             </Button>
           </div>
 

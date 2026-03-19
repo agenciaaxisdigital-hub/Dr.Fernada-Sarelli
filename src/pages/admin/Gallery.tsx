@@ -446,21 +446,21 @@ const Gallery = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-5 pb-8">
+      <div className="space-y-4 pb-4">
         {/* ===== HEADER ===== */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <Images className="h-6 w-6 text-primary" />
-              Galeria de Fotos e Vídeos
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Images className="h-5 w-5 text-primary shrink-0" />
+              <span className="truncate">Galeria</span>
             </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {photoCount} foto(s) · {videoCount} vídeo(s) · {albuns.length} pasta(s)
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              {galeriaAtiva ? "Visível no site" : "Oculta do site"}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] text-muted-foreground">
+              {galeriaAtiva ? "Ativa" : "Oculta"}
             </span>
             <Switch checked={galeriaAtiva} onCheckedChange={toggleGaleria} />
           </div>
@@ -484,7 +484,7 @@ const Gallery = () => {
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleFileDrop}
-          className={`relative rounded-2xl border-2 border-dashed p-6 sm:p-10 text-center transition-all cursor-pointer
+          className={`relative rounded-2xl border-2 border-dashed p-5 text-center transition-all cursor-pointer
             ${dragOver
               ? "border-primary bg-accent scale-[1.01]"
               : "border-muted-foreground/30 hover:border-primary hover:bg-accent/30"
@@ -504,19 +504,19 @@ const Gallery = () => {
             </div>
           ) : (
             <>
-              <div className="flex justify-center gap-3 mb-3">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Camera className="h-7 w-7 text-primary" />
+              <div className="flex justify-center gap-2 mb-2">
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-5 w-5 text-primary" />
                 </div>
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Video className="h-7 w-7 text-primary" />
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Video className="h-5 w-5 text-primary" />
                 </div>
               </div>
-              <p className="text-base sm:text-lg font-semibold">
-                Toque aqui para enviar fotos ou vídeos
+              <p className="text-sm font-semibold">
+                Toque para enviar fotos ou vídeos
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                ou arraste os arquivos para cá · JPG, PNG, MP4, WebM
+              <p className="text-xs text-muted-foreground mt-0.5">
+                JPG, PNG, MP4, WebM
               </p>
               {selectedAlbumName && (
                 <Badge variant="secondary" className="mt-3">
@@ -529,27 +529,26 @@ const Gallery = () => {
         </div>
 
         {/* ===== SECONDARY ACTIONS ===== */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Add by URL */}
+        <div className="flex flex-wrap items-center gap-1.5">
           <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="rounded-full text-xs h-9 gap-1.5">
+              <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1">
                 <ImagePlus className="h-3.5 w-3.5" />
-                Adicionar por link
+                <span className="hidden sm:inline">Adicionar por</span> link
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Adicionar por link</DialogTitle>
-                <DialogDescription>Cole o endereço de uma foto ou vídeo da internet</DialogDescription>
+                <DialogDescription>Cole o endereço de uma foto ou vídeo</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
-                <Input placeholder="https://exemplo.com/foto.jpg ou video.mp4" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
+                <Input placeholder="https://exemplo.com/foto.jpg" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
                 <Input placeholder="Nome" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
                 <Input placeholder="Descrição (opcional)" value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)} />
                 {uploadUrl && isVideoUrl(uploadUrl) && (
                   <Badge variant="secondary" className="gap-1">
-                    <Video className="h-3 w-3" /> Será salvo como vídeo
+                    <Video className="h-3 w-3" /> Vídeo
                   </Badge>
                 )}
               </div>
@@ -559,27 +558,25 @@ const Gallery = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Select mode */}
           <Button
             size="sm"
             variant={selectionMode ? "default" : "outline"}
-            className="rounded-full text-xs h-9 gap-1.5"
+            className="rounded-full text-xs h-8 gap-1"
             onClick={() => {
               setSelectionMode(!selectionMode);
               if (selectionMode) setSelectedPhotos(new Set());
             }}
           >
             <Check className="h-3.5 w-3.5" />
-            {selectionMode ? `${selectedPhotos.size} selecionado(s)` : "Selecionar vários"}
+            {selectionMode ? `${selectedPhotos.size} sel.` : "Selecionar"}
           </Button>
 
-          {/* Test buttons */}
-          <div className="ml-auto flex gap-1.5">
-            <Button size="sm" variant="ghost" className="rounded-full text-xs h-9 gap-1 text-muted-foreground" onClick={populateTestPhotos}>
+          <div className="ml-auto flex gap-1">
+            <Button size="sm" variant="ghost" className="rounded-full text-[10px] h-8 gap-0.5 text-muted-foreground px-2" onClick={populateTestPhotos}>
               <Sparkles className="h-3 w-3" />Teste
             </Button>
             {hasTestPhotos && (
-              <Button size="sm" variant="ghost" className="rounded-full text-xs h-9 gap-1 text-muted-foreground" onClick={() => clearTestPhotos()}>
+              <Button size="sm" variant="ghost" className="rounded-full text-[10px] h-8 gap-0.5 text-muted-foreground px-2" onClick={() => clearTestPhotos()}>
                 <Eraser className="h-3 w-3" />Limpar
               </Button>
             )}
@@ -588,41 +585,37 @@ const Gallery = () => {
 
         {/* ===== BULK ACTIONS BAR ===== */}
         {selectionMode && selectedPhotos.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-4 py-3">
-            <span className="text-sm font-medium text-primary">{selectedPhotos.size} selecionado(s)</span>
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2.5">
+            <span className="text-xs font-medium text-primary">{selectedPhotos.size} sel.</span>
             <div className="flex-1" />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1">
-                  <Move className="h-3 w-3" /> Mover para
+                <Button size="sm" variant="outline" className="rounded-full text-[11px] h-7 gap-1 px-2">
+                  <Move className="h-3 w-3" /> Mover
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel className="text-xs">Mover para pasta</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs">Mover para</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => bulkMoveToAlbum(null)}>
-                  📂 Sem pasta
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkMoveToAlbum(null)}>📂 Sem pasta</DropdownMenuItem>
                 {albuns.map(a => (
-                  <DropdownMenuItem key={a.id} onClick={() => bulkMoveToAlbum(a.id)}>
-                    📁 {a.nome}
-                  </DropdownMenuItem>
+                  <DropdownMenuItem key={a.id} onClick={() => bulkMoveToAlbum(a.id)}>📁 {a.nome}</DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1" onClick={() => bulkToggleVisibility(true)}>
-              <Eye className="h-3 w-3" /> Mostrar
+            <Button size="sm" variant="outline" className="rounded-full text-[11px] h-7 gap-1 px-2" onClick={() => bulkToggleVisibility(true)}>
+              <Eye className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1" onClick={() => bulkToggleVisibility(false)}>
-              <EyeOff className="h-3 w-3" /> Ocultar
+            <Button size="sm" variant="outline" className="rounded-full text-[11px] h-7 gap-1 px-2" onClick={() => bulkToggleVisibility(false)}>
+              <EyeOff className="h-3 w-3" />
             </Button>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive" className="rounded-full text-xs h-8 gap-1">
-                  <Trash2 className="h-3 w-3" /> Apagar
+                <Button size="sm" variant="destructive" className="rounded-full text-[11px] h-7 gap-1 px-2">
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -632,12 +625,12 @@ const Gallery = () => {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={bulkDelete}>Apagar tudo</AlertDialogAction>
+                  <AlertDialogAction onClick={bulkDelete}>Apagar</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
 
-            <Button size="sm" variant="ghost" className="rounded-full text-xs h-8" onClick={() => { setSelectedPhotos(new Set()); setSelectionMode(false); }}>
+            <Button size="sm" variant="ghost" className="rounded-full h-7 w-7 p-0" onClick={() => { setSelectedPhotos(new Set()); setSelectionMode(false); }}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -1023,14 +1016,14 @@ const Gallery = () => {
                 )}
 
                 {/* Info + actions */}
-                <div className="p-2.5 space-y-2">
+                <div className="p-2 space-y-1.5">
                   <div>
-                    <p className="text-xs font-semibold truncate">{foto.titulo}</p>
-                    {foto.legenda && <p className="text-[11px] text-muted-foreground truncate">{decodeFocalPoint(foto.legenda).cleanLegenda}</p>}
+                    <p className="text-[11px] font-semibold truncate">{foto.titulo}</p>
+                    {foto.legenda && <p className="text-[10px] text-muted-foreground truncate">{decodeFocalPoint(foto.legenda).cleanLegenda}</p>}
                   </div>
 
                   {!selectionMode && (
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => { 
                           const { cleanLegenda, focalX, focalY, zoom } = decodeFocalPoint(foto.legenda);
@@ -1041,19 +1034,15 @@ const Gallery = () => {
                           setEditFocalY(focalY);
                           setEditZoom(zoom);
                         }}
-                        className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
-                        title="Editar"
+                        className="flex h-7 items-center gap-1 px-1.5 rounded-lg text-[10px] font-medium bg-accent hover:bg-accent/80 transition-colors"
                       >
-                        <Pencil className="h-3 w-3" /> Editar
+                        <Pencil className="h-3 w-3" />
                       </button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button
-                            className="flex h-8 items-center gap-1 px-2 rounded-lg text-[11px] font-medium bg-accent hover:bg-accent/80 transition-colors"
-                            title="Mover para pasta"
-                          >
-                            <Move className="h-3 w-3" /> Mover
+                          <button className="flex h-7 items-center gap-1 px-1.5 rounded-lg text-[10px] font-medium bg-accent hover:bg-accent/80 transition-colors">
+                            <Move className="h-3 w-3" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -1076,37 +1065,32 @@ const Gallery = () => {
 
                       <button
                         onClick={() => togglePhotoVisibility(foto.id, foto.visivel)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
                           foto.visivel ? "bg-accent hover:bg-accent/80" : "bg-muted"
                         }`}
-                        title={foto.visivel ? "Ocultar do site" : "Mostrar no site"}
                       >
-                        {foto.visivel ? <Eye className="h-3.5 w-3.5 text-primary" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
+                        {foto.visivel ? <Eye className="h-3 w-3 text-primary" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
                       </button>
 
                       <button
                         onClick={() => toggleDestaqueHome(foto.id, !!foto.destaque_home)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
                           foto.destaque_home ? "bg-primary text-primary-foreground" : "bg-accent hover:bg-accent/80"
                         }`}
-                        title={foto.destaque_home ? "Remover da home" : "Fixar na home"}
                       >
-                        <Pin className="h-3.5 w-3.5" />
+                        <Pin className="h-3 w-3" />
                       </button>
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto"
-                            title="Apagar"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
+                          <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent hover:bg-destructive hover:text-destructive-foreground transition-colors ml-auto">
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Apagar este {isVideo ? "vídeo" : "foto"}?</AlertDialogTitle>
-                            <AlertDialogDescription>"{foto.titulo}" será removido permanentemente.</AlertDialogDescription>
+                            <AlertDialogTitle>Apagar?</AlertDialogTitle>
+                            <AlertDialogDescription>"{foto.titulo}" será removido.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
