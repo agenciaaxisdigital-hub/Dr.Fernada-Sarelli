@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
 
       const visitRow: Record<string, unknown> = {
         pagina: body.pagina || "/",
+        dominio_origem: body.dominio_origem || null,
         user_agent: body.user_agent || null,
         largura_tela: body.largura_tela || null,
         altura_tela: body.altura_tela || null,
