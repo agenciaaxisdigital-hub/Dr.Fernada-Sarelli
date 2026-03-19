@@ -364,18 +364,19 @@ const Gallery = () => {
   const addPhoto = async () => {
     if (!uploadUrl.trim() || !uploadTitle.trim()) return;
     const tipo = isVideoUrl(uploadUrl) ? "video" : "foto";
-    const { error } = await supabase.from("galeria_fotos").insert({
-      titulo: uploadTitle.trim(),
-      legenda: uploadCaption.trim() || null,
-      url_foto: uploadUrl.trim(),
-      album_id: selectedAlbum,
-      visivel: true,
-    } as any);
-    if (error) { toast.error("Não foi possível adicionar."); return; }
-    setUploadUrl(""); setUploadTitle(""); setUploadCaption("");
-    setUploadOpen(false);
-    toast.success(`${tipo === "video" ? "Vídeo" : "Foto"} adicionado!`);
-    await loadData();
+    try {
+      await galleryAdmin({ action: "insert-photo", photo: {
+        titulo: uploadTitle.trim(),
+        legenda: uploadCaption.trim() || null,
+        url_foto: uploadUrl.trim(),
+        album_id: selectedAlbum,
+        visivel: true,
+      }});
+      setUploadUrl(""); setUploadTitle(""); setUploadCaption("");
+      setUploadOpen(false);
+      toast.success(`${tipo === "video" ? "Vídeo" : "Foto"} adicionado!`);
+      await loadData();
+    } catch { toast.error("Não foi possível adicionar."); }
   };
 
   // === Test data ===
