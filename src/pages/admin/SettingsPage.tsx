@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Key, UserPlus, Trash2, RefreshCw, Copy, Pencil, KeyRound, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseDb";
 import { useAdmin, painelLogout } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";

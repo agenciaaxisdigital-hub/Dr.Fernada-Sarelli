@@ -3,7 +3,7 @@ import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPi
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseDb";
 import Layout from "@/components/Layout";
 import WaveDivider from "@/components/WaveDivider";
 import ScrollReveal from "@/components/ScrollReveal";

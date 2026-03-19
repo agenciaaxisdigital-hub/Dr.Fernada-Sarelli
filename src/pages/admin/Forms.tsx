@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, Download, Phone, Mail } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseDb";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
