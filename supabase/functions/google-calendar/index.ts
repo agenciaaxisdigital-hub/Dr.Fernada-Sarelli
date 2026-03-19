@@ -3,7 +3,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/1d0115116c88175195170d2e0a22490181814fa8de5e1e53be0d0f14066da18ac%40group.calendar.google.com/public/basic.ics';
+const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/1d0115116c881751957170d2e0a224901814fa8de5e1e53be0d0f14066da18ac%40group.calendar.google.com/public/basic.ics';
 
 const MESES: Record<number, string> = {
   0: 'JAN', 1: 'FEV', 2: 'MAR', 3: 'ABR', 4: 'MAI', 5: 'JUN',
@@ -32,7 +32,6 @@ interface CalendarEvent {
 }
 
 function parseICalDate(val: string): Date {
-  // Formats: 20260314T180000Z or 20260314T150000 or 20260314
   if (val.length === 8) {
     return new Date(
       parseInt(val.slice(0, 4)),
@@ -50,7 +49,6 @@ function parseICalDate(val: string): Date {
   if (val.endsWith('Z')) {
     return new Date(Date.UTC(year, month, day, hour, minute, second));
   }
-  // Assume local time (America/Sao_Paulo GMT-3)
   return new Date(Date.UTC(year, month, day, hour + 3, minute, second));
 }
 
@@ -83,7 +81,6 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
 
     for (const line of lines) {
       if (line.startsWith(' ') || line.startsWith('\t')) {
-        // Continuation line
         if (currentKey) {
           props[currentKey] += line.slice(1);
         }
@@ -93,7 +90,6 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
       if (colonIdx === -1) continue;
       let key = line.slice(0, colonIdx);
       const value = line.slice(colonIdx + 1);
-      // Strip params like DTSTART;TZID=...
       const semiIdx = key.indexOf(';');
       if (semiIdx !== -1) key = key.slice(0, semiIdx);
       key = key.trim().toUpperCase();
@@ -121,7 +117,6 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
       (!description.trim() && !location.trim() && normalizedSummary.length <= 10);
 
     if (!dtstart || isBusyBlock) continue;
-
 
     const startDate = parseICalDate(dtstart);
     const endDate = parseICalDate(dtend);
@@ -157,7 +152,6 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
     });
   }
 
-  // Sort by date ascending
   events.sort((a, b) => new Date(a.dataISO).getTime() - new Date(b.dataISO).getTime());
   return events;
 }
@@ -170,9 +164,9 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const limitParam = url.searchParams.get('limit');
-    const filterParam = url.searchParams.get('filter'); // 'proximos' | 'passados' | 'all'
+    const filterParam = url.searchParams.get('filter');
 
-    console.log('Fetching iCal feed...');
+    console.log('Fetching iCal feed from:', CALENDAR_ICAL_URL);
     const response = await fetch(CALENDAR_ICAL_URL, {
       headers: { 'Accept': 'text/calendar' },
     });
@@ -184,7 +178,6 @@ Deno.serve(async (req) => {
     const icsText = await response.text();
     let events = parseICalFeed(icsText);
 
-    // Apply filter
     const filter = filterParam || 'all';
     if (filter === 'proximos') {
       events = events.filter(e => !e.passado);
@@ -192,11 +185,9 @@ Deno.serve(async (req) => {
       events = events.filter(e => e.passado);
     }
 
-    // Apply limit
     if (limitParam) {
       const limit = parseInt(limitParam);
       if (!isNaN(limit) && limit > 0) {
-        // For proximos, get the nearest ones; for passados, get the most recent
         if (filter === 'passados') {
           events = events.slice(-limit);
         } else {
