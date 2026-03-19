@@ -193,22 +193,20 @@ const Index = () => {
               </ScrollReveal>
             </div>
 
-            <ScrollReveal delay={0.2} direction="right">
-              <div className="flex justify-center md:justify-end">
-                <div className="relative">
-                  <div className="h-72 w-72 md:h-96 md:w-96 rounded-full border-4 border-primary overflow-hidden shadow-2xl">
-                    <img
-                      src={PHOTO_URL}
-                      alt="Dra. Fernanda Sarelli"
-                      className="h-full w-full object-cover"
-                      fetchPriority="high"
-                      loading="eager"
-                      decoding="async"
-                    />
-                  </div>
+            <div className="flex justify-center md:justify-end">
+              <div className="relative">
+                <div className="h-72 w-72 md:h-96 md:w-96 rounded-full border-4 border-primary overflow-hidden shadow-2xl">
+                  <img
+                    src={PHOTO_URL}
+                    alt="Dra. Fernanda Sarelli"
+                    className="h-full w-full object-cover"
+                    fetchPriority="high"
+                    loading="eager"
+                    decoding="async"
+                  />
                 </div>
               </div>
-            </ScrollReveal>
+            </div>
           </div>
         </div>
         <WaveDivider />
