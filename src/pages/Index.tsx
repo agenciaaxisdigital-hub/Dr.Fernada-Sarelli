@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { decodeFocalPoint, getFocalStyle, decodeThumbnail } from "@/components/admin/FocalPointPicker";
+import { decodeFocalPoint, decodeThumbnail } from "@/components/admin/FocalPointPicker";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play, X, Share2 } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
@@ -395,12 +395,12 @@ const Index = () => {
                       onClick={() => openLightbox(item)}
                       className="group text-left block overflow-hidden rounded-xl sm:rounded-2xl border bg-card transition-shadow hover:shadow-lg active:scale-[0.98] w-full"
                     >
-                      <div className="aspect-[4/3] sm:aspect-square overflow-hidden relative">
+                      <div className="aspect-square overflow-hidden relative bg-muted flex items-center justify-center">
                         {isVideo ? (
                           <>
                             <video
                               src={item.url_foto}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-contain"
                               muted
                               preload={decodeThumbnail(item.legenda) ? "none" : "metadata"}
                               playsInline
@@ -416,8 +416,7 @@ const Index = () => {
                           <img
                             src={item.url_foto}
                             alt={item.legenda ? decodeFocalPoint(item.legenda).cleanLegenda || item.titulo : item.titulo}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            style={getFocalStyle(item.legenda)}
+                            className="h-full w-full object-contain"
                             loading={i < 4 ? "eager" : "lazy"}
                             decoding="async"
                           />
