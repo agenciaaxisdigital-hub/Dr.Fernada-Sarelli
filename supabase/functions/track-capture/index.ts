@@ -144,6 +144,7 @@ Deno.serve(async (req) => {
       const clickRow: Record<string, unknown> = {
         tipo_clique: body.tipo_clique || "whatsapp",
         pagina_origem: body.pagina_origem || null,
+        dominio_origem: body.dominio_origem || null,
         cookie_visitante: body.cookie_visitante || null,
         texto_botao: body.texto_botao || null,
         secao_pagina: body.secao_pagina || null,
