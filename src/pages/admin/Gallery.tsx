@@ -883,7 +883,7 @@ const Gallery = () => {
                 Posicionar foto {previewIndex + 1} de {pendingUploads.length}
               </DialogTitle>
               <DialogDescription>
-                Toque na imagem para definir o ponto focal — a parte que não será cortada no quadrado
+                Toque na imagem para definir o ponto focal. As fotos serão exibidas inteiras, sem corte.
               </DialogDescription>
             </DialogHeader>
             {pendingUploads[previewIndex] && (
