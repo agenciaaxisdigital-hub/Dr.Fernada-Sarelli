@@ -696,23 +696,18 @@ const Gallery = () => {
               <EyeOff className="h-3 w-3" />
             </Button>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="destructive" className="rounded-full text-[11px] h-7 gap-1 px-2">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Apagar {selectedPhotos.size} item(ns)?</AlertDialogTitle>
-                  <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={bulkDelete}>Apagar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="rounded-full text-[11px] h-7 gap-1 px-2"
+              onClick={() => {
+                if (window.confirm(`Apagar ${selectedPhotos.size} item(ns)? Esta ação não pode ser desfeita.`)) {
+                  void bulkDelete();
+                }
+              }}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
 
             <Button size="sm" variant="ghost" className="rounded-full h-7 w-7 p-0" onClick={() => { setSelectedPhotos(new Set()); setSelectionMode(false); }}>
               <X className="h-3 w-3" />
