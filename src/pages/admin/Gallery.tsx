@@ -446,21 +446,21 @@ const Gallery = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-5 pb-8">
+      <div className="space-y-4 pb-4">
         {/* ===== HEADER ===== */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <Images className="h-6 w-6 text-primary" />
-              Galeria de Fotos e Vídeos
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Images className="h-5 w-5 text-primary shrink-0" />
+              <span className="truncate">Galeria</span>
             </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {photoCount} foto(s) · {videoCount} vídeo(s) · {albuns.length} pasta(s)
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              {galeriaAtiva ? "Visível no site" : "Oculta do site"}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] text-muted-foreground">
+              {galeriaAtiva ? "Ativa" : "Oculta"}
             </span>
             <Switch checked={galeriaAtiva} onCheckedChange={toggleGaleria} />
           </div>
