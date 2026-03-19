@@ -22,7 +22,7 @@ const ScrollReveal = ({ children, className, delay = 0, direction = "up" }: Scro
           observer.disconnect();
         }
       },
-      { rootMargin: "-40px" }
+      { rootMargin: "0px" }
     );
 
     observer.observe(el);

@@ -123,8 +123,8 @@ const Agenda = () => {
         subtitle="Acompanhe os próximos eventos e atividades da Dra. Fernanda Sarelli"
       />
 
-      <section className="py-10 md:py-14">
-        <div className="container max-w-3xl">
+      <section className="py-6 md:py-14">
+        <div className="container max-w-3xl px-3 sm:px-6">
 
           {/* Tabs */}
           <div className="flex items-center justify-center gap-1 mb-6">
@@ -249,7 +249,7 @@ const Agenda = () => {
 
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <h3 className="font-semibold text-sm truncate">{e.titulo}</h3>
+                                  <h3 className="font-semibold text-sm leading-snug">{e.titulo}</h3>
                                   {e.passado && (
                                     <Badge variant="secondary" className="text-[0.6rem] shrink-0 py-0">
                                       Realizado
@@ -268,7 +268,7 @@ const Agenda = () => {
                                       href={e.mapsUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex items-center gap-1 hover:text-primary transition-colors truncate max-w-[180px] sm:max-w-[260px]"
+                                      className="flex items-center gap-1 hover:text-primary transition-colors min-w-0"
                                     >
                                       <MapPin className="h-3 w-3 shrink-0" />
                                       <span className="truncate">{e.local}</span>
@@ -278,7 +278,7 @@ const Agenda = () => {
                                 </div>
 
                                 {e.desc && (
-                                  <p className="mt-1 text-xs text-muted-foreground/70 line-clamp-1">{e.desc}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground/70 line-clamp-2">{e.desc}</p>
                                 )}
 
                                 {!e.passado && (

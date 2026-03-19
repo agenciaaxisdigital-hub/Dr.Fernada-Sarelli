@@ -96,7 +96,7 @@ const Header = () => {
           >
             <div className="container flex flex-col gap-3 py-4">
               {/* Social pill tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <div className="flex flex-wrap gap-2">
                 {socialLinks.map((s, i) => (
                   <a
                     key={s.label}

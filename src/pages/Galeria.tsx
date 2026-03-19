@@ -3,6 +3,7 @@ import { Image as ImageIcon, Play, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseDb";
 import Layout from "@/components/Layout";
 import ScrollReveal from "@/components/ScrollReveal";
+import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
 
 interface Album {
   id: string;
@@ -255,7 +256,8 @@ const GaleriaPublica = () => {
                         <img
                           src={foto.url_foto}
                           alt={foto.titulo}
-                          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          style={getFocalStyle(foto.legenda)}
                           loading="lazy"
                         />
                       </div>
@@ -269,9 +271,12 @@ const GaleriaPublica = () => {
                         )}
                         <p className="text-sm font-medium truncate">{foto.titulo}</p>
                       </div>
-                      {foto.legenda && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{foto.legenda}</p>
-                      )}
+                      {foto.legenda && (() => {
+                        const { cleanLegenda } = decodeFocalPoint(foto.legenda);
+                        return cleanLegenda ? (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{cleanLegenda}</p>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 </ScrollReveal>
@@ -325,9 +330,12 @@ const GaleriaPublica = () => {
                 )}
                 <p className="font-semibold">{lightbox.titulo}</p>
               </div>
-              {lightbox.legenda && (
-                <p className="text-sm text-muted-foreground mt-1">{lightbox.legenda}</p>
-              )}
+              {lightbox.legenda && (() => {
+                const { cleanLegenda } = decodeFocalPoint(lightbox.legenda);
+                return cleanLegenda ? (
+                  <p className="text-sm text-muted-foreground mt-1">{cleanLegenda}</p>
+                ) : null;
+              })()}
             </div>
             <button
               onClick={closeLightbox}

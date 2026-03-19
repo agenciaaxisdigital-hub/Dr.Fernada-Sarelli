@@ -69,6 +69,44 @@ const isVideoUrl = (url: string) => {
   return VIDEO_EXTENSIONS.some(ext => lower.includes(ext));
 };
 
+const compressImage = (file: File, maxPx = 2048, quality = 0.92): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/") || file.size < 800 * 1024) {
+      resolve(file);
+      return;
+    }
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      let { width, height } = img;
+      if (width <= maxPx && height <= maxPx) {
+        resolve(file);
+        return;
+      }
+      if (width > height) {
+        height = Math.round((height * maxPx) / width);
+        width = maxPx;
+      } else {
+        width = Math.round((width * maxPx) / height);
+        height = maxPx;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        const outName = file.name.replace(/\.[^.]+$/, ".jpg");
+        resolve(new File([blob], outName, { type: "image/jpeg" }));
+      }, "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
+    img.src = blobUrl;
+  });
+};
+
 const WRITE_BLOCKED_MESSAGE = "Edições bloqueadas no painel: configure a service_role key correta do backend externo para liberar salvar, mover e apagar.";
 
 const Gallery = () => {
@@ -365,11 +403,11 @@ const Gallery = () => {
       setUploadProgress(Math.round((i / items.length) * 100));
 
       const isVideo = isVideoFile(file);
-      const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
+      const fileToUpload = isVideo ? file : await compressImage(file);
+      const sanitizedName = fileToUpload.name.replace(/\s+/g, "-").toLowerCase();
       const folder = isVideo ? "videos" : "galeria";
       const path = `${folder}/${Date.now()}_${sanitizedName}`;
-      // Upload to Lovable Cloud storage (not external project)
-      const { error: uploadError } = await cloudSupabase.storage.from("galeria").upload(path, file);
+      const { error: uploadError } = await cloudSupabase.storage.from("galeria").upload(path, fileToUpload);
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
