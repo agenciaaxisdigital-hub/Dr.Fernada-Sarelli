@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/lib/supabaseDb";
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 import {
   getVisitorId,
   getVisitorCookieStatus,
