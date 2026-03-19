@@ -128,32 +128,34 @@ const Gallery = () => {
   // === Album actions ===
   const createAlbum = async () => {
     if (!newAlbumName.trim()) return;
-    const { error } = await supabase.from("albuns" as any).insert({ nome: newAlbumName.trim() } as any);
-    if (error) { toast.error("Não foi possível criar a pasta."); return; }
-    setNewAlbumName("");
-    setNewAlbumOpen(false);
-    toast.success("📁 Pasta criada!");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "create-album", nome: newAlbumName.trim() });
+      setNewAlbumName("");
+      setNewAlbumOpen(false);
+      toast.success("📁 Pasta criada!");
+      await loadData();
+    } catch { toast.error("Não foi possível criar a pasta."); }
   };
 
   const deleteAlbum = async (albumId: string) => {
-    await supabase.from("galeria_fotos").update({ album_id: null } as any).eq("album_id", albumId);
-    const { error } = await supabase.from("albuns" as any).delete().eq("id", albumId);
-    if (error) { toast.error("Não foi possível excluir a pasta."); return; }
-    if (selectedAlbum === albumId) setSelectedAlbum(null);
-    toast.success("Pasta excluída");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "delete-album", id: albumId });
+      if (selectedAlbum === albumId) setSelectedAlbum(null);
+      toast.success("Pasta excluída");
+      await loadData();
+    } catch { toast.error("Não foi possível excluir a pasta."); }
   };
 
   const updateAlbum = async () => {
     if (!editAlbumId || !editAlbumName.trim()) return;
-    const { error } = await supabase.from("albuns" as any).update({ nome: editAlbumName.trim() } as any).eq("id", editAlbumId);
-    if (error) { toast.error("Não foi possível renomear."); return; }
-    setEditAlbumOpen(false);
-    setEditAlbumId(null);
-    setEditAlbumName("");
-    toast.success("Pasta renomeada");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "update-album", id: editAlbumId, nome: editAlbumName.trim() });
+      setEditAlbumOpen(false);
+      setEditAlbumId(null);
+      setEditAlbumName("");
+      toast.success("Pasta renomeada");
+      await loadData();
+    } catch { toast.error("Não foi possível renomear."); }
   };
 
   const moveAlbum = async (albumId: string, direction: "left" | "right") => {
