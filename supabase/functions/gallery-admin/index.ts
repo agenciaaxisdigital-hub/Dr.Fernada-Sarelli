@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
         return json({ 
           success: true, 
           keyPrefix,
+          keyIsServiceRole: EXT_SERVICE_KEY?.startsWith("eyJ") || false,
           urlSet: !!EXT_URL,
           canRead: !error, 
           readError: error?.message || null,
@@ -41,9 +42,15 @@ Deno.serve(async (req) => {
       // ── DELETE photo ──
       case "delete-photo": {
         const { id } = body;
+        if (!EXT_SERVICE_KEY?.startsWith("eyJ")) {
+          return json({ success: false, error: "Service role key não configurada. Configure EXT_SUPABASE_SERVICE_ROLE_KEY com a chave que começa com 'eyJ...'." }, 403);
+        }
         const { data, error } = await ext.from("galeria_fotos").delete().eq("id", id).select();
         if (error) throw error;
-        return json({ success: true, deleted: data?.length || 0 });
+        if (!data || data.length === 0) {
+          return json({ success: false, error: "Item não encontrado ou já foi removido." }, 404);
+        }
+        return json({ success: true, deleted: data.length });
       }
 
       // ── BULK DELETE photos ──
