@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
 
       const visitRow: Record<string, unknown> = {
         pagina: body.pagina || "/",
+        dominio_origem: body.dominio_origem || null,
         user_agent: body.user_agent || null,
         largura_tela: body.largura_tela || null,
         altura_tela: body.altura_tela || null,
@@ -143,6 +144,7 @@ Deno.serve(async (req) => {
       const clickRow: Record<string, unknown> = {
         tipo_clique: body.tipo_clique || "whatsapp",
         pagina_origem: body.pagina_origem || null,
+        dominio_origem: body.dominio_origem || null,
         cookie_visitante: body.cookie_visitante || null,
         texto_botao: body.texto_botao || null,
         secao_pagina: body.secao_pagina || null,
@@ -221,6 +223,7 @@ Deno.serve(async (req) => {
         telefone: body.telefone,
         email: body.email || null,
         mensagem: body.mensagem,
+        dominio_origem: body.dominio_origem || null,
         endereco_ip: ip,
         user_agent: body.user_agent || null,
         cidade: body.cidade || geoFields.cidade || null,
