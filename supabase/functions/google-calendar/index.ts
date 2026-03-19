@@ -3,7 +3,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/1d0115116c88175195170d2e0a22490181814fa8de5e1e53be0d0f14066da18ac%40group.calendar.google.com/public/basic.ics';
+const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/1d0115116c881751957170d2e0a224901814fa8de5e1e53be0d0f14066da18ac%40group.calendar.google.com/public/basic.ics';
 
 const MESES: Record<number, string> = {
   0: 'JAN', 1: 'FEV', 2: 'MAR', 3: 'ABR', 4: 'MAI', 5: 'JUN',
