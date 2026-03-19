@@ -64,14 +64,13 @@ const Contato = () => {
       }
       if (!geo) geo = await resolveLocation().catch(() => null);
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
+      const url = `${SUPABASE_URL}/functions/v1/track-capture`;
 
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          apikey: SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           action: "form",

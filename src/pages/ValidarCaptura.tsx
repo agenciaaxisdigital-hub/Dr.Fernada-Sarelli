@@ -240,9 +240,8 @@ const ValidarCaptura = () => {
 
   const handleFormTest = async () => {
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/track-capture`, {
-        method: "POST", headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/track-capture`, {
+        method: "POST", headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
         body: JSON.stringify({ action: "form", nome: "Teste Validação", telefone: "(00) 00000-0000", mensagem: "Registro de teste automático", cookie_visitante: getVisitorId() }),
       });
       const data = await res.json();
