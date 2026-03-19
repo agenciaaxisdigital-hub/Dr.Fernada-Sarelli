@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Image as ImageIcon, Play, X, Loader2 } from "lucide-react";
+import { Image as ImageIcon, Play, X, Loader2, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseDb";
+import { toast } from "sonner";
 import Layout from "@/components/Layout";
 import { decodeFocalPoint, getFocalStyle, decodeThumbnail } from "@/components/admin/FocalPointPicker";
 
@@ -358,20 +359,44 @@ const GaleriaPublica = () => {
             )}
 
             <div className="p-4 shrink-0">
-              <div className="flex items-center gap-2">
-                {getFotoTipo(lightbox.url_foto) === "video" && (
-                  <span className="text-xs font-semibold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded shrink-0">
-                    Vídeo
-                  </span>
-                )}
-                <p className="font-semibold truncate">{lightbox.titulo}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {getFotoTipo(lightbox.url_foto) === "video" && (
+                      <span className="text-xs font-semibold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded shrink-0">
+                        Vídeo
+                      </span>
+                    )}
+                    <p className="font-semibold truncate">{lightbox.titulo}</p>
+                  </div>
+                  {lightbox.legenda && (() => {
+                    const { cleanLegenda } = decodeFocalPoint(lightbox.legenda);
+                    return cleanLegenda ? (
+                      <p className="text-sm text-muted-foreground mt-1">{cleanLegenda}</p>
+                    ) : null;
+                  })()}
+                </div>
+                <button
+                  onClick={async () => {
+                    const shareData = {
+                      title: lightbox.titulo,
+                      text: `${lightbox.titulo} — Fernanda Sarelli`,
+                      url: lightbox.url_foto,
+                    };
+                    if (navigator.share) {
+                      try { await navigator.share(shareData); } catch { /* cancelled */ }
+                    } else {
+                      await navigator.clipboard.writeText(lightbox.url_foto);
+                      toast.success("Link copiado!");
+                    }
+                  }}
+                  className="shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  title="Compartilhar"
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Compartilhar</span>
+                </button>
               </div>
-              {lightbox.legenda && (() => {
-                const { cleanLegenda } = decodeFocalPoint(lightbox.legenda);
-                return cleanLegenda ? (
-                  <p className="text-sm text-muted-foreground mt-1">{cleanLegenda}</p>
-                ) : null;
-              })()}
             </div>
           </div>
         </div>

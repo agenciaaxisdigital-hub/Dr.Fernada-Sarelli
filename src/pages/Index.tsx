@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { decodeFocalPoint, getFocalStyle, decodeThumbnail } from "@/components/admin/FocalPointPicker";
 import { Link } from "react-router-dom";
-import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play, X } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play, X, Share2 } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseDb";
 import Layout from "@/components/Layout";
 import WaveDivider from "@/components/WaveDivider";
@@ -582,14 +583,38 @@ const Index = () => {
               </div>
             )}
             <div className="p-4 shrink-0">
-              <p className="font-semibold">{lightbox.titulo}</p>
-              {lightbox.evento && (
-                <p className="text-sm text-muted-foreground mt-0.5">{lightbox.evento}</p>
-              )}
-              {lightbox.legenda && (() => {
-                const { cleanLegenda } = decodeFocalPoint(lightbox.legenda);
-                return cleanLegenda ? <p className="text-sm text-muted-foreground mt-1">{cleanLegenda}</p> : null;
-              })()}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold">{lightbox.titulo}</p>
+                  {lightbox.evento && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{lightbox.evento}</p>
+                  )}
+                  {lightbox.legenda && (() => {
+                    const { cleanLegenda } = decodeFocalPoint(lightbox.legenda);
+                    return cleanLegenda ? <p className="text-sm text-muted-foreground mt-1">{cleanLegenda}</p> : null;
+                  })()}
+                </div>
+                <button
+                  onClick={async () => {
+                    const shareData = {
+                      title: lightbox.titulo,
+                      text: `${lightbox.titulo} — Fernanda Sarelli`,
+                      url: lightbox.url_foto,
+                    };
+                    if (navigator.share) {
+                      try { await navigator.share(shareData); } catch { /* cancelled */ }
+                    } else {
+                      await navigator.clipboard.writeText(lightbox.url_foto);
+                      toast.success("Link copiado!");
+                    }
+                  }}
+                  className="shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  title="Compartilhar"
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Compartilhar</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
