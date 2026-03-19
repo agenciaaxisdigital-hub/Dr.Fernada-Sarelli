@@ -883,7 +883,7 @@ const Gallery = () => {
                 Posicionar foto {previewIndex + 1} de {pendingUploads.length}
               </DialogTitle>
               <DialogDescription>
-                Toque na imagem para definir o ponto focal — a parte que não será cortada no quadrado
+                Toque na imagem para definir o ponto focal. As fotos serão exibidas inteiras, sem corte.
               </DialogDescription>
             </DialogHeader>
             {pendingUploads[previewIndex] && (
@@ -982,9 +982,9 @@ const Gallery = () => {
                       )}
                       {/* Thumbnail */}
                       {isVideo ? (
-                        <video src={item.url_foto} className="w-full aspect-square object-cover" muted preload="metadata" />
+                        <video src={item.url_foto} className="w-full aspect-[3/4] object-contain bg-muted" muted preload="metadata" />
                       ) : (
-                        <img src={item.url_foto} alt={item.titulo} className="w-full aspect-square object-cover" />
+                        <img src={item.url_foto} alt={item.titulo} className="w-full aspect-[3/4] object-contain bg-muted" />
                       )}
                       {/* Reorder + unpin controls */}
                       <div className="flex items-center justify-between p-1.5 gap-0.5">
@@ -1064,10 +1064,10 @@ const Gallery = () => {
 
                 {/* Media preview */}
                 {isVideo ? (
-                  <div className="relative w-full aspect-square bg-black flex items-center justify-center">
+                  <div className="relative w-full aspect-[3/4] bg-muted flex items-center justify-center">
                     <video
                       src={foto.url_foto}
-                      className={`w-full h-full object-cover ${!foto.visivel ? "opacity-50" : ""}`}
+                      className={`w-full h-full object-contain ${!foto.visivel ? "opacity-50" : ""}`}
                       muted
                       preload="metadata"
                     />
@@ -1078,13 +1078,14 @@ const Gallery = () => {
                     </div>
                   </div>
                 ) : (
-                  <img
-                    src={foto.url_foto}
-                    alt={foto.titulo}
-                    className={`w-full aspect-square object-cover transition-opacity ${!foto.visivel ? "opacity-50" : ""}`}
-                    style={getFocalStyle(foto.legenda)}
-                    loading="lazy"
-                  />
+                  <div className="w-full aspect-[3/4] bg-muted flex items-center justify-center overflow-hidden">
+                    <img
+                      src={foto.url_foto}
+                      alt={foto.titulo}
+                      className={`w-full h-full object-contain transition-opacity ${!foto.visivel ? "opacity-50" : ""}`}
+                      loading="lazy"
+                    />
+                  </div>
                 )}
 
                 {/* Info + actions */}
