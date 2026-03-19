@@ -396,43 +396,67 @@ const Gallery = () => {
     if (!ensureWriteEnabled()) return;
     setUploading(true);
     setUploadProgress(0);
+
+    const toastId = `upload-${Date.now()}`;
+    toast.loading(`Enviando ${items.length} arquivo(s)...`, { id: toastId });
+
+    // Compress all images in parallel first
+    const prepared = await Promise.all(
+      items.map(async (item) => {
+        const isVideo = isVideoFile(item.file);
+        const fileToUpload = isVideo ? item.file : await compressImage(item.file);
+        return { ...item, fileToUpload, isVideo };
+      })
+    );
+
     let successCount = 0;
+    let done = 0;
 
-    for (let i = 0; i < items.length; i++) {
-      const { file, focalX, focalY, zoom } = items[i];
-      setUploadProgress(Math.round((i / items.length) * 100));
+    // Upload up to 3 files in parallel
+    const CONCURRENCY = 3;
+    const chunks: typeof prepared[] = [];
+    for (let i = 0; i < prepared.length; i += CONCURRENCY) {
+      chunks.push(prepared.slice(i, i + CONCURRENCY));
+    }
 
-      const isVideo = isVideoFile(file);
-      const fileToUpload = isVideo ? file : await compressImage(file);
-      const sanitizedName = fileToUpload.name.replace(/\s+/g, "-").toLowerCase();
-      const folder = isVideo ? "videos" : "galeria";
-      const path = `${folder}/${Date.now()}_${sanitizedName}`;
-      const { error: uploadError } = await cloudSupabase.storage.from("galeria").upload(path, fileToUpload);
+    for (const chunk of chunks) {
+      await Promise.allSettled(
+        chunk.map(async ({ file, fileToUpload, focalX, focalY, zoom, isVideo }) => {
+          const sanitizedName = fileToUpload.name.replace(/\s+/g, "-").toLowerCase();
+          const folder = isVideo ? "videos" : "galeria";
+          const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}_${sanitizedName}`;
+          const { error: uploadError } = await cloudSupabase.storage.from("galeria").upload(path, fileToUpload);
 
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        toast.error(`Erro ao enviar "${file.name}": ${uploadError.message}`);
-        continue;
-      }
+          if (uploadError) {
+            toast.error(`Erro: "${file.name}" — ${uploadError.message}`);
+            return;
+          }
 
-      const { data: urlData } = cloudSupabase.storage.from("galeria").getPublicUrl(path);
-      try {
-        const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
-        await galleryAdmin({ action: "insert-photo", photo: {
-          titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
-          url_foto: urlData.publicUrl,
-          album_id: selectedAlbum,
-          visivel: true,
-          legenda: legendaWithFp || null,
-        }});
-        successCount += 1;
-      } catch (error) {
-        handleActionError(error, `Erro ao salvar "${file.name}"`);
-      }
+          const { data: urlData } = cloudSupabase.storage.from("galeria").getPublicUrl(path);
+          try {
+            const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
+            await galleryAdmin({ action: "insert-photo", photo: {
+              titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
+              url_foto: urlData.publicUrl,
+              album_id: selectedAlbum,
+              visivel: true,
+              legenda: legendaWithFp || null,
+            }});
+            successCount += 1;
+          } catch (error) {
+            handleActionError(error, `Erro ao salvar "${file.name}"`);
+          }
+
+          done += 1;
+          setUploadProgress(Math.round((done / prepared.length) * 100));
+          toast.loading(`Enviando… ${done}/${prepared.length}`, { id: toastId });
+        })
+      );
     }
 
     setUploadProgress(100);
     setUploading(false);
+    toast.dismiss(toastId);
 
     if (successCount > 0) {
       toast.success(`✅ ${successCount} arquivo(s) enviado(s) com sucesso!`);
