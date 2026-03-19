@@ -1,16 +1,4 @@
-project_id = "yvdfdmyusdhgtzfguxbj"
-
-[functions.api-v1]
-verify_jwt = false
-
-[functions.admin-users]
-verify_jwt = false
+project_id = "tpsyxeauhveqlhlhaets"
 
 [functions.google-calendar]
-verify_jwt = false
-
-[functions.track-capture]
-verify_jwt = false
-
-[functions.painel-auth]
 verify_jwt = false

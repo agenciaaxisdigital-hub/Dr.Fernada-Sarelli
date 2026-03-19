@@ -1,3 +1,4 @@
+import { SUPABASE_PROJECT_ID, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabaseDb";
 /**
  * CHAMA ROSA — Mission-Critical Data Capture Engine v3
  * 
@@ -56,8 +57,7 @@ interface QueueItem {
 }
 
 function getTrackCaptureUrl() {
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  return `https://${projectId}.supabase.co/functions/v1/track-capture`;
+  return `${SUPABASE_URL}/functions/v1/track-capture`;
 }
 
 async function sendTrackPayload(
@@ -79,7 +79,7 @@ async function sendTrackPayload(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(payload),
     keepalive: options?.keepalive,
@@ -976,11 +976,10 @@ export function resetFormTracking() {
 
 export async function updateLocationViaEdge(cookie_visitante: string, table: string, geo: Partial<GeoData>) {
   try {
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
+    const url = `${SUPABASE_URL}/functions/v1/track-capture`;
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
       body: JSON.stringify({ action: "update-location", cookie_visitante, table, ...geo }),
     });
     return await res.json();
@@ -997,12 +996,11 @@ export async function retroactiveEnrich() {
     if (!geo || geo.geo_layer !== "gps" || !geo.bairro) return;
 
     const cookie = getVisitorId();
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
+    const url = `${SUPABASE_URL}/functions/v1/track-capture`;
 
     await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
       body: JSON.stringify({ action: "retroactive-enrich", cookie_visitante: cookie, ...geo }),
     });
   } catch {}
@@ -1015,7 +1013,6 @@ export async function retroactiveEnrich() {
 export function initExitTracking(pagina: string) {
   const sendExit = () => {
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const payload = JSON.stringify({
         action: "exit",
         cookie_visitante: getVisitorId(),
@@ -1026,7 +1023,7 @@ export function initExitTracking(pagina: string) {
         tempo_total_sessao: getSessionDuration(),
       });
       navigator.sendBeacon(
-        `https://${projectId}.supabase.co/functions/v1/track-capture`,
+        `${SUPABASE_URL}/functions/v1/track-capture`,
         new Blob([payload], { type: "application/json" })
       );
     } catch {}

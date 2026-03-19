@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Key, UserPlus, Trash2, RefreshCw, Copy, Pencil, KeyRound, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseDb";
 import { useAdmin, painelLogout } from "@/hooks/useAdmin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,16 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 
-const PAINEL_AUTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-auth`;
+const PAINEL_AUTH_URL = `${SUPABASE_URL}/functions/v1/painel-auth`;
 
 async function painelApi(body: Record<string, unknown>) {
   const res = await fetch(PAINEL_AUTH_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(body),
   });

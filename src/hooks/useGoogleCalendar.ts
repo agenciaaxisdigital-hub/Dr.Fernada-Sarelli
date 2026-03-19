@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 
+// Google Calendar edge function runs on Lovable Cloud (no DB access needed)
+const CLOUD_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const CLOUD_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 export interface CalendarEvent {
   id: string;
   titulo: string;
@@ -91,13 +95,12 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
         if (options.filter) params.set("filter", options.filter);
         if (options.limit) params.set("limit", String(options.limit));
 
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const query = params.toString();
-        const url = `https://${projectId}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}t=${Date.now()}`;
+        const url = `https://${CLOUD_PROJECT_ID}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}t=${Date.now()}`;
 
         const res = await fetch(url, {
           headers: {
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "apikey": CLOUD_ANON_KEY,
           },
         });
 

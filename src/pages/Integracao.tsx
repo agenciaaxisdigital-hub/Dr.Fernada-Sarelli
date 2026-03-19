@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
 import PageHeader from "@/components/PageHeader";
@@ -63,12 +64,11 @@ const Integracao = () => {
       }
       if (!geo) geo = await resolveLocation().catch(() => null);
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/track-capture`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/track-capture`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          apikey: SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           action: "form",

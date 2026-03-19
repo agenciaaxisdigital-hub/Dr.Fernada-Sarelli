@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Image as ImageIcon, Play, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseDb";
 import Layout from "@/components/Layout";
 import ScrollReveal from "@/components/ScrollReveal";
 
