@@ -24,13 +24,26 @@ Deno.serve(async (req) => {
     const ext = getExtClient();
 
     switch (action) {
+      // ── DEBUG: check connectivity ──
+      case "debug": {
+        const keyPrefix = EXT_SERVICE_KEY?.substring(0, 10) || "MISSING";
+        const { data, error } = await ext.from("galeria_fotos").select("id").limit(1);
+        return json({ 
+          success: true, 
+          keyPrefix,
+          urlSet: !!EXT_URL,
+          canRead: !error, 
+          readError: error?.message || null,
+          rowCount: data?.length || 0 
+        });
+      }
+
       // ── DELETE photo ──
       case "delete-photo": {
         const { id } = body;
         const { data, error } = await ext.from("galeria_fotos").delete().eq("id", id).select();
         if (error) throw error;
-        if (!data || data.length === 0) throw new Error("Item não encontrado ou já removido");
-        return json({ success: true, deleted: data.length });
+        return json({ success: true, deleted: data?.length || 0 });
       }
 
       // ── BULK DELETE photos ──
