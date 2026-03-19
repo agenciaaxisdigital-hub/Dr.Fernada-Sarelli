@@ -575,7 +575,8 @@ const Gallery = () => {
     }
   };
 
-  const filteredFotos = selectedAlbum ? fotos.filter(f => f.album_id === selectedAlbum) : fotos;
+  const semPasta = fotos.filter(f => !f.album_id);
+  const filteredFotos = selectedAlbum ? fotos.filter(f => f.album_id === selectedAlbum) : semPasta;
   const hasTestPhotos = fotos.some(f => TEST_IMAGE_URLS.includes(f.url_foto));
   const selectedAlbumName = selectedAlbum ? albuns.find(a => a.id === selectedAlbum)?.nome : null;
 
@@ -792,9 +793,9 @@ const Gallery = () => {
               }`}
             >
               <Images className="h-4 w-4" />
-              Todas
+              Sem pasta
               <span className={`text-xs rounded-full px-1.5 py-0.5 ${!selectedAlbum ? "bg-primary-foreground/20" : "bg-muted"}`}>
-                {fotos.length}
+                {semPasta.length}
               </span>
             </button>
 
