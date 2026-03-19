@@ -4,15 +4,34 @@ const corsHeaders = {
 };
 
 const CALENDAR_ICAL_URL = 'https://calendar.google.com/calendar/ical/1d0115116c881751957170d2e0a224901814fa8de5e1e53be0d0f14066da18ac%40group.calendar.google.com/public/basic.ics';
+const CALENDAR_TIME_ZONE = 'America/Sao_Paulo';
 
 const MESES: Record<number, string> = {
   0: 'JAN', 1: 'FEV', 2: 'MAR', 3: 'ABR', 4: 'MAI', 5: 'JUN',
   6: 'JUL', 7: 'AGO', 8: 'SET', 9: 'OUT', 10: 'NOV', 11: 'DEZ',
 };
 
-const DIAS_SEMANA: Record<number, string> = {
-  0: 'domingo', 1: 'segunda', 2: 'terça', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sábado',
-};
+const DAY_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: CALENDAR_TIME_ZONE,
+  day: '2-digit',
+});
+
+const MONTH_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: CALENDAR_TIME_ZONE,
+  month: 'numeric',
+});
+
+const WEEKDAY_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: CALENDAR_TIME_ZONE,
+  weekday: 'long',
+});
+
+const TIME_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: CALENDAR_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
 
 interface CalendarEvent {
   id: string;
@@ -32,16 +51,14 @@ interface CalendarEvent {
 }
 
 function parseICalDate(val: string): Date {
-  if (val.length === 8) {
-    return new Date(
-      parseInt(val.slice(0, 4)),
-      parseInt(val.slice(4, 6)) - 1,
-      parseInt(val.slice(6, 8))
-    );
-  }
   const year = parseInt(val.slice(0, 4));
   const month = parseInt(val.slice(4, 6)) - 1;
   const day = parseInt(val.slice(6, 8));
+
+  if (val.length === 8) {
+    return new Date(Date.UTC(year, month, day, 12, 0, 0));
+  }
+
   const hour = parseInt(val.slice(9, 11));
   const minute = parseInt(val.slice(11, 13));
   const second = parseInt(val.slice(13, 15));
@@ -49,6 +66,9 @@ function parseICalDate(val: string): Date {
   if (val.endsWith('Z')) {
     return new Date(Date.UTC(year, month, day, hour, minute, second));
   }
+
+  // Google iCal feed usually returns floating times in the calendar local timezone.
+  // We convert them to UTC while preserving São Paulo wall-clock time for display.
   return new Date(Date.UTC(year, month, day, hour + 3, minute, second));
 }
 
@@ -68,9 +88,37 @@ function buildMapsUrl(location: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
 }
 
+function getCalendarNow(): Date {
+  const now = new Date();
+  const localNow = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: CALENDAR_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(now);
+
+  return new Date(localNow.replace(' ', 'T') + 'Z');
+}
+
+function getEventDateParts(date: Date) {
+  const monthIndex = Number(MONTH_FORMATTER.format(date)) - 1;
+
+  return {
+    dia: DAY_FORMATTER.format(date),
+    mes: MESES[monthIndex],
+    diaSemana: WEEKDAY_FORMATTER.format(date),
+    hora: TIME_FORMATTER.format(date),
+  };
+}
+
 function parseICalFeed(icsText: string): CalendarEvent[] {
   const events: CalendarEvent[] = [];
   const vevents = icsText.split('BEGIN:VEVENT');
+  const calendarNow = getCalendarNow();
 
   for (let i = 1; i < vevents.length; i++) {
     const block = vevents[i].split('END:VEVENT')[0];
@@ -119,27 +167,22 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
 
     const startDate = parseICalDate(dtstart);
     const endDate = parseICalDate(dtend);
-    const now = new Date();
-
-    const dia = startDate.getDate().toString().padStart(2, '0');
-    const mes = MESES[startDate.getMonth()];
-    const diaSemana = DIAS_SEMANA[startDate.getDay()];
-    const hora = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
-    const horaFim = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+    const startParts = getEventDateParts(startDate);
+    const endParts = getEventDateParts(endDate);
 
     events.push({
       id: uid,
       titulo: summary,
       desc: description,
       local: location,
-      dia,
-      mes,
-      diaSemana,
-      hora,
-      horaFim,
+      dia: startParts.dia,
+      mes: startParts.mes,
+      diaSemana: startParts.diaSemana,
+      hora: startParts.hora,
+      horaFim: endParts.hora,
       dataISO: startDate.toISOString(),
       dataFimISO: endDate.toISOString(),
-      passado: endDate < now,
+      passado: endDate < calendarNow,
       gcal: buildGCalLink({
         titulo: summary,
         desc: description,
