@@ -1,10 +1,14 @@
 /**
- * Re-export supabase client with relaxed typing for tables
- * that exist in the external Supabase project but aren't
- * reflected in the auto-generated types.
+ * Supabase client pointing to the external project
+ * that has all the existing tables and data.
  */
-import { supabase as _supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 
-// Cast to any to bypass strict table name checking
-// since the external project has tables not in the generated types
-export const supabase = _supabase as any;
+const EXTERNAL_URL = "https://yvdfdmyusdhgtzfguxbj.supabase.co";
+const EXTERNAL_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2ZGZkbXl1c2RoZ3R6Zmd1eGJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg4MzksImV4cCI6MjA4OTA3NDgzOX0.-xSNbj5kLibkhJoXmOXjfmYPKBB-gqasQgy322Kk-n4";
+
+export const supabase: any = createClient(EXTERNAL_URL, EXTERNAL_ANON_KEY);
+
+/** Project ID for constructing edge function URLs */
+export const SUPABASE_PROJECT_ID = "yvdfdmyusdhgtzfguxbj";
+export const SUPABASE_ANON_KEY = EXTERNAL_ANON_KEY;
