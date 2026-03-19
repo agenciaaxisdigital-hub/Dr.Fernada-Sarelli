@@ -92,13 +92,12 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
         if (options.filter) params.set("filter", options.filter);
         if (options.limit) params.set("limit", String(options.limit));
 
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const query = params.toString();
-        const url = `https://${projectId}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}t=${Date.now()}`;
+        const url = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/google-calendar?${query ? `${query}&` : ''}t=${Date.now()}`;
 
         const res = await fetch(url, {
           headers: {
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "apikey": SUPABASE_ANON_KEY,
           },
         });
 
