@@ -595,15 +595,18 @@ const Index = () => {
                 </div>
                 <button
                   onClick={async () => {
-                    const shareData = {
-                      title: lightbox.titulo,
-                      text: `${lightbox.titulo} — Fernanda Sarelli`,
-                      url: lightbox.url_foto,
-                    };
+                    const galeriaUrl = `${window.location.origin}/galeria`;
+                    const texto = `${lightbox.titulo} — Fernanda Sarelli\n\n📸 Ver mais fotos: ${galeriaUrl}`;
                     if (navigator.share) {
-                      try { await navigator.share(shareData); } catch { /* cancelled */ }
+                      try {
+                        await navigator.share({
+                          title: lightbox.titulo,
+                          text: texto,
+                          url: lightbox.url_foto,
+                        });
+                      } catch { /* cancelled */ }
                     } else {
-                      await navigator.clipboard.writeText(lightbox.url_foto);
+                      await navigator.clipboard.writeText(`${texto}\n${lightbox.url_foto}`);
                       toast.success("Link copiado!");
                     }
                   }}
