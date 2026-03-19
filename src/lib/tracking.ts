@@ -57,8 +57,7 @@ interface QueueItem {
 }
 
 function getTrackCaptureUrl() {
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  return `https://${projectId}.supabase.co/functions/v1/track-capture`;
+  return `${SUPABASE_URL}/functions/v1/track-capture`;
 }
 
 async function sendTrackPayload(
