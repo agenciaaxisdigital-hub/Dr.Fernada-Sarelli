@@ -158,19 +158,19 @@ const SettingsPage = () => {
         </div>
 
         {/* User Management */}
-        <div className="rounded-2xl border bg-card p-6 space-y-4">
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Gerenciar Usuários</h3>
+            <UserPlus className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Gerenciar Usuários</h3>
           </div>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input placeholder="Nome de usuário" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="off" />
-              <Input placeholder="Senha" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-2">
+              <Input placeholder="Nome de usuário" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoComplete="off" className="h-9 text-sm" />
+              <Input placeholder="Senha" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" className="h-9 text-sm" />
             </div>
-            <Button onClick={createUser} disabled={creating} className="rounded-full">
-              <UserPlus className="mr-2 h-4 w-4" /> {creating ? "Criando..." : "Criar Usuário"}
+            <Button onClick={createUser} disabled={creating} className="rounded-full w-full h-9 text-sm">
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" /> {creating ? "Criando..." : "Criar Usuário"}
             </Button>
           </div>
 

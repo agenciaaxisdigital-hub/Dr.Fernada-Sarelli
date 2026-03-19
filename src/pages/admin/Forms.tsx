@@ -76,21 +76,23 @@ const Forms = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">Formulários</h2>
-          <Button variant="outline" className="rounded-full" onClick={exportExcel}>
-            <Download className="mr-2 h-4 w-4" /> Exportar Excel
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg sm:text-xl font-bold">Formulários</h2>
+          <Button variant="outline" size="sm" className="rounded-full text-xs h-8" onClick={exportExcel}>
+            <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
           </Button>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Buscar nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
           </div>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
+          <div className="flex gap-2">
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="flex-1 sm:w-32 h-9 text-sm" />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="flex-1 sm:w-32 h-9 text-sm" />
+          </div>
         </div>
 
         <p className="text-sm text-muted-foreground">{filtered.length} registro(s)</p>
