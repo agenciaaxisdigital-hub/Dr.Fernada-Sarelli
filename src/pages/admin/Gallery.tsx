@@ -529,27 +529,26 @@ const Gallery = () => {
         </div>
 
         {/* ===== SECONDARY ACTIONS ===== */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Add by URL */}
+        <div className="flex flex-wrap items-center gap-1.5">
           <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="rounded-full text-xs h-9 gap-1.5">
+              <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1">
                 <ImagePlus className="h-3.5 w-3.5" />
-                Adicionar por link
+                <span className="hidden sm:inline">Adicionar por</span> link
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Adicionar por link</DialogTitle>
-                <DialogDescription>Cole o endereço de uma foto ou vídeo da internet</DialogDescription>
+                <DialogDescription>Cole o endereço de uma foto ou vídeo</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
-                <Input placeholder="https://exemplo.com/foto.jpg ou video.mp4" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
+                <Input placeholder="https://exemplo.com/foto.jpg" value={uploadUrl} onChange={(e) => setUploadUrl(e.target.value)} />
                 <Input placeholder="Nome" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
                 <Input placeholder="Descrição (opcional)" value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)} />
                 {uploadUrl && isVideoUrl(uploadUrl) && (
                   <Badge variant="secondary" className="gap-1">
-                    <Video className="h-3 w-3" /> Será salvo como vídeo
+                    <Video className="h-3 w-3" /> Vídeo
                   </Badge>
                 )}
               </div>
@@ -559,27 +558,25 @@ const Gallery = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Select mode */}
           <Button
             size="sm"
             variant={selectionMode ? "default" : "outline"}
-            className="rounded-full text-xs h-9 gap-1.5"
+            className="rounded-full text-xs h-8 gap-1"
             onClick={() => {
               setSelectionMode(!selectionMode);
               if (selectionMode) setSelectedPhotos(new Set());
             }}
           >
             <Check className="h-3.5 w-3.5" />
-            {selectionMode ? `${selectedPhotos.size} selecionado(s)` : "Selecionar vários"}
+            {selectionMode ? `${selectedPhotos.size} sel.` : "Selecionar"}
           </Button>
 
-          {/* Test buttons */}
-          <div className="ml-auto flex gap-1.5">
-            <Button size="sm" variant="ghost" className="rounded-full text-xs h-9 gap-1 text-muted-foreground" onClick={populateTestPhotos}>
+          <div className="ml-auto flex gap-1">
+            <Button size="sm" variant="ghost" className="rounded-full text-[10px] h-8 gap-0.5 text-muted-foreground px-2" onClick={populateTestPhotos}>
               <Sparkles className="h-3 w-3" />Teste
             </Button>
             {hasTestPhotos && (
-              <Button size="sm" variant="ghost" className="rounded-full text-xs h-9 gap-1 text-muted-foreground" onClick={() => clearTestPhotos()}>
+              <Button size="sm" variant="ghost" className="rounded-full text-[10px] h-8 gap-0.5 text-muted-foreground px-2" onClick={() => clearTestPhotos()}>
                 <Eraser className="h-3 w-3" />Limpar
               </Button>
             )}
