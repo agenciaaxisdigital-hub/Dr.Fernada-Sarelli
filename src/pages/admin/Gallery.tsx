@@ -484,7 +484,7 @@ const Gallery = () => {
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleFileDrop}
-          className={`relative rounded-2xl border-2 border-dashed p-6 sm:p-10 text-center transition-all cursor-pointer
+          className={`relative rounded-2xl border-2 border-dashed p-5 text-center transition-all cursor-pointer
             ${dragOver
               ? "border-primary bg-accent scale-[1.01]"
               : "border-muted-foreground/30 hover:border-primary hover:bg-accent/30"
