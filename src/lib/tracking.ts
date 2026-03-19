@@ -996,12 +996,11 @@ export async function retroactiveEnrich() {
     if (!geo || geo.geo_layer !== "gps" || !geo.bairro) return;
 
     const cookie = getVisitorId();
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/track-capture`;
+    const url = `${SUPABASE_URL}/functions/v1/track-capture`;
 
     await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
       body: JSON.stringify({ action: "retroactive-enrich", cookie_visitante: cookie, ...geo }),
     });
   } catch {}
