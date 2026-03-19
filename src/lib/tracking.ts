@@ -1013,7 +1013,6 @@ export async function retroactiveEnrich() {
 export function initExitTracking(pagina: string) {
   const sendExit = () => {
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const payload = JSON.stringify({
         action: "exit",
         cookie_visitante: getVisitorId(),
@@ -1024,7 +1023,7 @@ export function initExitTracking(pagina: string) {
         tempo_total_sessao: getSessionDuration(),
       });
       navigator.sendBeacon(
-        `https://${projectId}.supabase.co/functions/v1/track-capture`,
+        `${SUPABASE_URL}/functions/v1/track-capture`,
         new Blob([payload], { type: "application/json" })
       );
     } catch {}
