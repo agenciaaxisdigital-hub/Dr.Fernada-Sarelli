@@ -381,14 +381,14 @@ const Gallery = () => {
 
   // === Test data ===
   const ensureTestAlbums = async () => {
+    // Read existing albums (reads still use direct client)
     const { data: existingAlbums, error: existingError } = await supabase
       .from("albuns" as any).select("id, nome").in("nome", [...TEST_ALBUMS]);
     if (existingError) { toast.error("Erro ao preparar álbuns de teste."); return null; }
     const existingNames = new Set(((existingAlbums as unknown as Album[] | null) || []).map(a => a.nome));
-    const missing = TEST_ALBUMS.filter(name => !existingNames.has(name)).map((name, i) => ({ nome: name, ordem: i }));
-    if (missing.length > 0) {
-      const { error } = await supabase.from("albuns" as any).insert(missing as any);
-      if (error) { toast.error("Erro ao criar álbuns de teste."); return null; }
+    const missing = TEST_ALBUMS.filter(name => !existingNames.has(name));
+    for (const name of missing) {
+      try { await galleryAdmin({ action: "create-album", nome: name }); } catch { /* skip */ }
     }
     const { data, error } = await supabase.from("albuns" as any).select("id, nome").in("nome", [...TEST_ALBUMS]).order("ordem");
     if (error) return null;
@@ -396,11 +396,15 @@ const Gallery = () => {
   };
 
   const clearTestPhotos = async (silent = false) => {
-    const { error } = await supabase.from("galeria_fotos").delete().in("url_foto", TEST_IMAGE_URLS);
-    if (error) { if (!silent) toast.error("Erro ao limpar teste."); return false; }
-    if (!silent) toast.success("Fotos de teste removidas");
-    await loadData();
-    return true;
+    try {
+      await galleryAdmin({ action: "delete-test-photos", urls: TEST_IMAGE_URLS });
+      if (!silent) toast.success("Fotos de teste removidas");
+      await loadData();
+      return true;
+    } catch {
+      if (!silent) toast.error("Erro ao limpar teste.");
+      return false;
+    }
   };
 
   const populateTestPhotos = async () => {
@@ -417,21 +421,20 @@ const Gallery = () => {
       visivel: true,
       ordem: i,
     }));
-    const { error } = await supabase.from("galeria_fotos").insert(payload as any);
-    if (error) { toast.error("Erro ao criar fotos de teste."); return; }
-    toast.success("Fotos de teste adicionadas!");
-    await loadData();
+    try {
+      await galleryAdmin({ action: "insert-photos", photos: payload });
+      toast.success("Fotos de teste adicionadas!");
+      await loadData();
+    } catch { toast.error("Erro ao criar fotos de teste."); }
   };
 
   const toggleGaleria = async () => {
     const newVal = !galeriaAtiva;
-    const { error } = await supabase
-      .from("configuracoes" as any)
-      .update({ valor: newVal ? "true" : "false" } as any)
-      .eq("chave", "galeria_ativa");
-    if (error) { toast.error("Erro ao atualizar."); return; }
-    setGaleriaAtiva(newVal);
-    toast.success(newVal ? "Galeria ativada no site" : "Galeria desativada no site");
+    try {
+      await galleryAdmin({ action: "update-config", chave: "galeria_ativa", valor: newVal ? "true" : "false" });
+      setGaleriaAtiva(newVal);
+      toast.success(newVal ? "Galeria ativada no site" : "Galeria desativada no site");
+    } catch { toast.error("Erro ao atualizar."); }
   };
 
   const filteredFotos = selectedAlbum ? fotos.filter(f => f.album_id === selectedAlbum) : fotos;
