@@ -909,6 +909,7 @@ export function trackClick(tipo_clique: Platform, pagina_origem: string, extra?:
       action: "click",
       tipo_clique,
       pagina_origem,
+      dominio_origem: window.location.hostname,
       user_agent: navigator.userAgent,
       cookie_visitante,
       texto_botao: extra?.texto_botao || null,
