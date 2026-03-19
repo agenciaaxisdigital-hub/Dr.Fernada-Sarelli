@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 import ScrollReveal from "@/components/ScrollReveal";
 import Layout from "@/components/Layout";
 import PageHeader from "@/components/PageHeader";
