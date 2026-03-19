@@ -1,12 +1,10 @@
-import { supabase } from "@/integrations/supabase/client";
-
 /**
- * Helper to access Supabase tables that exist in the external project
- * but aren't reflected in the auto-generated types.
- * Usage: db("table_name").select("*") etc.
+ * Re-export supabase client with relaxed typing for tables
+ * that exist in the external Supabase project but aren't
+ * reflected in the auto-generated types.
  */
-export const db = (table: string) => {
-  return (supabase as any).from(table);
-};
+import { supabase as _supabase } from "@/integrations/supabase/client";
 
-export { supabase };
+// Cast to any to bypass strict table name checking
+// since the external project has tables not in the generated types
+export const supabase = _supabase as any;
