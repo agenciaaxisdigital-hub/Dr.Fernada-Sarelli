@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 
-const PAINEL_AUTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-auth`;
+const PAINEL_AUTH_URL = `${SUPABASE_URL}/functions/v1/painel-auth`;
 
 const AdminLoginPage = () => {
   const [username, setUsername] = useState("");
