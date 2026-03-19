@@ -113,8 +113,7 @@ function parseICalFeed(icsText: string): CalendarEvent[] {
       normalizedSummary === 'sem título' ||
       normalizedSummary.startsWith('busy ') ||
       normalizedSummary.includes('out of office') ||
-      normalizedSummary.includes('working location') ||
-      (!description.trim() && !location.trim() && normalizedSummary.length <= 10);
+      normalizedSummary.includes('working location');
 
     if (!dtstart || isBusyBlock) continue;
 
