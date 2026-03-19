@@ -49,9 +49,6 @@ Deno.serve(async (req) => {
       // ── DELETE photo ──
       case "delete-photo": {
         const { id } = body;
-        if (!EXT_SERVICE_KEY?.startsWith("eyJ")) {
-          return json({ success: false, error: "Service role key não configurada. Configure EXT_SUPABASE_SERVICE_ROLE_KEY com a chave que começa com 'eyJ...'." }, 403);
-        }
         const { data, error } = await ext.from("galeria_fotos").delete().eq("id", id).select();
         if (error) throw error;
         if (!data || data.length === 0) {
