@@ -857,6 +857,7 @@ export async function trackPageView(pagina: string) {
     const payload: Record<string, unknown> = {
       action: "pageview",
       pagina,
+      dominio_origem: window.location.hostname,
       user_agent: navigator.userAgent,
       largura_tela: window.innerWidth,
       altura_tela: window.innerHeight,
