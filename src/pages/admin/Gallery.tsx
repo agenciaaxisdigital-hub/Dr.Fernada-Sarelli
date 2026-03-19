@@ -368,14 +368,16 @@ const Gallery = () => {
       const sanitizedName = file.name.replace(/\s+/g, "-").toLowerCase();
       const folder = isVideo ? "videos" : "galeria";
       const path = `${folder}/${Date.now()}_${sanitizedName}`;
-      const { error: uploadError } = await supabase.storage.from("galeria").upload(path, file);
+      // Upload to Lovable Cloud storage (not external project)
+      const { error: uploadError } = await cloudSupabase.storage.from("galeria").upload(path, file);
 
       if (uploadError) {
-        toast.error(`Erro ao enviar "${file.name}"`);
+        console.error("Upload error:", uploadError);
+        toast.error(`Erro ao enviar "${file.name}": ${uploadError.message}`);
         continue;
       }
 
-      const { data: urlData } = supabase.storage.from("galeria").getPublicUrl(path);
+      const { data: urlData } = cloudSupabase.storage.from("galeria").getPublicUrl(path);
       try {
         const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
         await galleryAdmin({ action: "insert-photo", photo: {
