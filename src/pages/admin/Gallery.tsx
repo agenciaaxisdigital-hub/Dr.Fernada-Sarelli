@@ -504,19 +504,19 @@ const Gallery = () => {
             </div>
           ) : (
             <>
-              <div className="flex justify-center gap-3 mb-3">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Camera className="h-7 w-7 text-primary" />
+              <div className="flex justify-center gap-2 mb-2">
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-5 w-5 text-primary" />
                 </div>
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Video className="h-7 w-7 text-primary" />
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Video className="h-5 w-5 text-primary" />
                 </div>
               </div>
-              <p className="text-base sm:text-lg font-semibold">
-                Toque aqui para enviar fotos ou vídeos
+              <p className="text-sm font-semibold">
+                Toque para enviar fotos ou vídeos
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                ou arraste os arquivos para cá · JPG, PNG, MP4, WebM
+              <p className="text-xs text-muted-foreground mt-0.5">
+                JPG, PNG, MP4, WebM
               </p>
               {selectedAlbumName && (
                 <Badge variant="secondary" className="mt-3">
