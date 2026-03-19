@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabaseDb";
 
-const PAINEL_AUTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-auth`;
+const PAINEL_AUTH_URL = `${SUPABASE_URL}/functions/v1/painel-auth`;
 
 async function painelApi(body: Record<string, unknown>) {
   const res = await fetch(PAINEL_AUTH_URL, {
