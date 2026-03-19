@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
+import { decodeFocalPoint, getFocalStyle, decodeThumbnail } from "@/components/admin/FocalPointPicker";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, MessageCircle, Facebook, Instagram, User, Mail, MapPinIcon, Loader2, Play, X } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
@@ -403,6 +403,7 @@ const Index = () => {
                               muted
                               preload="none"
                               playsInline
+                              poster={decodeThumbnail(item.legenda) || undefined}
                             />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">

@@ -4,7 +4,7 @@ import {
   Pin, Pencil, ArrowLeft, ArrowRight, Check, X, FolderOpen, ImagePlus,
   Move, ChevronDown, Camera, Images, Video, Play, Crosshair
 } from "lucide-react";
-import FocalPointPicker, { encodeFocalPoint, decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
+import FocalPointPicker, { encodeFocalPoint, decodeFocalPoint, getFocalStyle, decodeThumbnail } from "@/components/admin/FocalPointPicker";
 import { supabase } from "@/lib/supabaseDb";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { galleryAdmin } from "@/lib/galleryAdmin";
@@ -109,6 +109,44 @@ const compressImage = (file: File, maxPx = 2048, quality = 0.92): Promise<File> 
 
 const WRITE_BLOCKED_MESSAGE = "Edições bloqueadas no painel: configure a service_role key correta do backend externo para liberar salvar, mover e apagar.";
 
+const captureVideoFrame = (video: HTMLVideoElement): string | null => {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 360;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return null;
+  }
+};
+
+const autoCaptureVideoFrame = (file: File, seekTo = 2): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.preload = "metadata";
+    video.crossOrigin = "anonymous";
+    const url = URL.createObjectURL(file);
+    const cleanup = () => URL.revokeObjectURL(url);
+
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(seekTo, video.duration > 0 ? video.duration * 0.1 : seekTo);
+    };
+
+    video.onseeked = () => {
+      const dataUrl = captureVideoFrame(video);
+      cleanup();
+      resolve(dataUrl);
+    };
+
+    video.onerror = () => { cleanup(); resolve(null); };
+    video.src = url;
+  });
+};
+
 const Gallery = () => {
   const [albuns, setAlbuns] = useState<Album[]>([]);
   const [fotos, setFotos] = useState<Foto[]>([]);
@@ -137,8 +175,9 @@ const Gallery = () => {
   const [writeEnabled, setWriteEnabled] = useState<boolean | null>(null);
   const [writeErrorMessage, setWriteErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
 
-  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number; zoom: number }>>([]);
+  const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number; zoom: number; isVideo?: boolean; thumbnailDataUrl?: string | null }>>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [showUploadPreview, setShowUploadPreview] = useState(false);
 
@@ -371,28 +410,21 @@ const Gallery = () => {
       return;
     }
 
-    const videoFiles = mediaFiles.filter(f => f.type.startsWith("video/"));
-    const imageFiles = mediaFiles.filter(f => f.type.startsWith("image/"));
-
-    if (videoFiles.length > 0) {
-      uploadFilesWithFocalPoints(videoFiles.map(f => ({ file: f, focalX: 50, focalY: 50, zoom: 100 })));
-    }
-
-    if (imageFiles.length > 0) {
-      const previews = imageFiles.map(file => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-        focalX: 50,
-        focalY: 50,
-        zoom: 100,
-      }));
-      setPendingUploads(previews);
-      setPreviewIndex(0);
-      setShowUploadPreview(true);
-    }
+    const previews = mediaFiles.map(file => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      focalX: 50,
+      focalY: 50,
+      zoom: 100,
+      isVideo: file.type.startsWith("video/"),
+      thumbnailDataUrl: null as string | null,
+    }));
+    setPendingUploads(previews);
+    setPreviewIndex(0);
+    setShowUploadPreview(true);
   };
 
-  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number; zoom: number }>) => {
+  const uploadFilesWithFocalPoints = async (items: Array<{ file: File; focalX: number; focalY: number; zoom: number; thumbnailDataUrl?: string | null }>) => {
     if (!ensureWriteEnabled()) return;
     setUploading(true);
     setUploadProgress(0);
@@ -421,7 +453,7 @@ const Gallery = () => {
 
     for (const chunk of chunks) {
       await Promise.allSettled(
-        chunk.map(async ({ file, fileToUpload, focalX, focalY, zoom, isVideo }) => {
+        chunk.map(async ({ file, fileToUpload, focalX, focalY, zoom, isVideo, thumbnailDataUrl }) => {
           const sanitizedName = fileToUpload.name.replace(/\s+/g, "-").toLowerCase();
           const folder = isVideo ? "videos" : "galeria";
           const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}_${sanitizedName}`;
@@ -433,8 +465,26 @@ const Gallery = () => {
           }
 
           const { data: urlData } = cloudSupabase.storage.from("galeria").getPublicUrl(path);
+
+          // Upload video thumbnail if available
+          let legendaBase: string | null = null;
+          if (isVideo && thumbnailDataUrl) {
+            try {
+              const res = await fetch(thumbnailDataUrl);
+              const blob = await res.blob();
+              const thumbPath = `thumbnails/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+              const { error: thumbErr } = await cloudSupabase.storage.from("galeria").upload(thumbPath, blob, { contentType: "image/jpeg" });
+              if (!thumbErr) {
+                const { data: thumbUrl } = cloudSupabase.storage.from("galeria").getPublicUrl(thumbPath);
+                legendaBase = `[tn:${thumbUrl.publicUrl}]`;
+              }
+            } catch {
+              // thumbnail upload failed, continue without it
+            }
+          }
+
           try {
-            const legendaWithFp = encodeFocalPoint(null, focalX, focalY, zoom);
+            const legendaWithFp = encodeFocalPoint(legendaBase, focalX, focalY, zoom);
             await galleryAdmin({ action: "insert-photo", photo: {
               titulo: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
               url_foto: urlData.publicUrl,
@@ -464,9 +514,20 @@ const Gallery = () => {
     }
   };
 
-  const confirmUploadPreviews = () => {
-    const items = pendingUploads.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY, zoom: p.zoom }));
-    pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
+  const confirmUploadPreviews = async () => {
+    // Auto-capture frame for videos without a selected thumbnail
+    const withThumbs = await Promise.all(
+      pendingUploads.map(async (p) => {
+        if (p.isVideo && !p.thumbnailDataUrl) {
+          const thumb = await autoCaptureVideoFrame(p.file);
+          return { ...p, thumbnailDataUrl: thumb };
+        }
+        return p;
+      })
+    );
+
+    const items = withThumbs.map(p => ({ file: p.file, focalX: p.focalX, focalY: p.focalY, zoom: p.zoom, thumbnailDataUrl: p.thumbnailDataUrl }));
+    withThumbs.forEach(p => URL.revokeObjectURL(p.previewUrl));
     setPendingUploads([]);
     setShowUploadPreview(false);
     uploadFilesWithFocalPoints(items);
@@ -938,30 +999,84 @@ const Gallery = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog prévia de upload com ponto focal */}
+        {/* Dialog prévia de upload com ponto focal / thumbnail de vídeo */}
         <Dialog open={showUploadPreview} onOpenChange={(open) => { if (!open) cancelUploadPreviews(); }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Posicionar foto {previewIndex + 1} de {pendingUploads.length}
+                {pendingUploads[previewIndex]?.isVideo ? "Selecionar capa do vídeo" : "Posicionar foto"} {previewIndex + 1} de {pendingUploads.length}
               </DialogTitle>
               <DialogDescription>
-                Toque na imagem para definir o ponto focal. As fotos serão exibidas inteiras, sem corte.
+                {pendingUploads[previewIndex]?.isVideo
+                  ? "Arraste o vídeo até o frame desejado e clique em Capturar frame. Se não selecionar, será capturado automaticamente."
+                  : "Toque na imagem para definir o ponto focal. As fotos serão exibidas inteiras, sem corte."}
               </DialogDescription>
             </DialogHeader>
             {pendingUploads[previewIndex] && (
               <div className="space-y-4">
-                <FocalPointPicker
-                  src={pendingUploads[previewIndex].previewUrl}
-                  focalX={pendingUploads[previewIndex].focalX}
-                  focalY={pendingUploads[previewIndex].focalY}
-                  zoom={pendingUploads[previewIndex].zoom}
-                  onChange={(x, y, z) => {
-                    setPendingUploads(prev => prev.map((p, i) =>
-                      i === previewIndex ? { ...p, focalX: x, focalY: y, zoom: z ?? p.zoom } : p
-                    ));
-                  }}
-                />
+                {pendingUploads[previewIndex].isVideo ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl overflow-hidden bg-muted">
+                      <video
+                        ref={previewVideoRef}
+                        src={pendingUploads[previewIndex].previewUrl}
+                        className="w-full max-h-[260px] object-contain"
+                        controls
+                        muted
+                        preload="metadata"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full gap-2"
+                      onClick={() => {
+                        if (!previewVideoRef.current) return;
+                        const dataUrl = captureVideoFrame(previewVideoRef.current);
+                        if (dataUrl) {
+                          setPendingUploads(prev => prev.map((p, i) =>
+                            i === previewIndex ? { ...p, thumbnailDataUrl: dataUrl } : p
+                          ));
+                        }
+                      }}
+                    >
+                      <Camera className="h-4 w-4" /> Capturar este frame como capa
+                    </Button>
+                    {pendingUploads[previewIndex].thumbnailDataUrl ? (
+                      <div className="flex items-center gap-3 p-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                        <img
+                          src={pendingUploads[previewIndex].thumbnailDataUrl!}
+                          className="h-14 w-14 object-cover rounded-lg shrink-0 border"
+                          alt="capa"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-green-700 dark:text-green-400">Frame selecionado!</p>
+                          <button
+                            className="text-xs text-muted-foreground underline"
+                            onClick={() => setPendingUploads(prev => prev.map((p, i) => i === previewIndex ? { ...p, thumbnailDataUrl: null } : p))}
+                          >
+                            Remover e capturar automaticamente
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-center text-amber-600 dark:text-amber-400">
+                        Nenhum frame selecionado — será capturado automaticamente ao enviar
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <FocalPointPicker
+                    src={pendingUploads[previewIndex].previewUrl}
+                    focalX={pendingUploads[previewIndex].focalX}
+                    focalY={pendingUploads[previewIndex].focalY}
+                    zoom={pendingUploads[previewIndex].zoom}
+                    onChange={(x, y, z) => {
+                      setPendingUploads(prev => prev.map((p, i) =>
+                        i === previewIndex ? { ...p, focalX: x, focalY: y, zoom: z ?? p.zoom } : p
+                      ));
+                    }}
+                  />
+                )}
                 <p className="text-xs text-muted-foreground text-center">
                   {pendingUploads[previewIndex].file.name}
                 </p>
@@ -995,7 +1110,7 @@ const Gallery = () => {
               </Button>
               <Button onClick={confirmUploadPreviews} className="rounded-full">
                 <Upload className="h-4 w-4 mr-1" />
-                Enviar {pendingUploads.length > 1 ? `${pendingUploads.length} fotos` : "foto"}
+                Enviar {pendingUploads.length > 1 ? `${pendingUploads.length} arquivo(s)` : pendingUploads[0]?.isVideo ? "vídeo" : "foto"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1045,7 +1160,7 @@ const Gallery = () => {
                       )}
                       {/* Thumbnail */}
                       {isVideo ? (
-                        <video src={item.url_foto} className="w-full aspect-[3/4] object-contain bg-muted" muted preload="metadata" />
+                        <video src={item.url_foto} className="w-full aspect-[3/4] object-contain bg-muted" muted preload="metadata" poster={decodeThumbnail(item.legenda) || undefined} />
                       ) : (
                         <img src={item.url_foto} alt={item.titulo} className="w-full aspect-[3/4] object-contain bg-muted" />
                       )}
@@ -1132,7 +1247,8 @@ const Gallery = () => {
                       src={foto.url_foto}
                       className={`w-full h-full object-contain ${!foto.visivel ? "opacity-50" : ""}`}
                       muted
-                      preload="metadata"
+                      preload="none"
+                      poster={decodeThumbnail(foto.legenda) || undefined}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="h-12 w-12 rounded-full bg-black/60 flex items-center justify-center">

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Image as ImageIcon, Play, X, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseDb";
 import Layout from "@/components/Layout";
-import { decodeFocalPoint, getFocalStyle } from "@/components/admin/FocalPointPicker";
+import { decodeFocalPoint, getFocalStyle, decodeThumbnail } from "@/components/admin/FocalPointPicker";
 
 interface Album {
   id: string;
@@ -258,6 +258,7 @@ const GaleriaPublica = () => {
                         muted
                         preload="none"
                         playsInline
+                        poster={decodeThumbnail(foto.legenda) || undefined}
                       />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                         <div className="h-14 w-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">

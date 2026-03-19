@@ -150,6 +150,7 @@ export default FocalPointPicker;
 
 // Helpers to encode/decode focal point + zoom in legenda field
 export const FOCAL_POINT_REGEX = /\[fp:(\d+),(\d+)(?:,(\d+))?\]$/;
+export const THUMBNAIL_REGEX = /\[tn:([^\]]+)\]/;
 
 export function encodeFocalPoint(legenda: string | null, x: number, y: number, zoom: number = 100): string {
   const clean = (legenda || "").replace(FOCAL_POINT_REGEX, "").trim();
@@ -161,14 +162,22 @@ export function encodeFocalPoint(legenda: string | null, x: number, y: number, z
 
 export function decodeFocalPoint(legenda: string | null): { cleanLegenda: string; focalX: number; focalY: number; zoom: number } {
   if (!legenda) return { cleanLegenda: "", focalX: 50, focalY: 50, zoom: 100 };
-  const match = legenda.match(FOCAL_POINT_REGEX);
-  if (!match) return { cleanLegenda: legenda, focalX: 50, focalY: 50, zoom: 100 };
+  // Strip thumbnail encoding before processing focal point
+  const withoutTn = legenda.replace(THUMBNAIL_REGEX, "").trim();
+  const match = withoutTn.match(FOCAL_POINT_REGEX);
+  if (!match) return { cleanLegenda: withoutTn, focalX: 50, focalY: 50, zoom: 100 };
   return {
-    cleanLegenda: legenda.replace(FOCAL_POINT_REGEX, "").trim(),
+    cleanLegenda: withoutTn.replace(FOCAL_POINT_REGEX, "").trim(),
     focalX: parseInt(match[1], 10),
     focalY: parseInt(match[2], 10),
     zoom: match[3] ? parseInt(match[3], 10) : 100,
   };
+}
+
+export function decodeThumbnail(legenda: string | null): string | null {
+  if (!legenda) return null;
+  const match = legenda.match(THUMBNAIL_REGEX);
+  return match ? match[1] : null;
 }
 
 export function getFocalStyle(legenda: string | null): React.CSSProperties {
