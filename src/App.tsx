@@ -1,23 +1,32 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import TrackingProvider from "@/components/TrackingProvider";
 import Index from "./pages/Index";
-import Sobre from "./pages/Sobre";
-import Agenda from "./pages/Agenda";
-import RedesSociais from "./pages/RedesSociais";
-import Integracao from "./pages/Integracao";
-import Contato from "./pages/Contato";
-import GaleriaPublica from "./pages/Galeria";
-import AdminLoginPage from "./pages/admin/Login";
-import Gallery from "./pages/admin/Gallery";
-import Forms from "./pages/admin/Forms";
-import SettingsPage from "./pages/admin/SettingsPage";
-import NotFound from "./pages/NotFound";
-import ValidarCaptura from "./pages/ValidarCaptura";
+
+// Lazy load non-critical routes
+const Sobre = lazy(() => import("./pages/Sobre"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const RedesSociais = lazy(() => import("./pages/RedesSociais"));
+const Integracao = lazy(() => import("./pages/Integracao"));
+const Contato = lazy(() => import("./pages/Contato"));
+const GaleriaPublica = lazy(() => import("./pages/Galeria"));
+const AdminLoginPage = lazy(() => import("./pages/admin/Login"));
+const Gallery = lazy(() => import("./pages/admin/Gallery"));
+const Forms = lazy(() => import("./pages/admin/Forms"));
+const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ValidarCaptura = lazy(() => import("./pages/ValidarCaptura"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -25,23 +34,25 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <TrackingProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/sobre" element={<Sobre />} />
-            <Route path="/agenda" element={<Agenda />} />
-            <Route path="/redes-sociais" element={<RedesSociais />} />
-            <Route path="/integracao" element={<Integracao />} />
-            <Route path="/contato" element={<Contato />} />
-            <Route path="/galeria" element={<GaleriaPublica />} />
-            <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-            <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/admin/galeria" element={<Gallery />} />
-            <Route path="/admin/formularios" element={<Forms />} />
-            <Route path="/admin/configuracoes" element={<SettingsPage />} />
-            <Route path="/validar-captura" element={<ValidarCaptura />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/sobre" element={<Sobre />} />
+              <Route path="/agenda" element={<Agenda />} />
+              <Route path="/redes-sociais" element={<RedesSociais />} />
+              <Route path="/integracao" element={<Integracao />} />
+              <Route path="/contato" element={<Contato />} />
+              <Route path="/galeria" element={<GaleriaPublica />} />
+              <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+              <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin/galeria" element={<Gallery />} />
+              <Route path="/admin/formularios" element={<Forms />} />
+              <Route path="/admin/configuracoes" element={<SettingsPage />} />
+              <Route path="/validar-captura" element={<ValidarCaptura />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </TrackingProvider>
       </BrowserRouter>
     </TooltipProvider>
