@@ -1,3 +1,4 @@
+import { SUPABASE_PROJECT_ID, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabaseDb";
 /**
  * CHAMA ROSA — Mission-Critical Data Capture Engine v3
  * 
