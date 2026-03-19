@@ -10,8 +10,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  // Use external Supabase where usuarios_painel table lives
+  const supabaseUrl = Deno.env.get("EXT_SUPABASE_URL") || Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("EXT_SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
   const json = (data: unknown, status = 200) =>
