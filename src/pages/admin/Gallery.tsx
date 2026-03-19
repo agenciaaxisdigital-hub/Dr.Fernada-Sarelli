@@ -68,6 +68,8 @@ const isVideoUrl = (url: string) => {
   return VIDEO_EXTENSIONS.some(ext => lower.includes(ext));
 };
 
+const WRITE_BLOCKED_MESSAGE = "Edições bloqueadas no painel: configure a service_role key correta do backend externo para liberar salvar, mover e apagar.";
+
 const Gallery = () => {
   const [albuns, setAlbuns] = useState<Album[]>([]);
   const [fotos, setFotos] = useState<Foto[]>([]);
@@ -93,9 +95,10 @@ const Gallery = () => {
   const [editZoom, setEditZoom] = useState(100);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
+  const [writeEnabled, setWriteEnabled] = useState<boolean | null>(null);
+  const [writeErrorMessage, setWriteErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload preview with focal point
   const [pendingUploads, setPendingUploads] = useState<Array<{ file: File; previewUrl: string; focalX: number; focalY: number; zoom: number }>>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [showUploadPreview, setShowUploadPreview] = useState(false);
@@ -117,9 +120,41 @@ const Gallery = () => {
     setGaleriaAtiva((configData as { valor?: string } | null)?.valor === "true");
   }, []);
 
+  const refreshWriteAccess = useCallback(async () => {
+    try {
+      const result = await galleryAdmin({ action: "debug" });
+      const enabled = result.keyIsServiceRole === true;
+      setWriteEnabled(enabled);
+      setWriteErrorMessage(enabled ? null : WRITE_BLOCKED_MESSAGE);
+    } catch {
+      setWriteEnabled(false);
+      setWriteErrorMessage(WRITE_BLOCKED_MESSAGE);
+    }
+  }, []);
+
+  const handleActionError = useCallback((error: unknown, fallbackMessage: string) => {
+    const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+    if (message.includes("Service role key inválida")) {
+      setWriteEnabled(false);
+      setWriteErrorMessage(WRITE_BLOCKED_MESSAGE);
+      toast.error(WRITE_BLOCKED_MESSAGE);
+      return;
+    }
+    toast.error(message);
+  }, []);
+
+  const ensureWriteEnabled = useCallback(() => {
+    if (writeEnabled === false) {
+      toast.error(writeErrorMessage || WRITE_BLOCKED_MESSAGE);
+      return false;
+    }
+    return true;
+  }, [writeEnabled, writeErrorMessage]);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    refreshWriteAccess();
+  }, [loadData, refreshWriteAccess]);
 
   // === Album actions ===
   const createAlbum = async () => {
