@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 
-// Google Calendar edge function runs on Lovable Cloud (no DB access needed)
 const CLOUD_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const CLOUD_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 

@@ -1,5 +1,5 @@
 /**
- * Helper to call the gallery-admin edge function on Lovable Cloud
+ * Helper to call the gallery-admin edge function
  * for all write operations (delete, update, insert) that need service role access.
  */
 const CLOUD_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
