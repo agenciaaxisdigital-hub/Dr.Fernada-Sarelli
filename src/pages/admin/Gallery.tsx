@@ -185,10 +185,10 @@ const Gallery = () => {
     const [{ data: albumData, error: albumError }, { data: fotoData, error: fotoError }, { data: configData, error: configError }] = await Promise.all([
       supabase.from("albuns" as any).select("*").order("ordem"),
       supabase.from("galeria_fotos").select("*").order("ordem"),
-      supabase.from("configuracoes" as any).select("*").eq("chave", "galeria_ativa").single(),
+      supabase.from("configuracoes" as any).select("*").eq("chave", "galeria_ativa").maybeSingle(),
     ]);
 
-    if (albumError || fotoError || configError) {
+    if (albumError || fotoError) {
       toast.error("Não foi possível carregar a galeria.");
       return;
     }
@@ -1123,15 +1123,19 @@ const Gallery = () => {
 
           const swapOrdem = async (idx: number, direction: "up" | "down") => {
             const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-            if (swapIdx < 0 || swapIdx >= destaques.length) return;
+            if (swapIdx < 0 || swapIdx >= destaques.length || !ensureWriteEnabled()) return;
             const a = destaques[idx];
             const b2 = destaques[swapIdx];
-            await Promise.all([
-              supabase.from("galeria_fotos").update({ ordem: b2.ordem } as any).eq("id", a.id),
-              supabase.from("galeria_fotos").update({ ordem: a.ordem } as any).eq("id", b2.id),
-            ]);
-            toast.success("Ordem atualizada");
-            await loadData();
+            try {
+              await Promise.all([
+                galleryAdmin({ action: "update-photo", id: a.id, updates: { ordem: b2.ordem } }),
+                galleryAdmin({ action: "update-photo", id: b2.id, updates: { ordem: a.ordem } }),
+              ]);
+              toast.success("Ordem atualizada");
+              await loadData();
+            } catch (error) {
+              handleActionError(error, "Erro ao reordenar destaques.");
+            }
           };
 
           return (
