@@ -5,7 +5,6 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAdmin } from "@/hooks/useAdmin";
-import * as XLSX from "xlsx";
 
 interface Mensagem {
   id: string;
@@ -48,7 +47,8 @@ const Forms = () => {
     return m.nome.toLowerCase().includes(s) || m.telefone.includes(s);
   });
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet(
       filtered.map((m) => ({
         Nome: m.nome,

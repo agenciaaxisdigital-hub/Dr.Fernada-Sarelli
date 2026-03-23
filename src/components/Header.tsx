@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Instagram, Facebook, MessageCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { supabase } from "@/lib/supabaseDb";
+import { useGaleriaConfig } from "@/hooks/useGaleriaConfig";
 
 const baseNavItems = [
   { label: "Sobre", path: "/sobre" },
@@ -21,20 +21,8 @@ const socialLinks = [
 
 const Header = () => {
   const [open, setOpen] = useState(false);
-  const [galeriaAtiva, setGaleriaAtiva] = useState(true);
+  const { galeriaAtiva } = useGaleriaConfig();
   const { pathname } = useLocation();
-
-  useEffect(() => {
-    supabase
-      .from("configuracoes" as any)
-      .select("valor")
-      .eq("chave", "galeria_ativa")
-      .maybeSingle()
-      .then(({ data }) => {
-        const val = String((data as any)?.valor ?? "true").toLowerCase();
-        setGaleriaAtiva(val === "true");
-      });
-  }, []);
 
   const navItems = galeriaAtiva
     ? baseNavItems

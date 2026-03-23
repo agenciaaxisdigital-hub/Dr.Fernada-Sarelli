@@ -257,7 +257,7 @@ const GaleriaPublica = () => {
                         src={foto.url_foto}
                         className="w-full h-full object-cover"
                         muted
-                        preload={decodeThumbnail(foto.legenda) ? "none" : "metadata"}
+                        preload="none"
                         playsInline
                         poster={decodeThumbnail(foto.legenda) || undefined}
                       />

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calendar, Clock, MapPin, Search, ExternalLink, Loader2, ChevronDown, ChevronRight, X } from "lucide-react";
+import { Calendar, Clock, MapPin, Search, ExternalLink, ChevronDown, ChevronRight, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -178,11 +178,19 @@ const Agenda = () => {
             </p>
           )}
 
-          {/* Loading (only when no cached data) */}
+          {/* Loading skeleton */}
           {loading && (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-              <span className="mt-2 text-sm text-muted-foreground">Carregando eventos...</span>
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border bg-card p-4 space-y-3 animate-pulse">
+                  <div className="h-3 w-24 bg-muted rounded-full" />
+                  <div className="h-4 w-2/3 bg-muted rounded" />
+                  <div className="flex gap-3">
+                    <div className="h-3 w-20 bg-muted rounded" />
+                    <div className="h-3 w-28 bg-muted rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

@@ -5,6 +5,7 @@ import { Calendar, Clock, MapPin, ExternalLink, Shield, Heart, Users, Scale, Mes
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseDb";
+import { getGaleriaAtiva } from "@/hooks/useGaleriaConfig";
 import Layout from "@/components/Layout";
 import WaveDivider from "@/components/WaveDivider";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -88,48 +89,23 @@ const Index = () => {
 
   useEffect(() => {
     const loadGaleria = async () => {
-      const { data: configData } = await supabase
-        .from("configuracoes" as any)
-        .select("valor")
-        .eq("chave", "galeria_ativa")
-        .maybeSingle();
+      // Fetch config + both query variants in parallel
+      const [ativa, destaquesResult, fallbackResult] = await Promise.all([
+        getGaleriaAtiva(),
+        (supabase.from("galeria_fotos").select("*") as any)
+          .eq("visivel", true)
+          .eq("destaque_home", true)
+          .order("ordem")
+          .limit(12),
+        supabase.from("galeria_fotos").select("*").eq("visivel", true).order("ordem").limit(12),
+      ]);
 
-      const ativa = String((configData as { valor?: string | null } | null)?.valor ?? "").toLowerCase() === "true";
       setGaleriaAtiva(ativa);
       if (!ativa) return;
 
-      // Get items marked as destaque_home
-      const { data: destaquesData } = await (supabase
-        .from("galeria_fotos")
-        .select("*") as any)
-        .eq("visivel", true)
-        .eq("destaque_home", true)
-        .order("ordem")
-        .limit(12);
-
-      if (destaquesData && destaquesData.length > 0) {
-        setGaleriaItems((destaquesData as any[]).map(d => ({
-          id: d.id,
-          titulo: d.titulo,
-          legenda: d.legenda,
-          url_foto: d.url_foto,
-          tipo: getItemTipo(d.url_foto),
-          ordem: d.ordem ?? 0,
-          evento: d.evento || null,
-        })));
-        return;
-      }
-
-      // Fallback: get first 12 visible
-      const { data: fotosData } = await supabase
-        .from("galeria_fotos")
-        .select("*")
-        .eq("visivel", true)
-        .order("ordem")
-        .limit(12);
-
-      if (fotosData) {
-        setGaleriaItems((fotosData as any[]).map(d => ({
+      const raw = destaquesResult.data?.length > 0 ? destaquesResult.data : fallbackResult.data;
+      if (raw) {
+        setGaleriaItems((raw as any[]).map(d => ({
           id: d.id,
           titulo: d.titulo,
           legenda: d.legenda,
@@ -226,7 +202,7 @@ const Index = () => {
                 <div className="h-72 w-72 md:h-96 md:w-96 rounded-full border-4 border-primary overflow-hidden shadow-2xl">
                   <img
                     src={PHOTO_URL}
-                    alt="Dra. Fernanda Sarelli"
+                    alt="Dra. Fernanda Sarelli, advogada e pré-candidata a Deputada Estadual por Goiás"
                     className="h-full w-full object-cover"
                     fetchPriority="high"
                     loading="eager"

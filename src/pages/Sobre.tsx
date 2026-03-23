@@ -63,7 +63,7 @@ const Sobre = () => (
               <div className="h-72 w-72 md:h-96 md:w-96 rounded-2xl border-4 border-primary overflow-hidden shadow-xl">
                 <img
                   src={PHOTO_URL}
-                  alt="Dra. Fernanda Sarelli"
+                  alt="Dra. Fernanda Sarelli, advogada e pré-candidata a Deputada Estadual por Goiás"
                   className="h-full w-full object-cover"
                 />
               </div>

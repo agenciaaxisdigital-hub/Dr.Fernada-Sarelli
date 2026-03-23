@@ -1251,7 +1251,7 @@ const Gallery = () => {
                       src={foto.url_foto}
                       className={`w-full h-full object-contain ${!foto.visivel ? "opacity-50" : ""}`}
                       muted
-                      preload={decodeThumbnail(foto.legenda) ? "none" : "metadata"}
+                      preload="none"
                       poster={decodeThumbnail(foto.legenda) || undefined}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">

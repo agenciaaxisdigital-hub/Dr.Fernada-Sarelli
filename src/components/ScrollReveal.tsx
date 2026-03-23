@@ -7,6 +7,13 @@ interface ScrollRevealProps {
   direction?: "up" | "down" | "left" | "right";
 }
 
+const hiddenClass: Record<string, string> = {
+  up: "opacity-0 translate-y-5",
+  down: "opacity-0 -translate-y-5",
+  left: "opacity-0 translate-x-5",
+  right: "opacity-0 -translate-x-5",
+};
+
 const ScrollReveal = ({ children, className, delay = 0, direction = "up" }: ScrollRevealProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -29,23 +36,13 @@ const ScrollReveal = ({ children, className, delay = 0, direction = "up" }: Scro
     return () => observer.disconnect();
   }, []);
 
-  const translateMap = {
-    up: "translateY(20px)",
-    down: "translateY(-20px)",
-    left: "translateX(20px)",
-    right: "translateX(-20px)",
-  };
-
   return (
     <div
       ref={ref}
-      className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "none" : translateMap[direction],
-        transition: `opacity 0.45s ease ${delay}s, transform 0.45s ease ${delay}s`,
-        willChange: visible ? "auto" : "opacity, transform",
-      }}
+      className={`transition-[opacity,transform] duration-500 ease-out ${
+        visible ? "opacity-100 translate-x-0 translate-y-0" : hiddenClass[direction]
+      } ${className ?? ""}`}
+      style={delay ? { transitionDelay: `${delay}s` } : undefined}
     >
       {children}
     </div>
