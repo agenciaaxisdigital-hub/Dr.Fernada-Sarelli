@@ -1164,7 +1164,7 @@ const Gallery = () => {
                       )}
                       {/* Thumbnail */}
                       {isVideo ? (
-                        <video src={item.url_foto} className="w-full aspect-[3/4] object-contain bg-muted" muted preload="metadata" poster={decodeThumbnail(item.legenda) || undefined} />
+                        <video src={item.url_foto} className="w-full aspect-[3/4] object-contain bg-muted" muted preload="none" poster={decodeThumbnail(item.legenda) || undefined} />
                       ) : (
                         <img src={item.url_foto} alt={item.titulo} className="w-full aspect-[3/4] object-contain bg-muted" />
                       )}
