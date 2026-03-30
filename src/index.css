@@ -85,4 +85,59 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  /* GPU-accelerated card hover */
+  .card-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    will-change: transform;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px hsl(340 82% 55% / 0.18);
+  }
+  /* Hero image ring pulse */
+  .ring-pulse {
+    animation: ring-pulse 3s ease-in-out infinite;
+    will-change: box-shadow;
+  }
+  /* Smooth page fade-in */
+  .page-enter {
+    animation: page-enter 0.4s ease-out both;
+  }
+  /* Float WhatsApp */
+  .float-bounce {
+    animation: float-bounce 2.5s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+/* Keyframes */
+@keyframes ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(340 82% 55% / 0.4); }
+  50%       { box-shadow: 0 0 0 12px hsl(340 82% 55% / 0); }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+/* Responsive fluid typography */
+@media (max-width: 375px) {
+  .container { padding-left: 1rem; padding-right: 1rem; }
+  h1 { font-size: clamp(1.75rem, 8vw, 2.5rem) !important; }
+}
+
+/* Smooth scroll global */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Tap highlight remove on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
 }

@@ -6,7 +6,7 @@ import WhatsAppFloat from "./WhatsAppFloat";
 const Layout = ({ children }: { children: ReactNode }) => (
   <div className="flex min-h-screen flex-col">
     <Header />
-    <main className="flex-1">{children}</main>
+    <main className="flex-1 page-enter">{children}</main>
     <Footer />
     <WhatsAppFloat />
   </div>

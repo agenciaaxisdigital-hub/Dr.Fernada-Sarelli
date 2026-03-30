@@ -39,7 +39,7 @@ const ScrollReveal = ({ children, className, delay = 0, direction = "up" }: Scro
   return (
     <div
       ref={ref}
-      className={`transition-[opacity,transform] duration-500 ease-out ${
+      className={`transition-[opacity,transform] duration-700 ease-out will-change-[opacity,transform] ${
         visible ? "opacity-100 translate-x-0 translate-y-0" : hiddenClass[direction]
       } ${className ?? ""}`}
       style={delay ? { transitionDelay: `${delay}s` } : undefined}

@@ -60,6 +60,7 @@ const Index = () => {
   const [galeriaFiltro, setGaleriaFiltro] = useState<"todos" | "foto" | "video" | "eventos">("todos");
   const [lightbox, setLightbox] = useState<HomeGalleryItem | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [heroImgLoaded, setHeroImgLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { events: proximosEventos, loading: eventosLoading } = useGoogleCalendar({ filter: "proximos", limit: 3 });
 
@@ -123,37 +124,37 @@ const Index = () => {
   return (
     <Layout>
       <section className="gradient-hero relative overflow-hidden">
-        <div className="container relative z-10 py-16 md:py-24">
-          <div className="grid md:grid-cols-2 gap-10 items-center">
-            <div>
+        <div className="container relative z-10 py-10 sm:py-14 md:py-24">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
+            <div className="text-center md:text-left">
               <ScrollReveal>
-                <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-1.5 text-sm font-medium text-primary-foreground">
+                <span className="inline-flex items-center gap-2 rounded-full border border-primary bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-sm">
                   <span className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" />
                   Pré-candidata 2026
                 </span>
               </ScrollReveal>
 
               <ScrollReveal delay={0.1}>
-                <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary-foreground leading-tight">
+                <h1 className="mt-5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-black leading-tight">
                   Dra. Fernanda{" "}
-                  <span className="text-primary-foreground">Sarelli</span>
+                  <span className="text-black">Sarelli</span>
                 </h1>
               </ScrollReveal>
 
               <ScrollReveal delay={0.15}>
-                <p className="mt-2 text-lg font-bold uppercase tracking-wider text-primary-foreground/80">
+                <p className="mt-2 text-lg font-bold uppercase tracking-wider text-black">
                   CHAMA A DOUTORA
                 </p>
               </ScrollReveal>
 
               <ScrollReveal delay={0.2}>
-                <p className="mt-4 text-primary-foreground/80 leading-relaxed max-w-md">
+                <p className="mt-4 text-primary-foreground/80 leading-relaxed max-w-md mx-auto md:mx-0">
                   Pré-candidata a Deputada Estadual por Goiás, com compromisso real com a defesa da mulher e da família.
                 </p>
               </ScrollReveal>
 
               <ScrollReveal delay={0.25}>
-                <div className="mt-6 flex flex-wrap gap-3">
+                <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
                   <Link
                     to="/agenda"
                     className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
@@ -197,16 +198,24 @@ const Index = () => {
               </ScrollReveal>
             </div>
 
-            <div className="flex justify-center md:justify-end">
+            {/* Hero image – appears above text on mobile, beside on desktop */}
+            <div className="flex justify-center order-first md:order-none mb-6 md:mb-0">
               <div className="relative">
-                <div className="h-72 w-72 md:h-96 md:w-96 rounded-full border-4 border-primary overflow-hidden shadow-2xl">
+                {/* Skeleton placeholder – shows instantly while image loads */}
+                <div className="h-56 w-56 sm:h-72 sm:w-72 md:h-96 md:w-96 rounded-full border-4 border-primary overflow-hidden shadow-2xl ring-pulse relative">
+                  {!heroImgLoaded && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-pink-200 via-pink-300 to-pink-400 animate-pulse" />
+                  )}
                   <img
                     src={PHOTO_URL}
                     alt="Dra. Fernanda Sarelli, advogada e pré-candidata a Deputada Estadual por Goiás"
-                    className="h-full w-full object-cover"
+                    className={`h-full w-full object-cover transition-opacity duration-500 ${
+                      heroImgLoaded ? "opacity-100" : "opacity-0"
+                    }`}
                     fetchPriority="high"
                     loading="eager"
-                    decoding="async"
+                    decoding="sync"
+                    onLoad={() => setHeroImgLoaded(true)}
                   />
                 </div>
               </div>
@@ -231,7 +240,7 @@ const Index = () => {
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {bandeiras.map((b, i) => (
               <ScrollReveal key={b.title} delay={i * 0.1}>
-                <div className="rounded-2xl border bg-card p-6 h-full transition-shadow hover:shadow-lg">
+                <div className="rounded-2xl border bg-card p-6 h-full card-hover">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent mb-4">
                     <b.icon className="h-6 w-6 text-primary" />
                   </div>
